@@ -1,0 +1,349 @@
+/* zion4life.faith. Mobile first. No external fonts or scripts: everything here must load in mainland China. */
+:root {
+  --night: #15322c;
+  --night-2: #1e443b;
+  --dawn: #f0c46a;
+  --dawn-deep: #b98325;
+  --life: #2e6a5b;
+  --life-ink: #23584b;
+  --ink: #23272b;
+  --stone: #687176;
+  --line: #dde4e0;
+  --paper: #ffffff;
+  --mist: #eff3f1;
+  --on-night: #f4f1e6;
+  --on-night-2: rgba(244, 241, 230, 0.74);
+  --highlight: rgba(240, 196, 106, 0.38);
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", system-ui, sans-serif;
+  --serif: "Zion Serif", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  --verse: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "Zion Serif", serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --night: #0f241f;
+    --night-2: #183a32;
+    --dawn-deep: #e0ad4f;
+    --life: #8cc8b4;
+    --life-ink: #a9dccb;
+    --ink: #e3e9e6;
+    --stone: #9aa6a1;
+    --line: #2a3a34;
+    --paper: #111a17;
+    --mist: #18241f;
+    --highlight: rgba(240, 196, 106, 0.24);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17px/1.85 var(--sans);
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+img { max-width: 100%; height: auto; }
+a { color: var(--life); }
+button { font: inherit; letter-spacing: inherit; }
+:focus-visible { outline: 2px solid var(--dawn-deep); outline-offset: 3px; border-radius: 4px; }
+[hidden] { display: none !important; }
+
+.wrap { max-width: 680px; margin: 0 auto; padding: 0 20px; }
+
+/* Header */
+.top {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .top {
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    -webkit-backdrop-filter: saturate(1.4) blur(12px);
+    backdrop-filter: saturate(1.4) blur(12px);
+  }
+}
+.top-in { display: flex; align-items: center; justify-content: space-between; height: 54px; }
+.brand {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--ink); text-decoration: none;
+  font-weight: 650; font-size: 17px; letter-spacing: 0.01em;
+}
+.mark { width: 26px; height: 26px; color: var(--life); flex: none; }
+.nav { display: flex; gap: 2px; margin-right: -8px; }
+.nav a {
+  position: relative;
+  padding: 6px 9px; color: var(--stone); text-decoration: none; font-size: 15px;
+}
+.nav a[aria-current] { color: var(--ink); font-weight: 600; }
+.nav a[aria-current]::after {
+  content: ""; position: absolute; left: 50%; bottom: 0; width: 12px; height: 6px;
+  margin-left: -6px; border-radius: 12px 12px 0 0; background: var(--dawn);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 24px; border-radius: 999px; border: 0;
+  font-weight: 600; font-size: 16px; text-decoration: none; cursor: pointer;
+}
+.btn-dawn { background: var(--dawn); color: #2b2312; }
+.btn-life { background: var(--life); color: var(--paper); }
+.btn-line { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn:active { transform: translateY(1px); }
+
+/* Hero: the one memorable moment, light rising over the horizon */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--night); color: var(--on-night);
+  padding: 56px 0 200px;
+}
+.hero-in { position: relative; z-index: 2; }
+.hero-q {
+  font-family: var(--serif); font-weight: 600;
+  font-size: clamp(2.25rem, 9.6vw, 3.9rem); line-height: 1.3; letter-spacing: 0.05em;
+  margin: 0 0 22px;
+}
+.hero-q span { display: block; }
+.hero-lead { margin: 0 0 30px; max-width: 21em; color: var(--on-night-2); font-size: 17px; line-height: 1.8; }
+.sun {
+  position: absolute; z-index: 1; left: 56%; bottom: -118px;
+  width: 236px; height: 236px; border-radius: 50%;
+  background: radial-gradient(circle, #fff1c4 0%, var(--dawn) 52%, #e6a447 100%);
+  box-shadow: 0 0 70px 24px rgba(240, 196, 106, 0.32);
+  animation: rise 3.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hero-glow {
+  position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(120% 70% at 66% 100%, rgba(240, 196, 106, 0.26), transparent 62%);
+  animation: glow 3.2s ease-out both;
+}
+@keyframes rise { from { transform: translateY(150px); } to { transform: translateY(0); } }
+@keyframes glow { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sun, .hero-glow { animation: none; } }
+@media (min-width: 720px) {
+  .hero { padding: 96px 0 220px; }
+  .sun { left: 62%; width: 280px; height: 280px; bottom: -140px; }
+}
+
+/* Sections */
+.band { padding: 40px 0 44px; }
+.band-mist { background: var(--mist); }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.sec-head h2 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 23px; letter-spacing: 0.08em; }
+.sec-head a { font-size: 15px; text-decoration: none; }
+.lead-p { margin: 0 0 22px; color: var(--stone); font-size: 16px; }
+
+/* Today's prayer card */
+.today {
+  display: block; padding: 22px 20px 20px; border-radius: 16px;
+  background: var(--paper); color: inherit; text-decoration: none;
+  box-shadow: 0 1px 0 var(--line), 0 0 0 1px var(--line);
+}
+.today-date { display: flex; align-items: baseline; gap: 10px; font-size: 14px; color: var(--stone); }
+.today-date b { font-family: var(--serif); font-weight: 600; font-size: 20px; color: var(--ink); letter-spacing: 0.04em; }
+.today-title { display: block; margin: 8px 0 6px; font-family: var(--serif); font-weight: 600; font-size: 21px; line-height: 1.5; }
+.today-ex {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  color: var(--stone); font-size: 15px; line-height: 1.75;
+}
+.today-go { display: inline-block; margin-top: 14px; color: var(--life); font-weight: 600; font-size: 15px; }
+
+/* Article list */
+.list { list-style: none; margin: 0; padding: 0; }
+.list li + li { border-top: 1px solid var(--line); }
+.list a { display: block; padding: 18px 0; color: inherit; text-decoration: none; }
+.list h3 { margin: 0 0 6px; font-family: var(--serif); font-weight: 600; font-size: 19px; line-height: 1.55; letter-spacing: 0.03em; }
+.list p { margin: 0; color: var(--stone); font-size: 15px; line-height: 1.75; }
+.list .meta { display: block; margin-top: 8px; color: var(--stone); font-size: 13px; }
+.list a:active h3 { color: var(--life); }
+
+.tag {
+  display: inline-block; vertical-align: 0.2em; margin-left: 6px; padding: 0 7px;
+  border-radius: 999px; background: var(--highlight); color: var(--ink);
+  font-family: var(--sans); font-size: 11px; font-weight: 500; line-height: 1.7; letter-spacing: 0.04em;
+}
+
+/* Videos */
+.vgroup + .vgroup { margin-top: 26px; }
+.vgroup h3 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+.vscroll {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 78%; gap: 14px;
+  margin: 0 -20px; padding: 0 20px 4px;
+  overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 20px; scrollbar-width: none;
+}
+.vscroll::-webkit-scrollbar { display: none; }
+.vgrid { display: grid; gap: 22px; }
+@media (min-width: 620px) {
+  .vscroll { grid-auto-columns: 46%; }
+  .vgrid { grid-template-columns: 1fr 1fr; gap: 22px 16px; }
+}
+.vtile { display: block; scroll-snap-align: start; color: inherit; text-decoration: none; }
+.vtile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; margin-top: 9px; color: var(--stone); font-size: 14px; }
+
+.poster {
+  position: relative; display: flex; align-items: flex-end;
+  aspect-ratio: 16 / 9; padding: 14px 16px; overflow: hidden; border-radius: 12px;
+  background: var(--night); color: var(--on-night);
+}
+.poster::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(90% 80% at 88% 110%, rgba(240, 196, 106, 0.3), transparent 60%);
+}
+.poster-sun {
+  position: absolute; right: 7%; bottom: -34px; width: 72px; height: 72px; border-radius: 50%;
+  background: radial-gradient(circle, #fff1c4 0%, var(--dawn) 55%, #e6a447 100%);
+}
+.poster-title {
+  position: relative; max-width: 64%;
+  font-family: var(--serif); font-weight: 600; font-size: 20px; line-height: 1.4; letter-spacing: 0.05em;
+}
+.poster-dur {
+  position: absolute; top: 12px; left: 14px; padding: 1px 9px; border-radius: 999px;
+  background: rgba(244, 241, 230, 0.14); color: var(--on-night); font-size: 12px; line-height: 1.8;
+}
+.poster-big { border-radius: 0; padding: 20px; }
+.poster-big .poster-title { font-size: clamp(22px, 6.4vw, 30px); }
+.poster-big .poster-sun { width: 120px; height: 120px; bottom: -56px; }
+.poster-play {
+  position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: rgba(244, 241, 230, 0.92); color: var(--night);
+}
+.poster-play:empty { display: none; }
+.poster-play svg { width: 28px; height: 28px; margin-left: 3px; }
+
+/* Pages */
+.page { padding-top: 28px; padding-bottom: 48px; }
+.page-title { margin: 0 0 6px; font-family: var(--serif); font-weight: 600; font-size: 28px; letter-spacing: 0.08em; }
+.page-lead { margin: 0 0 22px; color: var(--stone); font-size: 16px; }
+.back { margin: 0 0 4px; font-size: 15px; }
+.back a { text-decoration: none; }
+
+/* Article: reads like a well-set WeChat article */
+.article { padding-top: 28px; padding-bottom: 48px; }
+.a-title {
+  margin: 0 0 12px; font-family: var(--serif); font-weight: 600;
+  font-size: clamp(1.6rem, 6.8vw, 2.15rem); line-height: 1.45; letter-spacing: 0.04em;
+}
+.a-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 26px; color: var(--stone); font-size: 14px; }
+.sample-note {
+  margin: -6px 0 26px; padding: 10px 14px; border-radius: 10px;
+  background: var(--mist); color: var(--stone); font-size: 14px; line-height: 1.65;
+}
+.prose p { margin: 0 0 1.2em; }
+.prose h2 {
+  margin: 2em 0 0.75em; font-family: var(--serif); font-weight: 600;
+  font-size: 21px; line-height: 1.5; letter-spacing: 0.05em;
+}
+.prose h2::before {
+  content: ""; display: block; width: 18px; height: 9px; margin-bottom: 10px;
+  border-radius: 18px 18px 0 0; background: var(--dawn);
+}
+.prose h3 { margin: 1.6em 0 0.6em; font-size: 18px; line-height: 1.55; }
+.prose strong { font-weight: 600; background: linear-gradient(transparent 58%, var(--highlight) 0); }
+.prose ul, .prose ol { margin: 0 0 1.2em; padding-left: 1.3em; }
+.prose li { margin: 0.5em 0; padding-left: 0.2em; }
+.prose li::marker { color: var(--dawn-deep); }
+.prose img { display: block; margin: 1.5em auto; border-radius: 10px; }
+.prose hr { margin: 2em auto; width: 40px; border: 0; border-top: 2px solid var(--line); }
+.prose a { text-underline-offset: 3px; }
+.verse {
+  margin: 1.6em 0; padding: 18px 20px; border-radius: 12px;
+  background: var(--mist);
+  font-family: var(--verse); font-size: 17.5px; line-height: 1.95;
+}
+.verse p { margin: 0; }
+.verse cite {
+  display: block; margin-top: 8px; text-align: right;
+  font-family: var(--sans); font-style: normal; font-size: 14px; color: var(--stone);
+}
+
+/* Share */
+.share {
+  margin: 36px 0 8px; padding: 22px 20px; border-radius: 16px;
+  background: var(--mist); text-align: center;
+}
+.share p { margin: 0 0 14px; color: var(--stone); font-size: 15px; line-height: 1.7; }
+.share .share-wx { margin: 14px 0 0; font-size: 14px; }
+.more { margin-top: 40px; }
+.more h2 { margin: 0 0 4px; font-family: var(--serif); font-weight: 600; font-size: 20px; letter-spacing: 0.06em; }
+.more .vgrid { margin-top: 14px; }
+
+/* Daily prayer */
+.p-day { margin-top: 10px; }
+.p-date { display: flex; align-items: baseline; gap: 12px; margin: 14px 0 2px; }
+.p-md { font-family: var(--serif); font-weight: 600; font-size: 40px; line-height: 1.25; letter-spacing: 0.03em; }
+.p-wd { color: var(--stone); font-size: 16px; }
+.p-title { margin: 4px 0 18px; font-family: var(--serif); font-weight: 600; font-size: 22px; line-height: 1.5; letter-spacing: 0.04em; }
+.p-archive { margin-top: 44px; }
+.p-archive h2 { margin: 0 0 6px; font-family: var(--serif); font-weight: 600; font-size: 20px; letter-spacing: 0.06em; }
+.arch { list-style: none; margin: 0; padding: 0; }
+.arch a { display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); color: inherit; text-decoration: none; }
+.arch time { flex: none; width: 6.6em; color: var(--stone); font-size: 15px; }
+.arch span { font-size: 16px; line-height: 1.6; }
+
+/* Watch */
+.watch { padding-top: 0; }
+.player { position: relative; margin: 0 -20px; aspect-ratio: 16 / 9; background: var(--night); }
+.player iframe, .player video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+.player-start { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.player-start .poster { height: 100%; }
+.player-start:disabled { cursor: default; }
+.player-soon {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0;
+  padding: 6px 16px; border-radius: 999px; background: rgba(244, 241, 230, 0.92); color: var(--night);
+  font-size: 15px; font-weight: 600; white-space: nowrap;
+}
+@media (min-width: 720px) {
+  .watch { padding-top: 24px; }
+  .player { margin: 0; border-radius: 14px; overflow: hidden; }
+}
+.lines { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lines button {
+  padding: 5px 14px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--mist); color: var(--ink); font-size: 14px;
+}
+.lines button[aria-pressed="true"] { background: var(--life); color: var(--paper); }
+.w-title { margin: 20px 0 8px; font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1.45; letter-spacing: 0.04em; }
+.watch .a-meta { margin-bottom: 14px; }
+.w-sum { margin: 0 0 8px; }
+.w-note { margin: 0; color: var(--stone); font-size: 14px; }
+
+/* Reading-group steps (a real sequence, so numbered) */
+.steps { list-style: none; counter-reset: s; margin: 26px 0 28px; padding: 0; }
+.steps li {
+  counter-increment: s; position: relative;
+  padding: 0 0 22px 52px;
+}
+.steps li::before {
+  content: counter(s); position: absolute; left: 0; top: 0;
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--night); color: var(--dawn); font-family: var(--serif); font-weight: 600; font-size: 17px;
+}
+.steps li:not(:last-child)::after {
+  content: ""; position: absolute; left: 16px; top: 40px; bottom: 6px; width: 2px; background: var(--line);
+}
+.steps strong { display: block; font-family: var(--serif); font-weight: 600; font-size: 19px; line-height: 1.8; }
+.steps span { display: block; color: var(--stone); font-size: 16px; line-height: 1.75; }
+
+/* Footer */
+.foot { background: var(--night); color: var(--on-night-2); padding: 36px 0 calc(40px + env(safe-area-inset-bottom)); font-size: 14px; }
+.brand-foot { color: var(--on-night); }
+.brand-foot .mark { color: var(--on-night); }
+.foot-line { margin: 10px 0 18px; }
+.foot-nav { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 18px; }
+.foot-nav a { color: var(--on-night); text-decoration: none; }
+.foot-copy { margin: 0; font-size: 13px; opacity: 0.7; }
+
+/* Toast */
+.toast {
+  position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); z-index: 50;
+  transform: translateX(-50%); max-width: calc(100% - 40px);
+  padding: 10px 18px; border-radius: 999px;
+  background: var(--ink); color: var(--paper); font-size: 15px; text-align: center;
+}

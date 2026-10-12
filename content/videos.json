@@ -1,0 +1,35 @@
+[
+  {
+    "slug": "fule-rensheng",
+    "title": "福乐的人生",
+    "speaker": "李光宏",
+    "kind": "message",
+    "minutes": 120,
+    "date": "2026-10-12",
+    "summary": "一篇完整的福音信息，讲人生的意义和真正的福乐从哪里来。",
+    "sources": [],
+    "sample": true
+  },
+  {
+    "slug": "jianzheng-xuesheng-1",
+    "title": "一位大学生的见证",
+    "speaker": "",
+    "kind": "testimony",
+    "minutes": 8,
+    "date": "2026-10-12",
+    "summary": "示例占位：一位同学讲述自己在校园里认识主的经过。",
+    "sources": [],
+    "sample": true
+  },
+  {
+    "slug": "jianzheng-geren-1",
+    "title": "一个家庭的改变",
+    "speaker": "",
+    "kind": "testimony",
+    "minutes": 6,
+    "date": "2026-10-11",
+    "summary": "示例占位：一位母亲讲述信主以后家里的变化。",
+    "sources": [],
+    "sample": true
+  }
+]

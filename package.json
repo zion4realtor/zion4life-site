@@ -1,0 +1,9 @@
+{
+  "name": "zion4life",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test"
+  }
+}

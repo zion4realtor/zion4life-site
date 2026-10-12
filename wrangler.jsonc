@@ -1,0 +1,16 @@
+// Cloudflare Workers config for zion4life.faith.
+// Cloudflare runs `npx wrangler deploy` on every push to main: it builds dist/
+// with build.mjs and publishes dist/ as static assets.
+// Phase 2 (reading groups) will add src/worker.js for /api/*, a SQLite-backed
+// Durable Object for groups and check-ins, and a cron trigger for reminders.
+{
+  "name": "zion4life",
+  "compatibility_date": "2026-10-01",
+  "build": { "command": "node build.mjs" },
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "observability": { "enabled": true }
+}
