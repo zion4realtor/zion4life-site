@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import worker from '../src/worker.js';
-import { Store } from '../src/store.js';
+import { Store, OPS, migrate } from '../src/store.js';
 import { runReminders } from '../src/api.js';
 import { resetSiteData, parseVideo } from '../src/content.js';
 import { BOOKS, TOTAL_CHAPTERS, chapterLink, lifeStudyLink } from '../src/bible.js';
@@ -23,7 +23,7 @@ function fakeSql() {
   return {
     exec(q, ...b) {
       const st = db.prepare(q);
-      const out = /^\s*(select|with)/i.test(q) ? st.all(...b).map((r) => ({ ...r })) : (st.run(...b), []);
+      const out = /^\s*(select|with|pragma)/i.test(q) ? st.all(...b).map((r) => ({ ...r })) : (st.run(...b), []);
       return { toArray: () => out };
     },
   };
@@ -517,4 +517,18 @@ test('粮仓搭子 reads a tag piece by piece; Zion’s account is the first one
   const sql = fakeSql();
   new Store({ storage: { sql } }, { ADMIN_EMAILS: 'light@zion4life.faith,zion.chen@hotmail.com' });
   assert.deepEqual(sql.exec('SELECT email, name FROM user').toArray(), [{ email: 'light@zion4life.faith', name: 'Zion' }]);
+});
+
+test('starting the database again keeps everything stored (the old-table cleanup drops nothing new)', () => {
+  const sql = fakeSql();
+  migrate(sql);
+  OPS.audioStart(sql, { key: 'a:huxi/2026-10-12/zh', hash: 'h', parts: 3, now: 1 });
+  OPS.subSet(sql, { uid: 'u', topic: 'huxi', on: true, now: 1 });
+  OPS.msgAdd(sql, { id: 'm', scope: 'all', title: { zh: 't', en: 't' }, now: 1 });
+  OPS.dzFileAdd(sql, { id: 'f', gid: 'g', uid: 'u', name: 'x.pdf', type: 'application/pdf', size: 1, now: 1 });
+  migrate(sql);
+  assert.equal(OPS.audioGet(sql, { key: 'a:huxi/2026-10-12/zh' }).parts, 3);
+  assert.deepEqual(OPS.subsOf(sql, { uid: 'u' }), ['huxi']);
+  assert.equal(OPS.msgsAll(sql, {}).length, 1);
+  assert.equal(OPS.dzFiles(sql, { gid: 'g' }).length, 1);
 });

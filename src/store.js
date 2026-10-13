@@ -17,7 +17,8 @@
 //   ask         questions from the 有问题想问 box
 //   dz_file     资料 the initiator put in a group (PDF, pictures); the bytes are in `blob`
 //   blob        file bytes, in pieces under 1 MB (also the 呼吸 recordings)
-//   audio       the 呼吸 recordings: which day, which language, how many pieces, for which text
+//   rec         the 呼吸 recordings: which day, which language, how many pieces, for which text
+//               (not "audio": the first version had a table of that name, dropped at start)
 //   sub         who subscribed to what (a tag, or 呼吸)
 //   msg         messages for 我的 → 消息: to everyone, one person, a tag's or 呼吸's subscribers,
 //               or a group's members; `seen` holds when each person last opened them
@@ -62,7 +63,7 @@ const SCHEMA = [
     size INTEGER NOT NULL, created INTEGER NOT NULL)`,
   'CREATE INDEX IF NOT EXISTS dz_file_gid ON dz_file (gid, created)',
   'CREATE TABLE IF NOT EXISTS blob (key TEXT NOT NULL, i INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (key, i))',
-  `CREATE TABLE IF NOT EXISTS audio (key TEXT PRIMARY KEY, hash TEXT NOT NULL, parts INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0,
+  `CREATE TABLE IF NOT EXISTS rec (key TEXT PRIMARY KEY, hash TEXT NOT NULL, parts INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0,
     bytes INTEGER NOT NULL DEFAULT 0, tries INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL)`,
   'CREATE TABLE IF NOT EXISTS sub (uid TEXT NOT NULL, topic TEXT NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (uid, topic))',
   'CREATE INDEX IF NOT EXISTS sub_topic ON sub (topic)',
@@ -403,29 +404,29 @@ export const OPS = {
 
   // ---------- 呼吸 recordings ----------
   audioGet(sql, { key }) {
-    return first(sql, 'SELECT * FROM audio WHERE key = ?', key);
+    return first(sql, 'SELECT * FROM rec WHERE key = ?', key);
   },
   audioList(sql, { prefix }) {
-    return rows(sql, 'SELECT * FROM audio WHERE key LIKE ? ORDER BY key', `${prefix}%`);
+    return rows(sql, 'SELECT * FROM rec WHERE key LIKE ? ORDER BY key', `${prefix}%`);
   },
   // Start (or restart, when the text changed) a recording of `parts` pieces.
   audioStart(sql, { key, hash, parts, now = Date.now() }) {
-    const a = first(sql, 'SELECT hash FROM audio WHERE key = ?', key);
+    const a = first(sql, 'SELECT hash FROM rec WHERE key = ?', key);
     if (a && a.hash === hash) return { ok: false };
     sql.exec('DELETE FROM blob WHERE key LIKE ?', `${key}/%`);
-    sql.exec('INSERT OR REPLACE INTO audio (key, hash, parts, done, bytes, tries, updated) VALUES (?, ?, ?, 0, 0, 0, ?)', key, hash, parts, now);
+    sql.exec('INSERT OR REPLACE INTO rec (key, hash, parts, done, bytes, tries, updated) VALUES (?, ?, ?, 0, 0, 0, ?)', key, hash, parts, now);
     return { ok: true };
   },
   audioPart(sql, { key, done, bytes, now = Date.now() }) {
-    sql.exec('UPDATE audio SET done = ?, bytes = bytes + ?, tries = 0, updated = ? WHERE key = ?', done, bytes, now, key);
+    sql.exec('UPDATE rec SET done = ?, bytes = bytes + ?, tries = 0, updated = ? WHERE key = ?', done, bytes, now, key);
     return { ok: true };
   },
   audioFail(sql, { key, now = Date.now() }) {
-    sql.exec('UPDATE audio SET tries = tries + 1, updated = ? WHERE key = ?', now, key);
+    sql.exec('UPDATE rec SET tries = tries + 1, updated = ? WHERE key = ?', now, key);
     return { ok: true };
   },
   audioDrop(sql, { key }) {
-    sql.exec('DELETE FROM audio WHERE key = ?', key);
+    sql.exec('DELETE FROM rec WHERE key = ?', key);
     sql.exec('DELETE FROM blob WHERE key LIKE ?', `${key}/%`);
     return { ok: true };
   },
