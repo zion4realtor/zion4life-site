@@ -1,9 +1,9 @@
 // Cloudflare Workers config for zion4life.faith.
 // Cloudflare runs `npx wrangler deploy` on every push to main: it builds dist/ with
 // build.mjs, then uploads dist/ as static assets plus src/worker.js, which runs for
-// /api/* (plaza and groups) and /g/<id> (group pages).
-// STORE is a SQLite-backed Durable Object holding groups, members and check-ins; the
-// cron trigger runs every 5 minutes and emails members before each group session.
+// /api/*, /g/<id> (搭子 pages) and /x/<id> (posts by tag managers), also under /en/.
+// STORE is a SQLite-backed Durable Object holding accounts, 留言, posts and 搭子; the
+// cron trigger runs every 5 minutes and emails members as each 搭子 session starts.
 {
   "name": "zion4life",
   "main": "src/worker.js",
@@ -13,7 +13,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/g/*"],
+    "run_worker_first": ["/api/*", "/g/*", "/en/g/*", "/x/*", "/en/x/*"],
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   },

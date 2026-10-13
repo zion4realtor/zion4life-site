@@ -13,16 +13,18 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
 - Content (articles, messages, testimonies, 呼吸 items, video links) comes from Zion;
   never write doctrinal content of our own. Placeholders carry `sample: true`.
 - Low-key words in titles, menus, URLs and link previews: 粮仓 (content), 呼吸 (prayer),
-  吃饭 (Bible reading), 搭子 (groups: 饭搭子, 呼吸搭子, 投喂搭子). See README.md.
+  吃饭 (Bible reading), 搭子 (groups: 饭搭子, 呼吸搭子, 投喂搭子, 细嚼搭子). See README.md.
 - Audience is largely in mainland China: nothing may load from Google, YouTube
   thumbnails or public CDNs on page load; videos load on tap; phone first.
 - Design: water tiles on a sky palette, LXGW WenKai for display text, bottom tab bar
   (粮仓 / 呼吸 / 搭子 / 我的; Zion approved this bar, keep it), logo in `static/logo.svg`
   (a beam of light on Mount Zion). The home grid must fill whole rows.
-- Groups: `src/worker.js` routes `/api/*` to `src/api.js`; state is in the SQLite-backed
-  Durable Object (`src/store.js`). Never return contacts (email / phone) to any page;
-  check-in notes and member names are for members only. Schedules are in the
-  initiator's time zone and shown in each viewer's own (`src/schedule.js`).
+- Code that runs: `src/worker.js` routes `/api/*` to `src/api.js` (auth.js, content.js,
+  dazi.js) and renders `/g/<id>` and `/x/<id>`; state is in the SQLite-backed Durable Object
+  (`src/store.js`). Never return an email address to any page (show `maskEmail` to its owner
+  only); private 留言, venue details and signatures are for the people allowed to see them.
+  Schedules are in the initiator's time zone and shown in each viewer's own.
+- Accounts have no passwords (email codes). Zion is the admin through `ADMIN_EMAILS`.
 - Site contact: hello@zion4life.faith (forwards to Zion). The question box stores every
   message (see `/admin/`) and emails it when mail is set up.
 - Before pushing: `node build.mjs && node --test`. Pushing to `main` deploys.

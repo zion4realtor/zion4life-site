@@ -1,0 +1,466 @@
+// 有光 accounts and conversation: sign-in sheet (email + 6-digit code), 我的, 留言,
+// tag managers (认领, posts, the editor) and Zion's admin page. Exposes window.YG for dazi.js.
+(() => {
+  'use strict';
+  const EN = document.documentElement.lang === 'en';
+  const t = (zh, en) => (EN ? en : zh);
+  const pre = EN ? '/en' : '';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const IDS = {
+    seeker: ['慕道朋友', 'Seeker'], newfriend: ['新朋友', 'New friend'], student: ['学生', 'Student'], working: ['上班族', 'Working'],
+    parent: ['家长', 'Parent'], brother: ['弟兄', 'Brother'], sister: ['姊妹', 'Sister'], serving: ['服事者', 'Serving'], teacher: ['教师', 'Teacher'],
+  };
+  const idName = (k) => (IDS[k] ? IDS[k][EN ? 1 : 0] : k);
+  const COLORS = ['var(--t-aqua)', 'var(--t-mint)', 'var(--t-sky)', 'var(--t-lilac)', 'var(--t-peach)', 'var(--t-sun)'];
+
+  // ---------- small helpers ----------
+  const toastEl = $('.toast');
+  let toastTimer;
+  function toast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.hidden = true; }, 2800);
+  }
+  async function api(path, opts = {}) {
+    const headers = { 'X-Lang': EN ? 'en' : 'zh' };
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    try {
+      const r = await fetch(path, { method: opts.method || (opts.body ? 'POST' : 'GET'), headers, credentials: 'same-origin', body: opts.body ? JSON.stringify(opts.body) : undefined });
+      const data = await r.json().catch(() => ({ ok: false, error: t('网络有点问题，请稍后再试', 'Network problem. Please try again.') }));
+      data.status = r.status;
+      return data;
+    } catch (e) {
+      return { ok: false, error: t('网络有点问题，请稍后再试', 'Network problem. Please try again.') };
+    }
+  }
+  function copy(text, done) {
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ }
+      ta.remove();
+      toast(ok ? done : text);
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => toast(done), fallback);
+    else fallback();
+  }
+  const fmtDate = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { month: 'short', day: 'numeric' });
+  const fmtClock = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const dayKey = (ms) => new Date(ms).toDateString();
+  function ago(ms) {
+    const s = (Date.now() - ms) / 1000;
+    if (s < 60) return t('刚刚', 'just now');
+    if (s < 3600) return t(`${Math.floor(s / 60)} 分钟前`, `${Math.floor(s / 60)} min ago`);
+    if (dayKey(ms) === dayKey(Date.now())) return fmtClock.format(new Date(ms));
+    return fmtDate.format(new Date(ms));
+  }
+  function el(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html.trim();
+    return d.firstElementChild;
+  }
+
+  // ---------- who is signed in ----------
+  let mePromise = null;
+  function me(fresh) {
+    if (!mePromise || fresh) mePromise = api('/api/me');
+    return mePromise;
+  }
+
+  // ---------- the sign-in sheet ----------
+  let sheetOpen = null;
+  function requireLogin(reason) {
+    return me().then((m) => (m.user ? m : openSheet(reason)));
+  }
+  function openSheet(reason) {
+    if (sheetOpen) return sheetOpen;
+    sheetOpen = new Promise((resolve, reject) => {
+      const box = el(`<div class="sheet-wrap" role="dialog" aria-modal="true" aria-labelledby="sheet-h">
+<div class="sheet">
+<button type="button" class="sheet-x" aria-label="${t('关闭', 'Close')}">×</button>
+<h2 id="sheet-h">${t('登录 / 注册', 'Sign in / Sign up')}</h2>
+<p class="sheet-why">${esc(reason || t('不用密码：输入邮箱，我们发一个 6 位验证码给你。', 'No password: enter your email and we send you a 6-digit code.'))}</p>
+<form data-step="email" novalidate>
+<label class="field"><span>${t('邮箱', 'Email')}</span><input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="you@example.com"></label>
+<input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+<p class="form-error" data-error hidden></p>
+<button class="btn btn-water btn-block" type="submit">${t('获取验证码', 'Send me a code')}</button>
+<p class="hint">${t('邮箱只用来登录和发提醒，任何人都看不到。', 'Your email is only for signing in and reminders. Nobody else sees it.')}</p>
+</form>
+<form data-step="code" novalidate hidden>
+<p class="sent-to" data-sent></p>
+<label class="field"><span>${t('验证码', 'Code')}</span><input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" class="code-in" required></label>
+<div data-new hidden>
+<label class="field"><span>${t('起一个昵称', 'Pick a nickname')}</span><input name="name" maxlength="20" autocomplete="nickname" placeholder="${t('例如：小李、陈弟兄', 'e.g. Sam')}"></label>
+<div class="field"><span>${t('你是谁？可以多选，也可以不选', 'Who are you? Pick any, or none')}</span><div class="id-chips">${Object.keys(IDS).map((k) => `<button type="button" class="chip-btn" data-id="${k}" aria-pressed="false">${esc(idName(k))}</button>`).join('')}</div></div>
+<label class="check"><input type="checkbox" name="idsPublic"><span>${t('让搭子们看到我的身份标签', 'Let my buddies see these tags')}</span></label>
+</div>
+<p class="form-error" data-error hidden></p>
+<button class="btn btn-water btn-block" type="submit">${t('完成', 'Done')}</button>
+<p class="hint"><button type="button" class="link-btn" data-back>${t('换个邮箱', 'Use another email')}</button> · <button type="button" class="link-btn" data-resend>${t('重新发送', 'Send again')}</button></p>
+</form>
+</div></div>`);
+      document.body.appendChild(box);
+      document.documentElement.classList.add('sheet-on');
+      const fEmail = $('[data-step="email"]', box);
+      const fCode = $('[data-step="code"]', box);
+      const err = (f, msg) => { const e = $('[data-error]', f); e.textContent = msg || ''; e.hidden = !msg; };
+      let email = '';
+      let isNew = false;
+      const close = (ok) => {
+        box.remove();
+        document.documentElement.classList.remove('sheet-on');
+        sheetOpen = null;
+        if (!ok) reject(new Error('closed'));
+      };
+      $('.sheet-x', box).addEventListener('click', () => close(false));
+      box.addEventListener('click', (e) => { if (e.target === box) close(false); });
+      setTimeout(() => fEmail.email.focus(), 60);
+      async function send() {
+        const r = await api('/api/auth/start', { body: { email, website: fEmail.website.value } });
+        if (!r.ok) return r;
+        isNew = r.isNew;
+        $('[data-sent]', fCode).textContent = t(`验证码已经发到 ${email}，看一下邮箱（也看看垃圾邮件）。`, `We sent a code to ${email}. Check your inbox (and spam).`);
+        $('[data-new]', fCode).hidden = !isNew;
+        if (r.devCode) fCode.code.value = r.devCode;
+        return r;
+      }
+      fEmail.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err(fEmail);
+        email = fEmail.email.value.trim().toLowerCase();
+        const btn = $('button[type=submit]', fEmail);
+        btn.disabled = true;
+        const r = await send();
+        btn.disabled = false;
+        if (!r.ok) { err(fEmail, r.error); return; }
+        fEmail.hidden = true;
+        fCode.hidden = false;
+        setTimeout(() => fCode.code.focus(), 60);
+      });
+      $$('[data-id]', fCode).forEach((b) => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
+      $('[data-back]', fCode).addEventListener('click', () => { fCode.hidden = true; fEmail.hidden = false; err(fCode); });
+      $('[data-resend]', fCode).addEventListener('click', async () => {
+        const r = await send();
+        if (r.ok) toast(t('又发了一次', 'Sent again')); else err(fCode, r.error);
+      });
+      fCode.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err(fCode);
+        const btn = $('button[type=submit]', fCode);
+        btn.disabled = true;
+        const r = await api('/api/auth/verify', {
+          body: {
+            email, code: fCode.code.value, name: fCode.name.value,
+            ids: $$('[data-id][aria-pressed="true"]', fCode).map((b) => b.getAttribute('data-id')), idsPublic: fCode.idsPublic.checked,
+          },
+        });
+        btn.disabled = false;
+        if (!r.ok) { err(fCode, r.error); return; }
+        mePromise = Promise.resolve(r);
+        close(true);
+        toast(isNew ? t('欢迎你！', 'Welcome!') : t('登录好了', 'Signed in'));
+        resolve(r);
+        document.dispatchEvent(new CustomEvent('yg:login', { detail: r }));
+      });
+    });
+    return sheetOpen;
+  }
+
+  window.YG = { EN, t, pre, $, $$, esc, el, toast, api, copy, me, requireLogin, ago, idName, IDS, COLORS, fmtClock, fmtDate };
+
+  // ---------- 有问题想问: signed-in people don't need to leave a name or email ----------
+  me().then((m) => {
+    if (!m.user) return;
+    $$('[data-ask] .row').forEach((row) => { row.hidden = true; });
+    $$('[data-ask] > p').forEach((p) => { p.textContent = t('写下来，我们会认真看，回信会发到你登录用的邮箱。', 'Write it here. We will read it carefully and reply to the email you signed in with.'); });
+  });
+
+  // ---------- 留言 ----------
+  function talk(section) {
+    const target = section.getAttribute('data-talk');
+    section.innerHTML = `<h2 class="sec-h">${t('留言', 'Messages')}</h2>
+<form class="talk-form" novalidate>
+<textarea name="body" maxlength="2000" rows="3" placeholder="${t('想说什么，写在这里', 'Write here')}"></textarea>
+<div class="talk-row"><label class="check small"><input type="checkbox" name="priv"><span>${t('只给管理员看', 'Only for the managers')}</span></label>
+<button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div>
+<p class="form-error" data-error hidden></p></form>
+<div class="talk-list" data-list><p class="muted">${t('正在载入……', 'Loading…')}</p></div>`;
+    const form = $('.talk-form', section);
+    const list = $('[data-list]', section);
+    const err = $('[data-error]', form);
+    async function load() {
+      const r = await api(`/api/talk?target=${encodeURIComponent(target)}`);
+      if (!r.ok) { list.innerHTML = ''; return; }
+      if (!r.comments.length) { list.innerHTML = `<p class="muted talk-empty">${t('还没有人留言。', 'No messages yet.')}</p>`; return; }
+      const badge = (b) => (b === 'self' ? `<span class="badge">${t('本人', 'In person')}</span>` : b === 'manager' ? `<span class="badge">${t('管理员', 'Manager')}</span>` : '');
+      const one = (c, root) => `<div class="msg${root ? '' : ' reply'}"><p class="msg-h"><b>${esc(c.name)}</b>${badge(c.badge)}${!c.pub && root ? `<span class="priv">${t('只给管理员看', 'Managers only')}</span>` : ''}<time>${esc(ago(c.created))}</time></p>
+<p class="msg-b">${esc(c.body).replace(/\n/g, '<br>')}</p>
+<p class="msg-a">${root && c.canReply ? `<button type="button" class="link-btn" data-reply="${c.id}">${t('回复', 'Reply')}</button>` : ''}${c.mine || r.moderator ? `<button type="button" class="link-btn danger" data-hide="${c.id}">${t('删除', 'Remove')}</button>` : ''}</p></div>`;
+      list.innerHTML = r.comments.map((c) => `<div class="thread">${one(c, true)}${c.replies.map((x) => one(x, false)).join('')}</div>`).join('');
+      $$('[data-hide]', list).forEach((b) => b.addEventListener('click', async () => {
+        if (!confirm(t('删除这条留言？', 'Remove this message?'))) return;
+        const x = await api(`/api/talk/${b.getAttribute('data-hide')}/hide`, { body: {} });
+        if (x.ok) load(); else toast(x.error);
+      }));
+      $$('[data-reply]', list).forEach((b) => b.addEventListener('click', () => {
+        const id = b.getAttribute('data-reply');
+        const thread = b.closest('.thread');
+        if ($('.reply-form', thread)) return;
+        const f = el(`<form class="talk-form reply-form"><textarea name="body" rows="2" maxlength="2000" placeholder="${t('回复…', 'Reply…')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('回复', 'Reply')}</button></div></form>`);
+        thread.appendChild(f);
+        f.body.focus();
+        f.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          await requireLogin(t('登录以后就能回复。', 'Sign in to reply.'));
+          const x = await api('/api/talk', { body: { target, body: f.body.value, replyTo: id } });
+          if (x.ok) load(); else toast(x.error);
+        });
+      }));
+    }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      if (!form.body.value.trim()) { err.textContent = t('先写点什么吧。', 'Write something first.'); err.hidden = false; return; }
+      try { await requireLogin(t('登录以后就能留言。', 'Sign in to leave a message.')); } catch (x) { return; }
+      const btn = $('button[type=submit]', form);
+      btn.disabled = true;
+      const r = await api('/api/talk', { body: { target, body: form.body.value, pub: !form.priv.checked } });
+      btn.disabled = false;
+      if (!r.ok) { err.textContent = r.error; err.hidden = false; return; }
+      form.reset();
+      toast(t('留言发出去了', 'Message sent'));
+      load();
+    });
+    document.addEventListener('yg:login', load);
+    load();
+  }
+  $$('[data-talk]').forEach(talk);
+
+  // ---------- tag pages: 认领, 写一篇, and posts by the tag's managers ----------
+  const postCard = (p) => `<a class="card" href="${pre}/x/${p.id}/" data-kind="${p.kind === 'video' ? 'videos' : 'reads'}"><span class="card-body" style="display:block">
+<span class="kind">${p.kind === 'video' ? t('视频', 'Video') : t('文章', 'Read')}</span>${p.lang !== (EN ? 'en' : 'zh') ? `<span class="tag-s">${p.lang === 'en' ? 'EN' : '中文'}</span>` : ''}
+<h3>${esc(p.title)}</h3>${p.summary ? `<p>${esc(p.summary)}</p>` : ''}<span class="meta"><span>${esc(p.author)}</span><span>${esc(ago(p.created))}</span></span></span></a>`;
+  $$('[data-tag-posts]').forEach(async (box) => {
+    const tag = box.getAttribute('data-tag-posts');
+    const r = await api(`/api/posts?tag=${encodeURIComponent(tag)}`);
+    if (!r.ok || !r.posts.length) return;
+    box.innerHTML = r.posts.map(postCard).join('');
+    box.hidden = false;
+    const empty = $('[data-empty]');
+    if (empty) empty.hidden = true;
+  });
+  $$('[data-tag-tools]').forEach(async (box) => {
+    const tag = box.getAttribute('data-tag-tools');
+    const person = box.hasAttribute('data-person');
+    const render = async () => {
+      const m = await me();
+      const manages = m.user && (m.admin || (m.manages || []).includes(tag));
+      const claim = m.user && (m.claims || []).find((c) => c.tag === tag && c.status === 'pending');
+      let h = '';
+      if (manages) h = `<a class="btn btn-water btn-sm" href="${pre}/write/?tag=${encodeURIComponent(tag)}">✎ ${t('写一篇', 'Write')}</a><span class="muted">${m.admin && !(m.manages || []).includes(tag) ? t('你是网站管理员', 'You run this site') : t('你管理这个标签', 'You manage this tag')}</span>`;
+      else if (claim) h = `<span class="muted">${t('认领申请已经提交，正在等网站确认。', 'Your claim is waiting for the site to confirm.')}</span>`;
+      else if (person) h = `<button type="button" class="link-btn" data-claim>${t('这是我本人？认领这个标签', 'Is this you? Claim this tag')}</button>`;
+      box.innerHTML = h;
+      const b = $('[data-claim]', box);
+      if (b) {
+        b.addEventListener('click', async () => {
+          try { await requireLogin(t('先登录，再认领。', 'Sign in first, then claim.')); } catch (x) { return; }
+          const note = prompt(t('给网站留一句话，方便核实是你本人（例如你的微信号或我们的共同朋友）：', 'Leave a note so the site can confirm it is you (e.g. how we know each other):'), '');
+          if (note === null) return;
+          const r = await api('/api/claims', { body: { tag, note } });
+          if (r.ok) { toast(t('提交好了，网站确认后就能管理这个标签。', 'Sent. Once confirmed, you can manage this tag.')); await me(true); render(); } else toast(r.error);
+        });
+      }
+    };
+    render();
+    document.addEventListener('yg:login', () => render());
+  });
+
+  // ---------- post pages: edit / remove for the author ----------
+  $$('[data-post-tools]').forEach(async (box) => {
+    const id = box.getAttribute('data-post-tools');
+    const r = await api(`/api/posts/${id}`);
+    if (!r.ok || !r.canEdit) return;
+    box.innerHTML = `<p class="btn-row"><a class="btn btn-line btn-sm" href="${pre}/write/?id=${id}">${t('修改', 'Edit')}</a><button type="button" class="btn btn-line btn-sm" data-del>${t('删除', 'Remove')}</button></p>`;
+    $('[data-del]', box).addEventListener('click', async () => {
+      if (!confirm(t('删除这一篇？', 'Remove this piece?'))) return;
+      const x = await api(`/api/posts/${id}/delete`, { body: {} });
+      if (x.ok) location.href = `${pre}/t/${r.post.tags[0]}/`; else toast(x.error);
+    });
+  });
+
+  // ---------- 我的 ----------
+  const meBox = $('[data-me]');
+  if (meBox) {
+    const render = async () => {
+      const m = await me();
+      if (!m.user) {
+        meBox.innerHTML = `<div class="info"><h2>${t('还没有登录', 'Not signed in')}</h2>
+<p>${t('登录以后，你加入的搭子、打过的卡、留过的言都会跟着你，换手机也在。不用密码，邮箱收验证码就行。', 'Sign in and your buddy groups, check-ins and messages follow you, even on a new phone. No password: just a code by email.')}</p>
+${m.mail === false ? `<p class="muted">${t('（注册和登录还在准备中，过几天开放。）', '(Sign-in opens in a few days.)')}</p>` : ''}
+<p><button type="button" class="btn btn-water" data-login>${t('登录 / 注册', 'Sign in / Sign up')}</button></p></div>`;
+        $('[data-login]', meBox).addEventListener('click', () => requireLogin().then(render, () => {}));
+        return;
+      }
+      const u = m.user;
+      const mine = await api('/api/dazi/mine');
+      const cal = `${location.host}/api/cal/${u.cal}.ics${EN ? '?lang=en' : ''}`;
+      meBox.innerHTML = `<div class="profile">
+<span class="avatar">${esc([...u.name][0] || '·')}</span>
+<div><h2>${esc(u.name)}</h2><p class="muted">${esc(u.email)}</p></div>
+<button type="button" class="link-btn" data-edit>${t('修改', 'Edit')}</button></div>
+<div class="id-line">${u.ids.length ? u.ids.map((k) => `<span class="chiplink">${esc(idName(k))}</span>`).join('') : `<span class="muted">${t('还没有身份标签', 'No identity tags yet')}</span>`}<span class="muted small">${u.idsPublic ? t('搭子们看得到', 'visible to buddies') : t('只有你自己看得到', 'only you see these')}</span></div>
+<section class="more"><h2 class="sec-h">${t('我的搭子', 'My buddy groups')}</h2>
+${mine.groups && mine.groups.length ? `<div class="mine-list">${mine.groups.map((g) => `<a class="mine-item" href="${pre}/g/${g.id}"><b>${esc(g.title)}</b><span>${g.next ? `${g.next.live ? t('正在进行', 'On now') : t('下次', 'Next')} ${esc(fmtDate.format(new Date(g.next.start)))} ${esc(fmtClock.format(new Date(g.next.start)))}` : g.finished ? t('已读完', 'Finished') : ''}</span></a>`).join('')}</div>` : `<p class="muted">${t('还没有加入搭子。', 'No buddy groups yet.')} <a href="${pre}/dazi/">${t('去广场看看', 'Visit the plaza')}</a></p>`}
+</section>
+<section class="more"><h2 class="sec-h">${t('加到手机日历', 'Add to your phone calendar')}</h2>
+<p class="muted">${t('订阅一次，你所有搭子的时间都会出现在日历里，到时间会提醒你，点开就是那次要读的材料。以后加入新的搭子会自动更新。', 'Subscribe once and every buddy group’s times show up in your calendar, with a reminder and a link to that time’s reading. New groups are added automatically.')}</p>
+<div class="cal-row"><a class="btn btn-line btn-sm" href="webcal://${esc(cal)}">${t('iPhone / Mac 日历', 'iPhone / Mac')}</a>
+<a class="btn btn-line btn-sm" href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(`webcal://${cal}`)}" target="_blank" rel="noopener">${t('Google 日历', 'Google Calendar')}</a>
+<a class="btn btn-line btn-sm" href="https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(`https://${cal}`)}&name=${encodeURIComponent(t('有光搭子', 'Light buddies'))}" target="_blank" rel="noopener">Outlook</a>
+<button type="button" class="btn btn-line btn-sm" data-copy-cal>${t('复制订阅链接', 'Copy link')}</button></div>
+<p class="hint">${t('这个链接是你专属的，不要发给别人。', 'This link is yours alone. Do not share it.')}</p></section>
+${m.manages && m.manages.length ? `<section class="more"><h2 class="sec-h">${t('我管理的标签', 'Tags I manage')}</h2><div class="cal-row">${m.manages.map((tag) => `<a class="btn btn-line btn-sm" href="${pre}/t/${tag}/">${esc(tag)}</a>`).join('')}</div></section>` : ''}
+${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site admin')}</a></p>` : ''}
+<p class="logout"><button type="button" class="link-btn" data-logout>${t('退出登录', 'Sign out')}</button></p>`;
+      $('[data-copy-cal]', meBox).addEventListener('click', () => copy(`https://${cal}`, t('订阅链接已复制', 'Link copied')));
+      $('[data-logout]', meBox).addEventListener('click', async () => {
+        await api('/api/auth/logout', { body: {} });
+        await me(true);
+        render();
+      });
+      $('[data-edit]', meBox).addEventListener('click', () => editProfile(u, render));
+      // tag names for the managed tags
+      fetch('/data/tags.json').then((r) => r.json()).then((tags) => {
+        $$('.cal-row a[href*="/t/"]', meBox).forEach((a) => {
+          const id = a.getAttribute('href').split('/t/')[1].replace('/', '');
+          const tg = tags.find((x) => x.id === id);
+          if (tg) a.textContent = tg[EN ? 'en' : 'zh'];
+        });
+      }).catch(() => {});
+    };
+    render();
+  }
+  function editProfile(u, done) {
+    const box = el(`<div class="sheet-wrap" role="dialog" aria-modal="true"><form class="sheet" novalidate>
+<button type="button" class="sheet-x" aria-label="${t('关闭', 'Close')}">×</button>
+<h2>${t('修改我的资料', 'Edit my profile')}</h2>
+<label class="field"><span>${t('昵称', 'Nickname')}</span><input name="name" maxlength="20" value="${esc(u.name)}"></label>
+<div class="field"><span>${t('身份标签', 'Identity tags')}</span><div class="id-chips">${Object.keys(IDS).map((k) => `<button type="button" class="chip-btn" data-id="${k}" aria-pressed="${u.ids.includes(k)}">${esc(idName(k))}</button>`).join('')}</div></div>
+<label class="check"><input type="checkbox" name="idsPublic"${u.idsPublic ? ' checked' : ''}><span>${t('让搭子们看到我的身份标签', 'Let my buddies see these tags')}</span></label>
+<div class="field"><span>${t('提醒邮件用哪种语言', 'Language for emails')}</span><div class="seg"><label><input type="radio" name="lang" value="zh"${u.lang !== 'en' ? ' checked' : ''}><span>中文</span></label><label><input type="radio" name="lang" value="en"${u.lang === 'en' ? ' checked' : ''}><span>English</span></label></div></div>
+<p class="form-error" data-error hidden></p>
+<button class="btn btn-water btn-block" type="submit">${t('保存', 'Save')}</button></form></div>`);
+    document.body.appendChild(box);
+    const f = $('form', box);
+    $$('[data-id]', f).forEach((b) => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
+    $('.sheet-x', box).addEventListener('click', () => box.remove());
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await api('/api/me', { body: { name: f.name.value, ids: $$('[data-id][aria-pressed="true"]', f).map((b) => b.getAttribute('data-id')), idsPublic: f.idsPublic.checked, lang: f.lang.value } });
+      if (!r.ok) { const er = $('[data-error]', f); er.textContent = r.error; er.hidden = false; return; }
+      mePromise = Promise.resolve(r);
+      box.remove();
+      done();
+    });
+  }
+
+  // ---------- the editor for tag managers ----------
+  const writeBox = $('[data-write]');
+  if (writeBox) {
+    (async () => {
+      let m;
+      try { m = await requireLogin(t('登录以后才能写。', 'Sign in to write.')); } catch (x) { writeBox.innerHTML = `<p class="muted">${t('需要先登录。', 'Please sign in first.')}</p>`; return; }
+      const q = new URLSearchParams(location.search);
+      const tags = await fetch('/data/tags.json').then((r) => r.json());
+      let post = null;
+      if (q.get('id')) {
+        const r = await api(`/api/posts/${q.get('id')}`);
+        if (!r.ok || !r.canEdit) { writeBox.innerHTML = `<p class="form-error">${esc(r.error || t('不能修改这一篇', 'You cannot edit this'))}</p>`; return; }
+        post = r.post;
+      }
+      const managed = m.admin ? tags.map((x) => x.id) : m.manages || [];
+      if (!managed.length) { writeBox.innerHTML = `<div class="info"><h2>${t('还不能写', 'Not yet')}</h2><p>${t('只有标签管理员可以在这里发文章和视频。', 'Only tag managers can post here.')}</p></div>`; return; }
+      const chosen = post ? post.tags : [q.get('tag') || managed[0]];
+      const allowed = tags.filter((x) => m.admin || managed.includes(x.id) || !x.person);
+      writeBox.innerHTML = `<h1 class="page-title">${post ? t('修改', 'Edit') : t('写一篇', 'Write')}</h1>
+<form class="form" novalidate>
+<div class="seg"><label><input type="radio" name="kind" value="article"${!post || post.kind === 'article' ? ' checked' : ''}><span>${t('文章', 'Article')}</span></label><label><input type="radio" name="kind" value="video"${post && post.kind === 'video' ? ' checked' : ''}><span>${t('视频', 'Video')}</span></label></div>
+<label class="field"><span>${t('标题', 'Title')}</span><input name="title" maxlength="80" value="${esc(post ? post.title : '')}"></label>
+<label class="field"><span>${t('一两句介绍', 'A line or two')}<em>${t('显示在卡片上', 'shown on the card')}</em></span><input name="summary" maxlength="200" value="${esc(post ? post.summary : '')}"></label>
+<label class="field" data-video><span>${t('视频链接', 'Video link')}<em>${t('YouTube、B站、Vimeo、Bunny 或 .mp4', 'YouTube, Bilibili, Vimeo, Bunny or .mp4')}</em></span><input name="video" type="url" inputmode="url" value="${esc(post && post.video ? (post.video.id ? `https://youtu.be/${post.video.id}` : post.video.url) : '')}"></label>
+<label class="field"><span>${t('正文', 'Text')}</span><textarea name="body" rows="14" maxlength="60000" placeholder="${t('空一行就是新的一段。## 开头是小标题，> 开头是经文，最后一行写 —— 出处。', 'A blank line starts a new paragraph. ## for a heading, > for a verse with a last line — reference.')}">${esc(post ? post.body : '')}</textarea></label>
+<div class="field"><span>${t('标签', 'Tags')}</span><div class="id-chips">${allowed.map((x) => `<button type="button" class="chip-btn" data-tag="${x.id}" aria-pressed="${chosen.includes(x.id)}">${esc(x[EN ? 'en' : 'zh'])}</button>`).join('')}</div></div>
+<div class="field"><span>${t('这一篇是', 'Written in')}</span><div class="seg"><label><input type="radio" name="lang" value="zh"${(post ? post.lang : EN ? 'en' : 'zh') === 'zh' ? ' checked' : ''}><span>中文</span></label><label><input type="radio" name="lang" value="en"${(post ? post.lang : EN ? 'en' : 'zh') === 'en' ? ' checked' : ''}><span>English</span></label></div></div>
+<p class="form-error" data-error hidden></p>
+<button class="btn btn-water btn-block" type="submit">${post ? t('保存', 'Save') : t('发布', 'Publish')}</button></form>`;
+      const f = $('form', writeBox);
+      const syncKind = () => { $('[data-video]', f).hidden = f.kind.value !== 'video'; };
+      f.addEventListener('change', syncKind);
+      syncKind();
+      $$('[data-tag]', f).forEach((b) => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const er = $('[data-error]', f);
+        er.hidden = true;
+        const btn = $('button[type=submit]', f);
+        btn.disabled = true;
+        const r = await api('/api/posts', { body: { id: post ? post.id : undefined, kind: f.kind.value, title: f.title.value, summary: f.summary.value, video: f.video.value, body: f.body.value, lang: f.lang.value, tags: $$('[data-tag][aria-pressed="true"]', f).map((b) => b.getAttribute('data-tag')) } });
+        btn.disabled = false;
+        if (!r.ok) { er.textContent = r.error; er.hidden = false; return; }
+        location.href = `${pre}/x/${r.id}/`;
+      });
+    })();
+  }
+
+  // ---------- Zion's admin page ----------
+  const adminBox = $('[data-admin]');
+  if (adminBox) {
+    const load = async () => {
+      const r = await api('/api/admin/overview');
+      if (r.status === 401) {
+        adminBox.innerHTML = `<p>请先用管理员邮箱登录。</p><p><button class="btn btn-water" type="button" data-login>登录</button></p>`;
+        $('[data-login]', adminBox).addEventListener('click', () => requireLogin().then(load, () => {}));
+        return;
+      }
+      if (!r.ok) { adminBox.innerHTML = `<p class="form-error">${esc(r.error)}</p>`; return; }
+      const tagName = Object.fromEntries(r.tags.map((x) => [x.id, x.zh]));
+      const d = (ms) => new Date(ms).toLocaleString('zh-CN', { hour12: false });
+      adminBox.innerHTML = `
+<section class="adm"><h2 class="sec-h">认领申请 <small>${r.claims.length}</small></h2>${r.claims.length ? r.claims.map((c) => `<div class="adm-row"><p><b>${esc(c.name)}</b>（${esc(c.email)}）想认领「${esc(tagName[c.tag] || c.tag)}」${c.ids.length ? `，身份：${c.ids.map((k) => esc(idName(k))).join('、')}` : ''}</p>${c.note ? `<p class="muted">留言：${esc(c.note)}</p>` : ''}<p class="btn-row"><button class="btn btn-water btn-sm" data-claim="${c.id}" data-st="approved">同意</button><button class="btn btn-line btn-sm" data-claim="${c.id}" data-st="declined">不同意</button></p></div>`).join('') : '<p class="muted">没有待处理的申请。</p>'}</section>
+<section class="adm"><h2 class="sec-h">标签管理员</h2>
+<form class="adm-form" data-add-mgr><select name="tag">${r.tags.map((x) => `<option value="${x.id}">${esc(x.zh)}</option>`).join('')}</select><input name="email" type="email" placeholder="对方注册用的邮箱"><button class="btn btn-water btn-sm" type="submit">任命</button></form>
+${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>「${esc(tagName[x.tag] || x.tag)}」${esc(x.name)}（${esc(x.email)}）</span><button class="link-btn danger" data-del-mgr="${x.tag}|${x.uid}">取消</button></div>`).join('') : '<p class="muted">还没有任命管理员。</p>'}</section>
+<section class="adm"><h2 class="sec-h">大家发来的问题 <small>${r.asks.length}</small></h2>${r.asks.length ? r.asks.slice(0, 50).map((a) => `<div class="adm-row"><p>${esc(a.message).replace(/\n/g, '<br>')}</p><p class="muted">${esc(a.name || '没留称呼')} · ${a.reply ? `<a href="mailto:${esc(a.reply)}">${esc(a.reply)}</a>` : '没留邮箱'} · ${esc(d(a.created))} · ${a.mailed ? '已发到邮箱' : '没发邮件'}</p></div>`).join('') : '<p class="muted">还没有。</p>'}</section>
+<section class="adm"><h2 class="sec-h">搭子 <small>${r.groups.length}</small></h2>${r.groups.map((g) => `<div class="adm-row inline"><span><a href="/g/${g.id}">${esc(g.title)}</a> · ${esc(g.kindLabel)} · ${g.lang === 'en' ? 'English' : '中文'} · ${g.visibility === 'public' ? '公开' : '隐藏'} · ${g.members} 人 · ${esc(g.owner)} · ${{ active: '进行中', closed: '已结束', removed: '已撤下' }[g.status]}</span>${g.status === 'removed' ? `<button class="link-btn" data-dz="${g.id}" data-st="active">恢复</button>` : `<button class="link-btn danger" data-dz="${g.id}" data-st="removed">撤下</button>`}</div>`).join('') || '<p class="muted">还没有。</p>'}</section>
+<section class="adm"><h2 class="sec-h">最近的留言</h2>${r.talk.map((c) => `<div class="adm-row inline"><span><b>${esc(c.name)}</b>${c.pub ? '' : '（只给管理员）'}：${esc(c.body.slice(0, 120))} <span class="muted">${esc(c.target)}</span></span><button class="link-btn danger" data-talk-hide="${c.id}">删除</button></div>`).join('') || '<p class="muted">还没有。</p>'}</section>
+<section class="adm"><h2 class="sec-h">管理员发的文章和视频</h2>${r.posts.map((p) => `<div class="adm-row inline"><span><a href="/x/${p.id}/">${esc(p.title)}</a> · ${esc(p.author)} · ${p.status === 'live' ? '在线' : '已撤下'}</span>${p.status === 'live' ? `<button class="link-btn danger" data-post="${p.id}" data-st="removed">撤下</button>` : `<button class="link-btn" data-post="${p.id}" data-st="live">恢复</button>`}</div>`).join('') || '<p class="muted">还没有。</p>'}</section>
+<section class="adm"><h2 class="sec-h">注册的人 <small>${r.userCount}</small></h2>${r.users.map((u) => `<div class="adm-row inline"><span>${esc(u.name)} · ${esc(u.email)} · ${u.ids.map((k) => esc(idName(k))).join('、')}</span><span class="muted">${esc(d(u.created))}</span></div>`).join('')}</section>`;
+      const post = async (path, body) => {
+        const x = await api(path, { body });
+        if (!x.ok) toast(x.error); else load();
+      };
+      $$('[data-claim]', adminBox).forEach((b) => b.addEventListener('click', () => post(`/api/admin/claims/${b.getAttribute('data-claim')}`, { status: b.getAttribute('data-st') })));
+      $$('[data-del-mgr]', adminBox).forEach((b) => b.addEventListener('click', () => {
+        const [tag, uid] = b.getAttribute('data-del-mgr').split('|');
+        if (confirm('取消这位管理员？')) post('/api/admin/managers/delete', { tag, uid });
+      }));
+      $$('[data-dz]', adminBox).forEach((b) => b.addEventListener('click', () => post(`/api/admin/dazi/${b.getAttribute('data-dz')}`, { status: b.getAttribute('data-st') })));
+      $$('[data-talk-hide]', adminBox).forEach((b) => b.addEventListener('click', () => post(`/api/admin/talk/${b.getAttribute('data-talk-hide')}/hide`, {})));
+      $$('[data-post]', adminBox).forEach((b) => b.addEventListener('click', () => post(`/api/admin/posts/${b.getAttribute('data-post')}`, { status: b.getAttribute('data-st') })));
+      const f = $('[data-add-mgr]', adminBox);
+      f.addEventListener('submit', (e) => { e.preventDefault(); post('/api/admin/managers', { tag: f.tag.value, email: f.email.value }); });
+    };
+    load();
+  }
+})();

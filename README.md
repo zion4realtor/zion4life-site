@@ -32,17 +32,22 @@ Chinese pages live at the root, English pages under `/en/` with the same path.
 | Videos (both languages in one entry) | `content/videos.json` |
 | Page templates | `build.mjs` |
 | Styles, page scripts, fonts, logo, icons | `static/` (`logo.svg` is the logo; WenKai font in `static/fonts/wenkai/`) |
-| 搭子 pages | `build.mjs` (page shells) + `static/js/groups.js` |
-| API: groups, question box, reminders | `src/api.js` (routed by `src/worker.js`) |
-| Schedules, time zones, reading plans, calendar files | `src/schedule.js`, `src/bible.js` |
-| Stored data (groups, members, check-ins, voice notes, questions) | `src/store.js` (SQLite-backed Durable Object) |
+| Accounts (email + 6-digit code, no password), 我的 | `src/auth.js`; page in `static/js/app.js` |
+| 留言, 认领 (claims), tag managers' posts (`/x/<id>`), the editor `/write/` | `src/content.js`; pages in `static/js/app.js` |
+| 搭子: plaza `/dazi/`, `/dazi/new/`, group `/g/<id>`, session `/g/<id>/<n>` | `src/dazi.js`; pages in `static/js/dazi.js` |
+| Zion's page `/admin/` (claims, managers, questions, groups, 留言, posts, accounts) | `src/api.js`; page in `static/js/app.js` |
+| Schedules, readings, time zones, calendar files and invitations | `src/schedule.js`, `src/bible.js` |
+| 投喂 lessons (feeding new friends), `01.zh.md`, `01.en.md` … numbered without gaps | `content/feed/` |
+| Stored data (accounts, 留言, posts, groups, check-ins, signatures) | `src/store.js` (SQLite-backed Durable Object) |
 | Email | `src/mail.js` |
+| Shared Markdown | `src/md.js` (used by build.mjs and the Worker) |
 | Cloudflare deploy settings | `wrangler.jsonc` |
 
 `node build.mjs` writes the site to `dist/`. The Cloudflare Worker `zion4life` is
 connected to this repository: every push to `main` runs `npx wrangler deploy`, which
-builds `dist/` and publishes it within a minute or two. Only `/api/*` and `/g/<id>`
-run code; old addresses (`/read/`, `/watch/`, `/pray/`, `/square/`) redirect through
+builds `dist/` and publishes it within a minute or two. Only `/api/*`, `/g/<id>` and
+`/x/<id>` (also under `/en/`) run code; build.mjs also writes `/data/*.json` (tags,
+pieces, Bible books, 呼吸 days, 投喂 lessons) for the pages and the Worker. Old addresses (`/read/`, `/watch/`, `/pray/`, `/square/`) redirect through
 `static/_redirects`.
 
 ## Common updates
@@ -90,23 +95,51 @@ is set up: the `send_email` binding `ASK_MAIL` (Cloudflare Email Routing, destin
 Zion's verified address) with `ASK_FROM` (e.g. `hello@zion4life.faith`) and `ASK_TO`
 variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
 
-## Groups (搭子)
+## Accounts, 留言 and tag managers
 
-- Anyone can start a group at `/dazi/new/` (reading plan or material, weekdays, time,
-  length, start date, time zone, public or invite-only, approval, size). The group page
-  `/g/<id>` shows the covenant, the next session in the visitor's own time zone, the
-  join form, and for members: check-in with notes or a voice note, the calendar file,
-  invite link, personal link and records. The initiator approves, removes, updates
-  the material and can end the group.
-- Privacy: contacts are used only for reminders and never sent to any page. Check-in
-  notes and member names are for members only.
-- Reminders: the 5-minute cron emails members 5–20 minutes before each session.
-- Settings (Cloudflare → Workers & Pages → zion4life → Settings → Variables and
-  Secrets; `keep_vars` keeps them across deploys): `ADMIN_KEY` (Secret, the `/admin/`
-  password) and the mail settings above.
-- Bible links: `BIBLE_LINK` in `src/bible.js`.
-- Being rebuilt (accounts, four materials, signature covenant, bookmarks, owner
-  statistics, message board, both languages).
+- Sign-in: email → a 6-digit code by email (15 minutes, 5 tries) → signed in for a year
+  (HttpOnly cookie `yg_s`; only its hash is stored). The first time, a nickname and
+  optional identity tags (慕道朋友, 新朋友, 学生, 上班族, 家长, 弟兄, 姊妹, 服事者, 教师),
+  hidden from others unless the person shows them. Emails are never sent to any page.
+- 留言 on every tag, article, video and post: public, or "only for the managers" (the
+  author, the tag's managers and Zion read those). Managers and Zion can remove any.
+- Tag managers: Zion appoints anyone to any tag on `/admin/`, or approves a 认领 request
+  (the button shows on person tags such as 李光宏). Managers write articles and videos
+  into their tags at `/write/`; they appear on the tag page and at `/x/<id>`.
+- Zion is the admin: any account whose email is in `ADMIN_EMAILS` (default
+  zion.chen@hotmail.com).
+
+## 搭子 (groups)
+
+- Four kinds: 饭搭子 (Bible chapters, Recovery Version links), 呼吸搭子 (the day's 呼吸),
+  投喂搭子 (the 投喂 lessons), 细嚼搭子 (Life-study messages through a link the initiator
+  pastes; `{n}` in it becomes the message number). Each group reads in Chinese or English.
+- The initiator sets the days, time, length, start date and time zone, where they meet
+  (phone, WeChat, Zoom, WhatsApp, Teams, with details only members see), public (on the
+  plaza) or hidden (invite link only), whether plaza visitors may join directly, and the
+  size (2–12). Joining is a covenant: read the terms, draw a signature.
+- Members open each session's reading at `/g/<id>/<n>`, bookmark paragraphs (or "where I
+  stopped"), write notes the group can read, and check in; checking in more than three
+  hours after a session ends counts as a make-up (补). The initiator sees a table of
+  everyone's check-ins. Each group has a message board.
+- Reminders: the 5-minute cron emails members as each session starts, with a link to that
+  session's reading. Joining emails a calendar invitation (weekly repeat in the group's time
+  zone). Each account has a calendar subscription `/api/cal/<key>.ics` covering all their
+  groups, and each group offers a downloadable `.ics`.
+- Bible links: `BIBLE_LINKS` in `src/bible.js` (English: text.recoveryversion.bible; Chinese:
+  set when Zion sends the address).
+
+## Settings
+
+Cloudflare → Workers & Pages → zion4life → Settings → Variables and Secrets (`keep_vars`
+keeps them across deploys):
+
+- `RESEND_API_KEY` (Secret) and `FROM_EMAIL_ADDRESS` (e.g. `有光 <hello@zion4life.faith>`):
+  sign-in codes, reminders, invitations. Without them sign-in is closed and says so.
+- `ADMIN_EMAILS`: admin accounts (default zion.chen@hotmail.com).
+- Optional for the question box: `ASK_MAIL` (send_email binding), `ASK_FROM`, `ASK_TO`.
+- Local testing only: `DEV_SHOW_CODE=1` returns the sign-in code to the page instead of
+  needing email (`npx wrangler dev --var DEV_SHOW_CODE:1`). Never set it on the live site.
 
 ## Mainland China
 

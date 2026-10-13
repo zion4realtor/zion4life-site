@@ -1,36 +1,45 @@
 // Email through Resend. Settings (Cloudflare → Workers & Pages → zion4life → Settings →
 // Variables and Secrets): RESEND_API_KEY (Secret) and FROM_EMAIL_ADDRESS, a sender on a
-// domain verified in Resend, e.g. "Zion4Life <hello@mail.zion4life.faith>".
+// domain verified in Resend, e.g. "有光 <hello@zion4life.faith>".
 // Without both, emails are skipped (logged) and everything else keeps working.
-const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+import { esc } from './md.js';
+import { base64 } from './util.js';
 
 export const mailReady = (env) => !!(env.RESEND_API_KEY && env.FROM_EMAIL_ADDRESS);
 
-export async function sendMail(env, { to, subject, html, text, attachments }) {
+// attachments: [{ filename, content (string), type }]
+export async function sendMail(env, { to, subject, html, text, attachments, replyTo }) {
   if (!mailReady(env)) {
     console.log('[mail] skipped (not configured):', subject);
     return { ok: false, skipped: true };
   }
+  const body = { from: env.FROM_EMAIL_ADDRESS, to: [to], subject, html, text };
+  if (replyTo) body.reply_to = replyTo;
+  if (attachments?.length) {
+    body.attachments = attachments.map((a) => ({ filename: a.filename, content: base64(new TextEncoder().encode(a.content)), content_type: a.type }));
+  }
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.FROM_EMAIL_ADDRESS, to: [to], subject, html, text, attachments }),
+    body: JSON.stringify(body),
   });
   if (!r.ok) console.error('[mail] failed', r.status, await r.text().catch(() => ''));
   return { ok: r.ok };
 }
 
-// One simple, readable layout for every email.
-export function layout({ title, lines, button, footer }) {
-  const html = `<!doctype html><html><body style="margin:0;background:#eff3f1;padding:24px 12px;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#23272b">
-<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:14px;padding:28px 24px">
-<p style="margin:0 0 18px;font-weight:600;color:#1f6f99">有光</p>
+// One simple, readable layout for every email, in the reader's language.
+export function layout({ lang = 'zh', title, lines, big, button, footer }) {
+  const brand = lang === 'en' ? 'Light · zion4life.faith' : '有光 · zion4life.faith';
+  const html = `<!doctype html><html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><body style="margin:0;background:#eaf6ff;padding:24px 12px;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#1b2a38">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:18px;padding:28px 24px">
+<p style="margin:0 0 18px;font-size:14px;font-weight:600;color:#1f6f99">${esc(brand)}</p>
 <h1 style="margin:0 0 16px;font-size:21px;line-height:1.5">${esc(title)}</h1>
-${lines.map((l) => `<p style="margin:0 0 12px;font-size:16px;line-height:1.8">${esc(l)}</p>`).join('')}
+${big ? `<p style="margin:6px 0 18px;font-size:34px;font-weight:700;letter-spacing:.18em;color:#1b2a38">${esc(big)}</p>` : ''}
+${lines.filter(Boolean).map((l) => `<p style="margin:0 0 12px;font-size:16px;line-height:1.8">${esc(l)}</p>`).join('')}
 ${button ? `<p style="margin:22px 0 6px"><a href="${esc(button.url)}" style="display:inline-block;background:#2a8fc4;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:999px">${esc(button.label)}</a></p>` : ''}
-${footer ? `<p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:#687176">${footer}</p>` : ''}
+${footer ? `<p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:#5a6d80">${footer}</p>` : ''}
 </div></body></html>`;
-  const text = [title, '', ...lines, button ? `${button.label}：${button.url}` : ''].join('\n');
+  const text = [title, '', big || '', ...lines.filter(Boolean), button ? `${button.label}: ${button.url}` : ''].filter((x, i) => x || i === 1).join('\n');
   return { html, text };
 }
 
@@ -38,6 +47,7 @@ ${footer ? `<p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:#6871
 // binding ASK_MAIL (send_email, destination = Zion's verified address) when it exists,
 // otherwise Resend if configured. Returns true when an email went out.
 export async function sendAsk(env, ask) {
+  const to = env.ASK_TO || 'zion.chen@hotmail.com';
   const subject = `有光网站来信${ask.name ? `：${ask.name}` : ''}`;
   const text = [
     ask.message, '',
@@ -48,12 +58,12 @@ export async function sendAsk(env, ask) {
   try {
     if (env.ASK_MAIL && env.ASK_FROM) {
       const { EmailMessage } = await import('cloudflare:email');
-      const raw = mime({ from: env.ASK_FROM, to: env.ASK_TO || 'zion.chen@hotmail.com', replyTo: ask.reply, subject, text });
-      await env.ASK_MAIL.send(new EmailMessage(env.ASK_FROM, env.ASK_TO || 'zion.chen@hotmail.com', raw));
+      const raw = mime({ from: env.ASK_FROM, to, replyTo: ask.reply, subject, text });
+      await env.ASK_MAIL.send(new EmailMessage(env.ASK_FROM, to, raw));
       return true;
     }
-    if (mailReady(env) && env.ASK_TO) {
-      const r = await sendMail(env, { to: env.ASK_TO, subject, text, html: `<pre style="font:15px/1.7 -apple-system,sans-serif;white-space:pre-wrap">${esc(text)}</pre>` });
+    if (mailReady(env)) {
+      const r = await sendMail(env, { to, subject, text, replyTo: ask.reply || undefined, html: `<pre style="font:15px/1.7 -apple-system,sans-serif;white-space:pre-wrap">${esc(text)}</pre>` });
       return !!r.ok;
     }
   } catch (e) {
@@ -65,18 +75,17 @@ export async function sendAsk(env, ask) {
 // A minimal UTF-8 plain-text email for the send_email binding.
 function mime({ from, to, replyTo, subject, text }) {
   const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
-  const id = `<${crypto.randomUUID()}@zion4life.faith>`;
   return [
-    `From: 有光 <${from}>`.replace('有光', `=?UTF-8?B?${b64('有光')}?=`),
+    `From: =?UTF-8?B?${b64('有光')}?= <${from}>`,
     `To: ${to}`,
-    replyTo ? `Reply-To: ${replyTo}` : '',
+    ...(replyTo ? [`Reply-To: ${replyTo}`] : []),
     `Subject: =?UTF-8?B?${b64(subject)}?=`,
-    `Message-ID: ${id}`,
+    `Message-ID: <${crypto.randomUUID()}@zion4life.faith>`,
     `Date: ${new Date().toUTCString()}`,
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset=UTF-8',
     'Content-Transfer-Encoding: base64',
     '',
     b64(text).replace(/.{76}/g, '$&\r\n'),
-  ].filter((l, i) => l !== '' || i > 8).join('\r\n');
+  ].join('\r\n');
 }

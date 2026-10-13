@@ -20,7 +20,9 @@ test('markdown: verse with source line, lists, Chinese line joins', () => {
 test('build output: both languages, tags, tiles fill whole rows', () => {
   execFileSync('node', ['build.mjs'], { cwd: ROOT });
   const pages = ['index.html', 'en/index.html', 'huxi/index.html', 'en/huxi/index.html', 'me/index.html', 'en/me/index.html',
-    'dazi/index.html', 'en/dazi/index.html', 'dazi/new/index.html', 'g/index.html', 'admin/index.html', 't/mystery/index.html',
+    'dazi/index.html', 'en/dazi/index.html', 'dazi/new/index.html', 'en/dazi/new/index.html', 'g/index.html', 'en/g/index.html',
+    'x/index.html', 'en/x/index.html', 'write/index.html', 'admin/index.html', 't/mystery/index.html',
+    'data/tags.json', 'data/items.json', 'data/bible.json', 'data/feed.json', 'data/feed/1.json', 'data/huxi.json',
     'en/t/mystery/index.html', 'a/rensheng-aomi/index.html', 'en/a/rensheng-aomi/index.html', 'v/fule-rensheng/index.html', '404.html', 'sitemap.xml'];
   for (const p of pages) assert.ok(fs.existsSync(path.join(ROOT, 'dist', p)), p);
   for (const p of ['index.html', 'en/index.html']) {
@@ -33,6 +35,15 @@ test('build output: both languages, tags, tiles fill whole rows', () => {
   assert.match(dist('en/index.html'), /<html lang="en">/);
   assert.match(dist('en/a/rensheng-aomi/index.html'), /The Mystery of Life/);
   assert.match(dist('huxi/index.html'), /id="huxi-data"/);
+  // 留言 on tag, article and video pages; the post shell has its marker; the plaza has no title on top
+  assert.match(dist('t/lgh/index.html'), /data-talk="tag:lgh"/);
+  assert.match(dist('t/lgh/index.html'), /data-tag-tools="lgh" data-person/);
+  assert.match(dist('a/rensheng-aomi/index.html'), /data-talk="a:rensheng-aomi"/);
+  assert.match(dist('x/index.html'), /<!--POST-->/);
+  assert.doesNotMatch(dist('dazi/index.html'), /class="banner"/);
+  assert.match(dist('en/dazi/new/index.html'), /Meal buddies/);
+  const items = JSON.parse(dist('data/items.json'));
+  assert.ok(items.some((i) => i.key === 'a:rensheng-aomi' && i.tags.includes('mystery')));
   // Nothing may load from Google or public CDNs: those are blocked or slow in mainland China.
   for (const f of ['index.html', 'en/index.html', 'huxi/index.html', 'dazi/index.html', 'g/index.html', 'a/rensheng-aomi/index.html']) {
     assert.doesNotMatch(dist(f), /googleapis|gstatic|jsdelivr|unpkg|cdnjs|google-analytics|googletagmanager/, f);

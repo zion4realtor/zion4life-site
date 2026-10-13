@@ -5,7 +5,9 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { BOOKS } from './src/bible.js';
-import { TZ_LABELS, KINDS as GROUP_KINDS } from './src/schedule.js';
+import { TZ_LABELS, KINDS as GROUP_KINDS, VENUES } from './src/schedule.js';
+import { esc, md, plain, readMinutes } from './src/md.js';
+import { IDENTITIES } from './src/auth.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CONTENT = path.join(ROOT, 'content');
@@ -36,13 +38,12 @@ const S = {
     huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', todayLink: '看今天的呼吸',
     week: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'], weekShort: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
     md: (m, d) => `${m}月${d}日`, full: (y, m, d) => `${y}年${m}月${d}日`,
-    me: '我的', meSub: '你的搭子、打卡和留言，都会在这里。',
-    signupT: '注册和登录正在建造中', signupP: '开放以后，用邮箱就能注册，不用记密码。你加入的搭子、打过的卡、留过的言都会跟着你，换手机也在。',
-    myGroups: '我的搭子',
+    me: '我的', meSub: '你的搭子、打卡和留言，都会在这里。', loading: '正在载入……',
+    talkT: '留言', postsT: '新上架',
     askT: '有问题想问？', askP: '写下来，我们会认真看。想收到回复的话，留一个邮箱。',
     askMsg: '想问什么，都可以写在这里', askName: '怎么称呼你（可以不填）', askReply: '回信邮箱（可以不填）', askSend: '发送',
     askDone: '收到了，谢谢你。我们会认真看。',
-    plazaT: '搭子广场', plazaP: '约上两三个人，定好时间，一起坚持。',
+    plazaT: '搭子广场', plazaP: '约上两三个人，定好时间，一起坚持。', newT: '发起一个搭子',
     copyright: (y) => `© ${y} ${site.owner}`,
     notFound: '找不到这个页面', notFoundP: '链接可能输错了，或者内容已经换了位置。', home: '回到粮仓',
   },
@@ -64,13 +65,12 @@ const S = {
     week: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], weekShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     md: (m, d) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${d}`,
     full: (y, m, d) => `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${d}, ${y}`,
-    me: 'Me', meSub: 'Your buddies, check-ins and messages live here.',
-    signupT: 'Sign-up is being built', signupP: 'Soon you can sign up with just your email, no password to remember. Your buddy groups, check-ins and messages will follow you, even on a new phone.',
-    myGroups: 'My buddy groups',
+    me: 'Me', meSub: 'Your buddies, check-ins and messages live here.', loading: 'Loading…',
+    talkT: 'Messages', postsT: 'Just added',
     askT: 'Have a question?', askP: 'Write it here and we will read it carefully. Leave an email if you would like a reply.',
     askMsg: 'Ask anything here', askName: 'Your name (optional)', askReply: 'Email for a reply (optional)', askSend: 'Send',
     askDone: 'Got it, thank you. We will read it carefully.',
-    plazaT: 'Buddies', plazaP: 'Buddy groups are being rebuilt with full English support. For now, the plaza is in Chinese.',
+    plazaT: 'Buddies', plazaP: 'Two or three people, a set time, and keep going together.', newT: 'Start a buddy group',
     copyright: (y) => `© ${y} ${site.owner}`,
     notFound: 'Page not found', notFoundP: 'The link may be mistyped, or the page has moved.', home: 'Back to the Granary',
   },
@@ -80,9 +80,7 @@ const S = {
 function readJSON(rel) {
   return JSON.parse(fs.readFileSync(path.join(CONTENT, rel), 'utf8'));
 }
-export function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+export { esc, md };
 export function parseDoc(text) {
   const m = text.replace(/\r/g, '').match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!m) return { meta: {}, body: text };
@@ -98,66 +96,6 @@ export function parseDoc(text) {
     meta[k] = v;
   }
   return { meta, body: m[2] };
-}
-function inline(s) {
-  let h = esc(s);
-  h = h.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, a, u) => `<img src="${u}" alt="${a}" loading="lazy">`);
-  h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => `<a href="${u}"${/^https?:/.test(u) ? ' rel="noopener" target="_blank"' : ''}>${t}</a>`);
-  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  h = h.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
-  return h;
-}
-function joinLines(lines) {
-  return lines.reduce((acc, l) => {
-    l = l.trim();
-    if (!acc) return l;
-    const a = acc.slice(-1), b = l[0];
-    return acc + (/[\x21-\x7e]/.test(a) && /[\x21-\x7e]/.test(b) ? ' ' : '') + l;
-  }, '');
-}
-// Simple Markdown: ## headings, paragraphs, > verse (last line "—— 出处"), - lists, 1. lists, ---, **bold**, links, images.
-export function md(src) {
-  const lines = src.replace(/\r/g, '').split('\n');
-  const out = [];
-  const special = /^(#{2,4}\s|>|[-*]\s|\d+[.、]\s|---+\s*$)/;
-  let i = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (!l.trim()) { i++; continue; }
-    let m;
-    if ((m = l.match(/^(#{2,4})\s+(.*)$/))) {
-      out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
-      i++;
-    } else if (/^---+\s*$/.test(l)) {
-      out.push('<hr>');
-      i++;
-    } else if (l.startsWith('>')) {
-      const q = [];
-      while (i < lines.length && lines[i].startsWith('>')) q.push(lines[i++].replace(/^>\s?/, ''));
-      let cite = '';
-      if (q.length > 1 && /^(——|—|--)/.test(q[q.length - 1].trim())) cite = q.pop().trim().replace(/^(——|—|--)\s*/, '');
-      out.push(`<blockquote class="verse"><p>${q.map(inline).join('<br>')}</p>${cite ? `<cite>${inline(cite)}</cite>` : ''}</blockquote>`);
-    } else if (/^[-*]\s+/.test(l)) {
-      const items = [];
-      while (i < lines.length && /^[-*]\s+/.test(lines[i])) items.push(lines[i++].replace(/^[-*]\s+/, ''));
-      out.push(`<ul>${items.map((t) => `<li>${inline(t)}</li>`).join('')}</ul>`);
-    } else if (/^\d+[.、]\s*/.test(l)) {
-      const items = [];
-      while (i < lines.length && /^\d+[.、]\s*/.test(lines[i])) items.push(lines[i++].replace(/^\d+[.、]\s*/, ''));
-      out.push(`<ol>${items.map((t) => `<li>${inline(t)}</li>`).join('')}</ol>`);
-    } else {
-      const p = [lines[i++]];
-      while (i < lines.length && lines[i].trim() && !special.test(lines[i])) p.push(lines[i++]);
-      out.push(`<p>${inline(joinLines(p))}</p>`);
-    }
-  }
-  return out.join('\n');
-}
-const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
-function readMinutes(text) {
-  const cjk = (text.match(/[\u3400-\u9fff]/g) || []).length;
-  const words = (text.replace(/[\u3400-\u9fff]/g, ' ').match(/[A-Za-z0-9']+/g) || []).length;
-  return Math.max(1, Math.round(cjk / 380 + words / 220));
 }
 function dateParts(iso, lang) {
   const [y, m, d] = iso.split('-').map(Number);
@@ -230,7 +168,8 @@ const ver = (rel) => crypto.createHash('sha1').update(fs.readFileSync(path.join(
 const CSS = `/css/site.css?v=${ver('css/site.css')}`;
 const FONT = `/css/wenkai.css?v=${ver('css/wenkai.css')}`;
 const JS = `/js/site.js?v=${ver('js/site.js')}`;
-const GROUPS_JS = `/js/groups.js?v=${ver('js/groups.js')}`;
+const APP_JS = `/js/app.js?v=${ver('js/app.js')}`;
+const DAZI_JS = `/js/dazi.js?v=${ver('js/dazi.js')}`;
 const LOGO = fs.readFileSync(path.join(STATIC, 'logo.svg'), 'utf8').replace('<svg ', '<svg class="logo" aria-hidden="true" ');
 const MASCOT = (cls = 'mascot') => `<svg class="${cls}" viewBox="0 0 100 124" aria-hidden="true"><path d="M50 3C50 3 11 51 11 80a39 39 0 0 0 78 0C89 51 50 3 50 3z" fill="var(--t-aqua)"/><ellipse cx="36" cy="40" rx="7" ry="12" transform="rotate(28 36 40)" fill="#fff" opacity=".7"/><ellipse cx="38" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><ellipse cx="62" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><circle cx="39.5" cy="77.5" r="1.6" fill="#fff"/><circle cx="63.5" cy="77.5" r="1.6" fill="#fff"/><ellipse cx="29" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><ellipse cx="71" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><path d="M45 92q5 5 10 0" stroke="#1b2a38" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
 const ICON = {
@@ -295,6 +234,7 @@ ${body}
 <nav class="tabbar" aria-label="${lang === 'zh' ? '菜单' : 'Menu'}"><div class="tabbar-in">${tabs}</div></nav>
 <div class="toast" role="status" aria-live="polite" hidden></div>
 <script src="${JS}" defer></script>
+<script src="${APP_JS}" defer></script>
 ${scripts.map((s) => `<script src="${s}" defer></script>`).join('\n')}
 </body>
 </html>
@@ -407,9 +347,12 @@ ${askBox(lang)}`,
       tab: 'home',
       body: `<section class="page" style="--tint:${TINTS[t.tint] || TINTS.aqua}">
 <a class="back" href="${U(lang, '/')}">← ${esc(L.back)}</a>
-<div class="banner"><h1>${esc(t[lang])}</h1><p>${esc(L.count(list.length))}</p>${MASCOT()}</div>
+<div class="banner"><h1>${esc(t[lang])}</h1><p>${esc(L.count(list.length))}</p>${t.person ? `<span class="avatar big">${esc(t.person[lang])}</span>` : MASCOT()}</div>
+<div class="tag-tools" data-tag-tools="${t.id}"${t.person ? ' data-person' : ''}></div>
 ${chips}
-${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).join('\n')}</div>` : `<div class="empty">${MASCOT()}<p>${esc(L.empty)}</p></div>`}
+<div class="cards" data-tag-posts="${t.id}" hidden></div>
+${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).join('\n')}</div>` : `<div class="empty" data-empty>${MASCOT()}<p>${esc(L.empty)}</p></div>`}
+<section class="talk" data-talk="tag:${t.id}"></section>
 </section>`,
     });
   }
@@ -433,6 +376,7 @@ ${c.fallback ? `<p class="note-box">${esc(L.fallback)}</p>` : ''}${a.sample ? `<
 ${c.html}
 </div>
 ${shareBox(lang, L.shareArticle, U(lang, `/a/${a.slug}/`), c.title)}
+<section class="talk" data-talk="a:${a.slug}"></section>
 ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}
 </article>`,
     });
@@ -462,6 +406,7 @@ ${sources.length > 1 ? `<div class="lines" role="group">${sources.map((s, i) => 
 ${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
 ${sources.length > 1 ? `<p class="muted">${esc(L.lineTip)}</p>` : ''}
 ${shareBox(lang, L.shareVideo, U(lang, `/v/${v.slug}/`), c.title)}
+<section class="talk" data-talk="v:${v.slug}"></section>
 ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}
 </article>`,
     });
@@ -515,110 +460,193 @@ ${archive(p.date)}
     title: L.me,
     tab: 'me',
     noindex: true,
-    scripts: lang === 'zh' ? [GROUPS_JS] : [],
-    body: `<section class="page" data-page="me" style="--tint:var(--t-sky)">
+    body: `<section class="page" style="--tint:var(--t-sky)">
 <div class="banner"><h1>${esc(L.me)}</h1><p>${esc(L.meSub)}</p>${MASCOT()}</div>
-<div class="info"><h2>${esc(L.signupT)}</h2><p>${esc(L.signupP)}</p></div>
-${lang === 'zh' ? `<section class="more" id="mine" hidden><h2 class="sec-h">${esc(L.myGroups)}</h2><div class="glist" data-mine></div></section>` : ''}
+<div data-me><p class="muted">${esc(L.loading)}</p></div>
 ${askBox(lang)}
 </section>`,
   });
 }
 
-// ---------- 搭子 (group plaza; Chinese for now, rebuilt with both languages in the next step) ----------
-const KIND_INFO = {
-  read: [GROUP_KINDS.read, '定好一卷圣经，按次往下读。'],
-  pray: [GROUP_KINDS.pray, '定好时间，一起为人为事呼吸。'],
-  feed: [GROUP_KINDS.feed, '陪伴新朋友，一起追求、一起成长。'],
-};
-const WEEK_SHORT = ['日', '一', '二', '三', '四', '五', '六'];
-emit('zh', '/dazi/', {
-  title: S.zh.plazaT,
-  desc: S.zh.plazaP,
-  tab: 'dazi',
-  scripts: [GROUPS_JS],
-  body: `<section class="page" data-page="square" style="--tint:var(--t-mint)">
-<div class="banner"><h1>${esc(S.zh.plazaT)}</h1><p>${esc(S.zh.plazaP)}</p></div>
-<p class="btn-row"><a class="btn btn-water" href="/dazi/new/">发起一个搭子</a></p>
-<section id="mine" class="mine" hidden><h2 class="sub-h">我的搭子</h2><div class="glist" data-mine></div></section>
-<div class="tabs" role="tablist" aria-label="搭子类型">
-<button type="button" role="tab" data-kind="" aria-selected="true">全部</button>
-${Object.entries(GROUP_KINDS).map(([k, l]) => `<button type="button" role="tab" data-kind="${k}" aria-selected="false">${l}</button>`).join('')}
-</div>
-<div class="glist" data-plaza aria-live="polite"><p class="muted">正在载入……</p></div>
-</section>`,
-});
-emit('en', '/dazi/', {
-  title: S.en.plazaT,
-  tab: 'dazi',
-  body: `<section class="page" style="--tint:var(--t-mint)">
-<div class="banner"><h1>${esc(S.en.plazaT)}</h1><p>${esc(S.en.plazaP)}</p>${MASCOT()}</div>
-<p><a class="btn btn-water" href="/dazi/">Open the plaza (Chinese)</a></p>
-</section>`,
-});
+// ---------- data for the pages and the Worker (/data/*.json) ----------
+const feed = loadPairs('feed').map((p) => ({ n: Number(p.slug), sample: !!p.meta.sample, zh: p.langs.zh, en: p.langs.en }))
+  .filter((p) => Number.isInteger(p.n) && p.n > 0).sort((a, b) => a.n - b.n);
+feed.forEach((p, i) => { if (p.n !== i + 1) throw new Error(`content/feed: lessons must be numbered 01, 02, 03 … without gaps (found ${p.n})`); });
+function writeData(rel, data) {
+  const file = path.join(DIST, 'data', rel);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(data));
+}
+writeData('tags.json', TAGS);
+writeData('items.json', items.map((i) => ({ key: `${i.kind === 'video' ? 'v' : 'a'}:${i.slug}`, tags: i.tags, zh: i.zh.title, en: i.en.title })));
+writeData('bible.json', BOOKS.map((b) => ({ n: b.n, zh: b.zh, en: b.en, ch: b.chapters })));
+writeData('feed.json', feed.map((p) => ({ n: p.n, sample: p.sample, zh: { title: p.zh.title }, en: { title: p.en.title } })));
+for (const p of feed) writeData(`feed/${p.n}.json`, { n: p.n, sample: p.sample, zh: { title: p.zh.title, html: p.zh.html }, en: { title: p.en.title, html: p.en.html } });
+writeData('huxi.json', huxi.map((p) => ({ date: p.date, zh: { title: p.zh.title }, en: { title: p.en.title } })));
+for (const p of huxi) writeData(`huxi/${p.date}.json`, { date: p.date, sample: p.sample, zh: { title: p.zh.title, html: p.zh.html }, en: { title: p.en.title, html: p.en.html } });
 
-const bookOptions = BOOKS.map((b) => `<option value="${b.n}" data-ch="${b.chapters}"${b.n === 43 ? ' selected' : ''}>${b.name}</option>`).join('');
-const tzOptions = Object.entries(TZ_LABELS).map(([tz, label]) => `<option value="${tz}">${label}</option>`).join('');
-const chip = (name, value, label) => `<label class="chip"><input type="checkbox" name="${name}" value="${value}"><span>${label}</span></label>`;
-write('/dazi/new/', page({
-  lang: 'zh', title: '发起一个搭子', path: '/dazi/new/', tab: 'dazi', noindex: true, only: true, scripts: [GROUPS_JS],
-  body: `<section class="page" data-page="new">
-<a class="back" href="/dazi/">← 回搭子广场</a>
-<h1 class="page-title">发起一个搭子</h1>
-<p class="page-lead">填好下面几项，会生成一个邀请链接。朋友点开链接、留下称呼和联系方式，就算立约加入了。</p>
+// ---------- 搭子 ----------
+const DZ = {
+  zh: {
+    plazaH: '搭子广场', count: '此刻，广场上有 {n} 组搭子', all: '全部', mine: '我的搭子', fab: '发起一个搭子',
+    kinds: { bible: '按章读圣经（恢复本）', pray: '每次一起读当天的呼吸', feed: '陪新朋友，一课一课往下走', life: '一篇一篇细读生命读经' },
+    newLead: '填好下面几项，签个名，就会得到一个邀请链接。',
+    s1: '一起读什么', s2: '材料用哪种语言', s3: '从哪里开始', s4: '名字和介绍', s5: '什么时候', s6: '在哪里见面', s7: '谁能加入', s8: '立约',
+    book: '书卷', chapter: '从第几章开始', per: '每次读几章', cont: '这一卷读完后，接着读下一卷',
+    lesson: '从第几课开始', lsBook: '哪一卷的生命读经', msg: '从第几篇开始', perMsg: '每次读几篇',
+    lsLink: '生命读经的网址', lsLinkHint: '打开你常用的生命读经网站，进到这一卷，把地址栏的链接贴在这里。每次的篇数会写在提醒里。',
+    prayNote: '每次见面，系统会推送当天的呼吸，大家一起读、一起呼吸。', feedNote: '每次一课，读完可以做书签、写心得、打卡。',
+    name: '搭子名字', namePh: '例如：周二晚上一起读约翰福音', intro: '简单介绍', introPh: '例如：每次读完说一两句，不需要什么基础。', optional: '可以不写',
+    days: '每周哪几天', time: '几点开始', minutes: '每次多长', start: '从哪天开始', tz: '按哪里的时间',
+    tzHint: '搭子在世界各地都没关系，每个人看到的都是自己手机上的时间。',
+    venueInfo: '号码、会议链接或微信号', venueHint: '只有立约的组员能看到。到时间了大家自己打电话、开会，网站把要读的材料送到每个人手机上。',
+    vis: { public: '公开：放在广场上，大家都能看到', hidden: '隐藏：广场上看不到，只能用邀请链接加入' },
+    join: { open: '注册过的会员可以直接加入', invite: '只能用我发的邀请链接加入' },
+    max: '最多几个人', people: '人',
+    covT: '搭子的约', covSign: '在下面签个名', clear: '重写', submit: '签名立约，发起搭子',
+    week: ['日', '一', '二', '三', '四', '五', '六'], minOpts: [[15, '15 分钟'], [20, '20 分钟'], [30, '30 分钟'], [45, '45 分钟'], [60, '1 小时'], [90, '1 小时 30 分钟']],
+    groupT: '搭子', sessionT: '这一次',
+  },
+  en: {
+    plazaH: 'Buddies plaza', count: '{n} buddy groups on the plaza right now', all: 'All', mine: 'My buddy groups', fab: 'Start a buddy group',
+    kinds: { bible: 'Read the Bible chapter by chapter (Recovery Version)', pray: 'Read the day’s Breathe together each time', feed: 'Walk with new friends, one lesson at a time', life: 'Read the Life-study slowly, message by message' },
+    newLead: 'Fill in the few things below, sign, and you get an invite link.',
+    s1: 'What to read together', s2: 'Language of the reading', s3: 'Where to start', s4: 'Name and a few words', s5: 'When', s6: 'Where you meet', s7: 'Who can join', s8: 'Covenant',
+    book: 'Book', chapter: 'Start at chapter', per: 'Chapters each time', cont: 'When this book is done, go on to the next',
+    lesson: 'Start at lesson', lsBook: 'Life-study of which book', msg: 'Start at message', perMsg: 'Messages each time',
+    lsLink: 'Life-study link', lsLinkHint: 'Open the Life-study site you use, go to this book and paste the address here. Each reminder says which messages to read.',
+    prayNote: 'Each time you meet, the site sends the day’s Breathe, and you read and breathe together.', feedNote: 'One lesson each time. Bookmark, write notes and check in when you finish.',
+    name: 'Group name', namePh: 'e.g. Reading John on Tuesday nights', intro: 'A few words', introPh: 'e.g. A sentence or two after each reading. No background needed.', optional: 'optional',
+    days: 'Days of the week', time: 'Start time', minutes: 'How long', start: 'Start date', tz: 'Time zone',
+    tzHint: 'Buddies can be anywhere in the world. Everyone sees times in their own phone’s time zone.',
+    venueInfo: 'Number, meeting link or WeChat ID', venueHint: 'Only members who joined can see it. You call or meet as usual; the site sends the reading to everyone’s phone.',
+    vis: { public: 'Public: on the plaza for everyone to see', hidden: 'Hidden: not on the plaza, invite link only' },
+    join: { open: 'Signed-up members can join directly', invite: 'Only people I send the invite link to' },
+    max: 'Up to', people: 'people',
+    covT: 'The covenant', covSign: 'Sign below', clear: 'Clear', submit: 'Sign and start the group',
+    week: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], minOpts: [[15, '15 min'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 hr'], [90, '1 hr 30 min']],
+    groupT: 'Buddies', sessionT: 'This time',
+  },
+};
+const KIND_ICON = {
+  bible: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 12h17a8.5 7.5 0 0 1-17 0z"/><path d="M15 3.5l-3 7M19 4.5l-5 6" stroke-linecap="round"/></svg>',
+  pray: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/></svg>',
+  feed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.7a4.3 4.3 0 0 1 7.5 2.6c0 5.6-7.5 10.2-7.5 10.2z"/></svg>',
+  life: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5c-2-1.6-5-2-8-1.5v13c3-.5 6-.1 8 1.5 2-1.6 5-2 8-1.5V5c-3-.5-6-.1-8 1.5z"/><path d="M12 6.5v13"/></svg>',
+};
+const VENUE_ICON = {
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6.5 3.5h3l1.5 4-2 1.5a10 10 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z"/></svg>',
+  wechat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9.5 4.5c-3.9 0-7 2.6-7 5.8 0 1.8 1 3.4 2.6 4.5l-.6 2 2.4-1.2c.8.2 1.7.4 2.6.4"/><path d="M15 9.5c3.6 0 6.5 2.3 6.5 5.2 0 1.6-.9 3-2.3 4l.5 1.8-2.1-1c-.8.2-1.7.4-2.6.4-3.6 0-6.5-2.3-6.5-5.2s2.9-5.2 6.5-5.2z"/></svg>',
+  zoom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>',
+  whatsapp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .9a5 5 0 0 1-2.8-2.8l.9-1-1-2z"/></svg>',
+  teams: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="6.5" width="11" height="11" rx="2"/><path d="M7 10h4M9 10v5"/><circle cx="18" cy="7.5" r="2"/><path d="M16 11.5h4.5v4a2.5 2.5 0 0 1-4.5 1.5"/></svg>',
+};
+for (const lang of LANGS) {
+  const L = S[lang];
+  const D = DZ[lang];
+  const config = json('dazi-config', {
+    kinds: Object.fromEntries(Object.entries(GROUP_KINDS).map(([k, v]) => [k, { name: v[lang], what: v.what[lang], verb: v.verb[lang], about: D.kinds[k], icon: KIND_ICON[k] }])),
+    venues: Object.fromEntries(Object.entries(VENUES).map(([k, v]) => [k, { name: v[lang], icon: VENUE_ICON[k] }])),
+    tz: Object.entries(TZ_LABELS).map(([tz, l]) => [tz, l[lang === 'en' ? 1 : 0]]),
+    feedCount: feed.length,
+    ids: Object.fromEntries(Object.entries(IDENTITIES).map(([k, v]) => [k, v[lang === 'en' ? 1 : 0]])),
+  });
+
+  // the plaza: a scene of tables with seats; no title on top
+  emit(lang, '/dazi/', {
+    title: L.plazaT,
+    desc: L.plazaP,
+    tab: 'dazi',
+    scripts: [DAZI_JS],
+    body: `<section class="plaza-page" data-page="plaza">
+<h1 class="vh">${esc(D.plazaH)}</h1>
+<div class="plaza-top"><p class="plaza-count" data-count>${esc(L.loading)}</p>
+<div class="kinds" role="group" data-kinds><button type="button" data-kind="" aria-pressed="true">${esc(D.all)}</button>${Object.entries(GROUP_KINDS).map(([k, v]) => `<button type="button" data-kind="${k}" aria-pressed="false"><span class="ki">${KIND_ICON[k]}</span>${esc(v[lang])}</button>`).join('')}</div></div>
+<div class="mine-strip" data-mine hidden><h2>${esc(D.mine)}</h2><div class="mine-row" data-mine-row></div></div>
+<div class="plaza" data-plaza aria-live="polite"></div>
+<a class="fab" href="${U(lang, '/dazi/new/')}"><span aria-hidden="true">＋</span>${esc(D.fab)}</a>
+${config}
+</section>`,
+  });
+
+  // start a group
+  const opt = (v, label, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
+  const books = (sel) => BOOKS.map((b) => opt(b.n, lang === 'en' ? b.en : b.zh, b.n === sel)).join('');
+  emit(lang, '/dazi/new/', {
+    title: L.newT,
+    tab: 'dazi',
+    noindex: true,
+    scripts: [DAZI_JS],
+    body: `<section class="page new-group" data-page="new">
+<a class="back" href="${U(lang, '/dazi/')}">← ${esc(L.plazaT)}</a>
+<h1 class="page-title">${esc(L.newT)}</h1>
+<p class="page-lead">${esc(D.newLead)}</p>
 <form class="form" data-new novalidate>
-<fieldset><legend>搭子类型</legend><div class="kind-pick">
-${Object.entries(KIND_INFO).map(([k, [l, d]], i) => `<label class="kind-opt"><input type="radio" name="kind" value="${k}"${i ? '' : ' checked'}><span class="gtag gtag-${k}">${l}</span><small>${d}</small></label>`).join('')}
+<fieldset><legend>${esc(D.s1)}</legend><div class="kind-pick">
+${Object.entries(GROUP_KINDS).map(([k, v], i) => `<label class="kind-opt kind-${k}"><input type="radio" name="kind" value="${k}"${i ? '' : ' checked'}><span class="ki">${KIND_ICON[k]}</span><span><b>${esc(v[lang])}</b><small>${esc(D.kinds[k])}</small></span></label>`).join('')}
 </div></fieldset>
-<fieldset><legend>名称和介绍</legend>
-<label class="field"><span>搭子名称</span><input name="title" maxlength="40" required placeholder="例如：一起读约翰福音"></label>
-<label class="field"><span>简单介绍<em>可以不写</em></span><textarea name="intro" maxlength="300" rows="3" placeholder="例如：每次读完分享一两句，不需要什么基础。"></textarea></label>
+<fieldset><legend>${esc(D.s2)}</legend><div class="seg">
+<label><input type="radio" name="lang" value="zh"${lang === 'zh' ? ' checked' : ''}><span>中文</span></label><label><input type="radio" name="lang" value="en"${lang === 'en' ? ' checked' : ''}><span>English</span></label>
+</div></fieldset>
+<fieldset data-for="bible"><legend>${esc(D.s3)}</legend>
+<div class="row2"><label class="field"><span>${esc(D.book)}</span><select name="book">${books(43)}</select></label><label class="field"><span>${esc(D.chapter)}</span><select name="chapter"></select></label></div>
+<label class="field"><span>${esc(D.per)}</span><select name="per">${[1, 2, 3, 4, 5].map((n) => opt(n, String(n), n === 1)).join('')}</select></label>
+<label class="check"><input type="checkbox" name="cont"><span>${esc(D.cont)}</span></label>
 </fieldset>
-<fieldset data-for="read"><legend>读什么</legend>
-<div class="row2"><label class="field"><span>书卷</span><select name="book">${bookOptions}</select></label><label class="field"><span>从第几章开始</span><select name="chapter"></select></label></div>
-<label class="field"><span>每次读几章</span><select name="per">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}">${n} 章</option>`).join('')}</select></label>
-<label class="check"><input type="checkbox" name="cont"><span>这一卷读完后，接着读下一卷</span></label>
+<fieldset data-for="pray" hidden><legend>${esc(D.s3)}</legend><p class="hint">${esc(D.prayNote)}</p></fieldset>
+<fieldset data-for="feed" hidden><legend>${esc(D.s3)}</legend>
+<label class="field"><span>${esc(D.lesson)}</span><select name="lesson">${feed.map((p) => opt(p.n, `${p.n}. ${p[lang].title}`, p.n === 1)).join('')}</select></label>
+<p class="hint">${esc(D.feedNote)}</p></fieldset>
+<fieldset data-for="life" hidden><legend>${esc(D.s3)}</legend>
+<label class="field"><span>${esc(D.lsBook)}</span><select name="lsBook">${books(43)}</select></label>
+<div class="row2"><label class="field"><span>${esc(D.msg)}</span><input name="msg" type="number" min="1" max="999" value="1" inputmode="numeric"></label><label class="field"><span>${esc(D.perMsg)}</span><select name="perMsg">${[1, 2, 3].map((n) => opt(n, String(n), n === 1)).join('')}</select></label></div>
+<label class="field"><span>${esc(D.lsLink)}<em>${esc(D.optional)}</em></span><input name="lsLink" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
+<p class="hint">${esc(D.lsLinkHint)}</p></fieldset>
+<fieldset><legend>${esc(D.s4)}</legend>
+<label class="field"><span>${esc(D.name)}</span><input name="title" maxlength="40" required placeholder="${esc(D.namePh)}"></label>
+<label class="field"><span>${esc(D.intro)}<em>${esc(D.optional)}</em></span><textarea name="intro" maxlength="300" rows="3" placeholder="${esc(D.introPh)}"></textarea></label>
 </fieldset>
-<fieldset data-for="pray feed" hidden><legend>每次的内容</legend>
-<label class="field"><span>内容或材料<em>以后可以随时更新</em></span><textarea name="material" maxlength="300" rows="3" placeholder="例如：为家中还没有信主的亲人呼吸"></textarea></label>
-<label class="field"><span>材料链接<em>可以不填</em></span><input name="link" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
+<fieldset><legend>${esc(D.s5)}</legend>
+<div class="field"><span>${esc(D.days)}</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" name="days" value="${d}"><span>${esc(D.week[d])}</span></label>`).join('')}</div></div>
+<div class="row2"><label class="field"><span>${esc(D.time)}</span><input name="time" type="time" value="20:00" required></label>
+<label class="field"><span>${esc(D.minutes)}</span><select name="minutes">${D.minOpts.map(([v, l]) => opt(v, l, v === 30)).join('')}</select></label></div>
+<div class="row2"><label class="field"><span>${esc(D.start)}</span><input name="startDate" type="date" required></label><label class="field"><span>${esc(D.tz)}</span><select name="tz">${Object.entries(TZ_LABELS).map(([tz, l]) => opt(tz, l[lang === 'en' ? 1 : 0])).join('')}</select></label></div>
+<p class="hint">${esc(D.tzHint)}</p>
 </fieldset>
-<fieldset><legend>什么时候</legend>
-<div class="field"><span>每周哪几天</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => chip('days', d, `周${WEEK_SHORT[d]}`)).join('')}</div></div>
-<div class="row2"><label class="field"><span>几点开始</span><input name="time" type="time" value="20:00" required></label>
-<label class="field"><span>每次多长</span><select name="minutes">${[15, 20, 30, 45, 60, 90, 120].map((m) => `<option value="${m}"${m === 30 ? ' selected' : ''}>${m < 60 ? `${m} 分钟` : m === 90 ? '1 小时 30 分钟' : `${m / 60} 小时`}</option>`).join('')}</select></label></div>
-<div class="row2"><label class="field"><span>从哪天开始</span><input name="startDate" type="date" required></label><label class="field"><span>按哪里的时间</span><select name="tz">${tzOptions}</select></label></div>
-<p class="hint">搭子在世界各地都没关系，每个人看到的都是自己手机上的时间。</p>
+<fieldset><legend>${esc(D.s6)}</legend>
+<div class="venue-pick">${Object.entries(VENUES).map(([k, v], i) => `<label class="venue-opt"><input type="radio" name="venue" value="${k}"${i ? '' : ' checked'}><span>${VENUE_ICON[k]}${esc(v[lang])}</span></label>`).join('')}</div>
+<label class="field"><span>${esc(D.venueInfo)}<em>${esc(D.optional)}</em></span><input name="venueInfo" maxlength="300"></label>
+<p class="hint">${esc(D.venueHint)}</p>
 </fieldset>
-<fieldset><legend>谁能加入</legend>
-<div class="radios"><label class="check"><input type="radio" name="visibility" value="public" checked><span>放在广场上，别人可以看到、申请加入</span></label>
-<label class="check"><input type="radio" name="visibility" value="invite"><span>不公开，只有收到邀请链接的人能加入</span></label></div>
-<div class="radios" data-for-public><p class="field-label">广场上的人想加入时</p><label class="check"><input type="radio" name="joinMode" value="approve" checked><span>要我同意</span></label><label class="check"><input type="radio" name="joinMode" value="open"><span>直接加入</span></label></div>
-<label class="field"><span>最多几个人</span><select name="max">${[2, 3, 4, 5, 6, 8, 12].map((n) => `<option value="${n}"${n === 6 ? ' selected' : ''}>${n} 人</option>`).join('')}<option value="">不限</option></select></label>
+<fieldset><legend>${esc(D.s7)}</legend>
+<div class="radios">${Object.entries(D.vis).map(([k, l], i) => `<label class="check"><input type="radio" name="visibility" value="${k}"${i ? '' : ' checked'}><span>${esc(l)}</span></label>`).join('')}</div>
+<div class="radios sub" data-for-public>${Object.entries(D.join).map(([k, l], i) => `<label class="check"><input type="radio" name="join" value="${k}"${i ? '' : ' checked'}><span>${esc(l)}</span></label>`).join('')}</div>
+<label class="field"><span>${esc(D.max)}</span><select name="max">${[2, 3, 4, 5, 6, 8, 10, 12].map((n) => opt(n, `${n} ${D.people}`, n === 6)).join('')}</select></label>
 </fieldset>
-<fieldset><legend>你的信息</legend>
-<label class="field"><span>你的称呼</span><input name="name" maxlength="20" required placeholder="例如：陈弟兄、小李" autocomplete="nickname"></label>
-<label class="field"><span>邮箱或手机号</span><input name="contact" maxlength="120" required placeholder="用来发提醒" autocomplete="email" inputmode="email"></label>
-<p class="hint">联系方式只用来发提醒，任何人都看不到。</p>
+<section class="covenant" aria-live="polite"><h2>${esc(D.covT)}</h2><div class="cov-terms" data-summary></div>
+<p class="cov-sign-label">${esc(D.covSign)}</p><div class="sigpad" data-sigpad><canvas></canvas><button type="button" class="link-btn" data-sig-clear>${esc(D.clear)}</button></div></section>
 <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-</fieldset>
-<section class="covenant-card" aria-live="polite"><h2>搭子的约</h2><p data-summary></p>
-<label class="check"><input type="checkbox" name="covenant"><span data-covenant-text>我愿意按上面的约定，坚定持续地和搭子们一起吃饭。</span></label></section>
 <p class="form-error" data-error role="alert" hidden></p>
-<button class="btn btn-water btn-block" type="submit">发起搭子</button>
+<button class="btn btn-water btn-block" type="submit">${esc(D.submit)}</button>
 </form>
+${config}
 </section>`,
-}));
-write('/g/', page({ lang: 'zh', title: '搭子', path: '/g/', tab: 'dazi', noindex: true, only: true, scripts: [GROUPS_JS], body: '<section class="page" data-page="group"><div data-group aria-live="polite"><p class="muted">正在载入……</p></div></section>' }));
+  });
+
+  // group page and session page shells (the Worker fills in the link preview)
+  write(U(lang, '/g/'), page({ lang, title: D.groupT, path: '/g/', tab: 'dazi', noindex: true, scripts: [DAZI_JS],
+    body: `<section class="page group-page" data-page="group"><div data-group aria-live="polite"><p class="muted">${esc(L.loading)}</p></div>${config}</section>` }));
+  // posts by tag managers (the Worker puts the article in place of the marker)
+  write(U(lang, '/x/'), page({ lang, title: '', path: '/x/', tab: 'home', noindex: true, body: '<!--POST-->' }));
+  // the editor for tag managers
+  emit(lang, '/write/', { title: lang === 'en' ? 'Write' : '写一篇', tab: 'home', noindex: true,
+    body: `<section class="page" data-page="write"><div data-write><p class="muted">${esc(L.loading)}</p></div></section>` });
+}
+
+// Zion's page (Chinese only)
 write('/admin/', page({
-  lang: 'zh', title: '管理', path: '/admin/', noindex: true, only: true, scripts: [GROUPS_JS],
-  body: `<section class="page" data-page="admin">
-<h1 class="page-title">管理</h1>
-<p class="page-lead">看大家发来的问题，撤下不合适的搭子。</p>
-<form class="form admin-key" data-admin-key><label class="field"><span>管理密码</span><input name="key" type="password" autocomplete="current-password"></label><button class="btn btn-water" type="submit">进入</button></form>
-<section data-admin-asks hidden><h2 class="sub-h">大家发来的问题</h2><div class="glist" data-ask-list></div></section>
-<section data-admin-groups hidden><h2 class="sub-h">搭子</h2><div class="glist" data-admin-list></div></section>
-</section>`,
+  lang: 'zh', title: '管理', path: '/admin/', noindex: true, only: true,
+  body: '<section class="page" data-page="admin"><h1 class="page-title">管理</h1><div data-admin><p class="muted">正在载入……</p></div></section>',
 }));
 
 // 404 (both languages on one page)
