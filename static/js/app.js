@@ -176,6 +176,7 @@
         mePromise = Promise.resolve(r);
         close(true);
         toast(isNew ? t('欢迎你！', 'Welcome!') : t('登录好了', 'Signed in'));
+        if (window.ygTrack) window.ygTrack(isNew ? 'sign_up' : 'login');
         resolve(r);
         document.dispatchEvent(new CustomEvent('yg:login', { detail: r }));
       });

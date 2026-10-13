@@ -306,6 +306,7 @@ ${table(g.kind, g.seats, g.max, false)}
       const r = await api('/api/dazi', { body });
       btn.disabled = false;
       if (!r.ok) { show(r.error); return; }
+      if (window.ygTrack) window.ygTrack('create_group', { kind: k });
       location.href = `${pre}/g/${r.id}?new=1`;
     });
   }
@@ -391,6 +392,7 @@ ${table(g.kind, g.seats, g.max, false)}
         const r = await api(`/api/dazi/${g.id}/join`, { body: { sig: pad.png(), invite } });
         btn.disabled = false;
         if (!r.ok) { er.textContent = r.error; er.hidden = false; return; }
+        if (window.ygTrack) window.ygTrack('join_group', { group_id: g.id, kind: g.kind });
         close();
         resolve();
       });

@@ -1,10 +1,12 @@
 // Cloudflare Worker entry. Requests that run code:
+//   /api/hit                        visit counts, forwarded to Google Analytics (analytics.js)
 //   /api/*                          the API (api.js)
 //   /g/<id>, /g/<id>/<n>, /g/<id>/now   搭子 pages: the static shell with the group's name in the link preview
 //   /x/<id>                          articles and videos written by tag managers, rendered here
 // (and the same under /en/). Everything else is the static site in dist/.
 // The cron trigger (every 5 minutes) emails members as each 搭子 session starts.
 import { handleApi, runReminders } from './api.js';
+import { handleHit } from './analytics.js';
 import { store } from './store.js';
 import { siteData } from './content.js';
 import { planText, minutesText, sessionState, KINDS } from './schedule.js';
@@ -13,9 +15,10 @@ import { esc, md, plain } from './md.js';
 export { Store } from './store.js';
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const p = url.pathname;
+    if (p === '/api/hit') return handleHit(request, env, ctx, url);
     if (p.startsWith('/api/')) {
       try {
         return (await handleApi(request, env, url)) || Response.json({ ok: false, error: 'Not found' }, { status: 404 });

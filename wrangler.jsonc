@@ -12,6 +12,8 @@
   // The sender of every email (zion4life.faith is verified in Resend) and Zion's admin
   // accounts (the first is his own, made as the platform's first account). The Resend key
   // itself is the Secret RESEND_API_KEY, set in the Cloudflare dashboard.
+  // Google Analytics (src/analytics.js): add "GA_MEASUREMENT_ID": "G-…" here once the property
+  // exists; its Measurement Protocol key is the Secret GA_API_SECRET, set in the Cloudflare dashboard.
   "vars": { "FROM_EMAIL_ADDRESS": "有光 <light@zion4life.faith>", "ADMIN_EMAILS": "light@zion4life.faith,zion.chen@hotmail.com" },
   // Workers AI records the 呼吸 for 读给我听 (src/audio.js).
   "ai": { "binding": "AI" },

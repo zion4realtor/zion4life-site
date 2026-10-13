@@ -5,6 +5,44 @@
   var zh = document.documentElement.lang !== 'en';
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // ---- visit counts: Google Analytics through our own /api/hit (src/analytics.js), so nothing
+  // loads from Google and visitors in mainland China are counted too. window.ygTrack(name, params)
+  // records an action (the names are listed in src/analytics.js). ----
+  var track = (function () {
+    var mem = {};
+    function get(k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] || null; } }
+    function set(k, v) { try { localStorage.setItem(k, v); } catch (e) { mem[k] = v; } }
+    var now = Date.now();
+    var cid = get('yg_cid');
+    if (!/^\d+\.\d+$/.test(cid || '')) { cid = Math.floor(Math.random() * 2147483647) + '.' + Math.floor(now / 1000); set('yg_cid', cid); }
+    var last = (get('yg_sid') || '').split('.'); // "<visit id>.<last activity, ms>"; a visit ends after 30 quiet minutes
+    var fresh = !(last.length === 2 && now - Number(last[1]) < 30 * 60000);
+    var sid = fresh ? String(Math.floor(now / 1000)) : last[0];
+    var off = /^\/(en\/)?admin\//.test(location.pathname);
+    function send(events) {
+      if (off) return;
+      var body = JSON.stringify({ cid: cid, sid: sid, ns: fresh ? 1 : 0, loc: location.href, ref: document.referrer, title: document.title, lang: navigator.language || '', scr: screen.width + 'x' + screen.height, e: events });
+      fresh = false;
+      set('yg_sid', sid + '.' + Date.now());
+      try {
+        if (navigator.sendBeacon && navigator.sendBeacon('/api/hit', new Blob([body], { type: 'text/plain' }))) return;
+      } catch (e) {}
+      try { fetch('/api/hit', { method: 'POST', body: body, keepalive: true }).catch(function () {}); } catch (e) {}
+    }
+    send([{ n: 'page_view' }]);
+    window.addEventListener('pageshow', function (e) { if (e.persisted) send([{ n: 'page_view' }]); });
+    var shown = document.visibilityState === 'visible' ? Date.now() : 0;
+    var spent = 0;
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') { shown = Date.now(); return; }
+      if (shown) spent += Date.now() - shown;
+      shown = 0;
+      if (spent >= 1000) { send([{ n: 'time_on_page', ms: spent }]); spent = 0; }
+    });
+    return function (name, params) { send([{ n: name, p: params || {} }]); };
+  })();
+  window.ygTrack = track;
+
   // ---- toast ----
   var toastEl = document.querySelector('.toast');
   var toastTimer;
@@ -76,6 +114,7 @@
       btn.textContent = btn.getAttribute('data-copy-label');
     }
     btn.addEventListener('click', function () {
+      track('share', { method: isWeChat ? 'wechat_copy' : navigator.share ? 'system' : 'copy' });
       if (!isWeChat && navigator.share) {
         navigator.share({ title: title, url: url }).catch(function () {});
         return;
@@ -105,6 +144,7 @@
       }).then(function (r) { return r.json(); }).then(function (r) {
         btn.disabled = false;
         if (!r.ok) { err.textContent = r.error; err.hidden = false; return; }
+        track('generate_lead');
         form.reset();
         var done = document.createElement('p');
         done.className = 'ask-done';
@@ -155,6 +195,7 @@
       }
       start.hidden = true;
       player.appendChild(el);
+      track('play_video', { line: s.label || s.type });
       lineBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.getAttribute('data-line')) === i)); });
     }
     start.addEventListener('click', function () { play(current); });

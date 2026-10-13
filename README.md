@@ -188,6 +188,24 @@ keeps them across deploys):
 - Local testing only: `DEV_SHOW_CODE=1` returns the sign-in code to the page instead of
   needing email (`npx wrangler dev --var DEV_SHOW_CODE:1`). Never set it on the live site.
 
+## Visit counts (Google Analytics)
+
+Pages load nothing from Google. `static/js/site.js` sends each page view, the visible time on
+the page and a few actions (`window.ygTrack`) to our own `/api/hit`; `src/analytics.js`
+forwards them from Cloudflare to GA4's Measurement Protocol, so visitors in mainland China are
+counted too. Query strings are dropped (they hold 搭子 invite codes) except `utm_*` tags; no IP
+address is sent (country, region and city come from Cloudflare); `/admin/` is not counted.
+
+- Turn it on: `GA_MEASUREMENT_ID` ("G-…") in `wrangler.jsonc` vars, and the Secret
+  `GA_API_SECRET` (GA → Admin → Data streams → the web stream → Measurement Protocol API
+  secrets) in the Cloudflare dashboard. Without both, `/api/hit` quietly does nothing.
+- Actions: `generate_lead` (有问题想问 sent; mark it as a key event in GA), `sign_up`, `login`,
+  `create_group`, `join_group`, `share`, `play_video`, `listen_audio` (读给我听), `time_on_page`.
+- Traffic source: utm tags, else the referring site, else the app the link was opened in
+  (WeChat, Xiaohongshu, Weibo, QQ send no referrer), sent as `campaign_details`.
+- GA's "new users" stays near zero (Measurement Protocol cannot send `first_visit`); use
+  total and active users instead.
+
 ## Mainland China
 
 - Load nothing from Google, YouTube thumbnails or public CDNs on page load

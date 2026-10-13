@@ -126,8 +126,10 @@
     show(0);
   }
 
+  var listened = false;
   function start(fromIdx, frac) {
     say('');
+    if (!listened && window.ygTrack) { listened = true; window.ygTrack('listen_audio'); }
     return load().then(function () {
       if (mode) return;
       return fetch('/api/audio/huxi/' + day.date + '/' + lang + '.json').then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (r) {
