@@ -1,10 +1,19 @@
 {
-  "name": "Zion4Life",
-  "nameZh": "生命的答案",
   "url": "https://zion4life.faith",
-  "description": "人活着，究竟为了什么？这里有文章、视频和每日祷告，陪你一起寻找生命的答案。",
-  "heroQuestion": ["人活着，", "究竟为了什么？"],
-  "heroLead": "也许你也问过自己。这里有一些人找到的答案，慢慢读，不着急。",
-  "heroArticle": "rensheng-aomi",
-  "footerLine": "愿你在这里遇见生命的光。"
+  "owner": "Zion Chen",
+  "contact": "hello@zion4life.faith",
+  "zh": {
+    "name": "有光",
+    "description": "人活着，究竟为了什么？有光：一个慢慢读、慢慢找答案的地方。",
+    "hi": "人活着，究竟为了什么？",
+    "hiSub": "答案也许就在某一格里。点一格看看。",
+    "footerLine": "愿你在这里遇见生命的光。"
+  },
+  "en": {
+    "name": "Light",
+    "description": "What are we really living for? Light is a quiet place to read, listen and look for the answer.",
+    "hi": "What are we really living for?",
+    "hiSub": "The answer may be in one of these tiles. Tap one.",
+    "footerLine": "May you meet the light of life here."
+  }
 }

@@ -1,2 +1,10 @@
-/groups/ /square/ 301
-/groups /square/ 301
+/groups/ /dazi/ 301
+/groups /dazi/ 301
+/square/ /dazi/ 301
+/square/new/ /dazi/new/ 301
+/read/ / 301
+/read/:slug/ /a/:slug/ 301
+/watch/ / 301
+/watch/:slug/ /v/:slug/ 301
+/pray/ /huxi/ 301
+/pray/:date/ /huxi/:date/ 301

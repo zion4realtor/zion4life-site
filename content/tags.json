@@ -1,0 +1,17 @@
+[
+  { "id": "mystery", "zh": "人生的奥秘", "en": "Mystery of Life", "tint": "aqua", "size": "big" },
+  { "id": "goodnews", "zh": "好消息", "en": "Good News", "tint": "sky" },
+  { "id": "eat", "zh": "吃饭", "en": "Eat", "tint": "mint" },
+  { "id": "stories", "zh": "我的故事", "en": "Stories", "tint": "peach", "size": "wide" },
+  { "id": "breathe", "zh": "呼吸", "en": "Breathe", "tint": "sun" },
+  { "id": "lgh", "zh": "李光宏", "en": "Li Guanghong", "tint": "lilac", "size": "wide", "person": { "zh": "李", "en": "L" } },
+  { "id": "life", "zh": "生命", "en": "Life", "tint": "mint" },
+  { "id": "students", "zh": "学生", "en": "Students", "tint": "aqua" },
+  { "id": "family", "zh": "家庭", "en": "Family", "tint": "peach" },
+  { "id": "feelings", "zh": "情绪", "en": "Feelings", "tint": "lilac" },
+  { "id": "qa", "zh": "问与答", "en": "Q & A", "tint": "sky" },
+  { "id": "love", "zh": "恋爱婚姻", "en": "Love", "tint": "peach" },
+  { "id": "work", "zh": "职场", "en": "Work", "tint": "aqua" },
+  { "id": "newfriends", "zh": "新朋友", "en": "New Friends", "tint": "sun" },
+  { "id": "songs", "zh": "唱歌", "en": "Songs", "tint": "sky" }
+]

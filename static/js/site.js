@@ -1,7 +1,9 @@
-// zion4life.faith page script: share links, today's prayer, video player. No dependencies.
+// 有光 (zion4life.faith) page script: tile ripples, tag filters, today's 呼吸, sharing, the question box, videos. No dependencies.
 (function () {
   'use strict';
   var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+  var zh = document.documentElement.lang !== 'en';
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---- toast ----
   var toastEl = document.querySelector('.toast');
@@ -14,11 +16,45 @@
     toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2600);
   }
 
+  // ---- tiles: a ripple from where you tapped, then open the page ----
+  document.querySelectorAll('[data-ripple]').forEach(function (tile) {
+    tile.addEventListener('click', function (e) {
+      if (reduce || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+      e.preventDefault();
+      var r = tile.getBoundingClientRect();
+      var x = (e.clientX || r.left + r.width / 2) - r.left;
+      var y = (e.clientY || r.top + r.height / 2) - r.top;
+      [0, 130, 280].forEach(function (delay, k) {
+        setTimeout(function () {
+          var ring = document.createElement('span');
+          ring.className = 'ring' + (k ? ' soft' : '');
+          ring.style.left = x + 'px';
+          ring.style.top = y + 'px';
+          tile.appendChild(ring);
+          setTimeout(function () { ring.remove(); }, 1000);
+        }, delay);
+      });
+      setTimeout(function () { location.href = tile.href; }, 540);
+    });
+  });
+
+  // ---- tag page filters ----
+  var filters = document.querySelector('[data-filters]');
+  if (filters) {
+    filters.querySelectorAll('[data-filter]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var f = b.getAttribute('data-filter');
+        filters.querySelectorAll('[data-filter]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        document.querySelectorAll('.cards > .card[data-kind]').forEach(function (c) {
+          c.hidden = f !== 'all' && c.getAttribute('data-kind') !== f;
+        });
+      });
+    });
+  }
+
   // ---- copy / share ----
   function copy(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
-    }
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
     return new Promise(function (resolve, reject) {
       var ta = document.createElement('textarea');
       ta.value = text;
@@ -37,24 +73,21 @@
     var title = box.getAttribute('data-title');
     if (isWeChat) {
       box.querySelector('.share-wx').hidden = false;
-      btn.textContent = '复制链接';
+      btn.textContent = btn.getAttribute('data-copy-label');
     }
     btn.addEventListener('click', function () {
       if (!isWeChat && navigator.share) {
         navigator.share({ title: title, url: url }).catch(function () {});
         return;
       }
-      copy(url).then(
-        function () { toast('链接已复制，粘贴发给朋友就可以了'); },
-        function () { toast(url); }
-      );
+      copy(url).then(function () { toast(box.getAttribute('data-copied')); }, function () { toast(url); });
     });
   });
 
-  // ---- today's prayer: pick the newest entry dated on or before the visitor's own date ----
-  var dataEl = document.getElementById('pray-data');
-  var todayEl = document.querySelector('[data-pray-today]');
-  if (dataEl && todayEl) {
+  // ---- today's 呼吸: the newest entry dated on or before the visitor's own date ----
+  var dataEl = document.getElementById('huxi-data');
+  var todayEls = document.querySelectorAll('[data-huxi-today]');
+  if (dataEl && todayEls.length) {
     var d = new Date();
     var pad = function (n) { return (n < 10 ? '0' : '') + n; };
     var today = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -62,16 +95,16 @@
     try { list = JSON.parse(dataEl.textContent); } catch (e) {}
     var pick = null;
     for (var i = 0; i < list.length; i++) { if (list[i].date <= today) { pick = list[i]; break; } }
-    var shown = todayEl.getAttribute('data-date');
+    var shown = todayEls[0].getAttribute('data-date');
     if (pick && pick.date !== shown) {
-      todayEl.querySelectorAll('[data-f]').forEach(function (el) {
-        var f = el.getAttribute('data-f');
-        if (f === 'html') el.innerHTML = pick.html;
-        else if (pick[f] != null) el.textContent = pick[f];
+      todayEls.forEach(function (el) {
+        el.querySelectorAll('[data-f]').forEach(function (f) {
+          var k = f.getAttribute('data-f');
+          if (k === 'html') { if (pick.html) f.innerHTML = pick.html; }
+          else if (pick[k] != null) f.textContent = pick[k];
+        });
+        el.setAttribute('data-date', pick.date);
       });
-      var tag = todayEl.querySelector('.tag');
-      if (tag && pick.sample === false) tag.hidden = true;
-      todayEl.setAttribute('data-date', pick.date);
       shown = pick.date;
     }
     document.querySelectorAll('[data-arch]').forEach(function (li) {
@@ -79,6 +112,41 @@
       li.hidden = date > today || date === shown;
     });
   }
+
+  // ---- 有问题想问？ ----
+  document.querySelectorAll('[data-ask]').forEach(function (form) {
+    var err = form.querySelector('[data-error]');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      err.hidden = true;
+      var msg = form.message.value.trim();
+      if (!msg) {
+        err.textContent = zh ? '先写下你想问的。' : 'Write your question first.';
+        err.hidden = false;
+        return;
+      }
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, name: form.name.value, reply: form.reply.value, website: form.website.value, lang: form.getAttribute('data-lang'), page: location.pathname }),
+      }).then(function (r) { return r.json(); }).then(function (r) {
+        btn.disabled = false;
+        if (!r.ok) { err.textContent = r.error; err.hidden = false; return; }
+        form.reset();
+        var done = document.createElement('p');
+        done.className = 'ask-done';
+        done.textContent = form.getAttribute('data-done');
+        btn.insertAdjacentElement('afterend', done);
+        setTimeout(function () { done.remove(); }, 6000);
+      }).catch(function () {
+        btn.disabled = false;
+        err.textContent = zh ? '网络有点问题，请稍后再试。' : 'Network problem. Please try again in a moment.';
+        err.hidden = false;
+      });
+    });
+  });
 
   // ---- video player: loads the video only when tapped, so the page stays light ----
   document.querySelectorAll('[data-player]').forEach(function (player) {
@@ -89,11 +157,8 @@
     if (!sources.length) return;
     var current = 0;
     var lineBtns = document.querySelectorAll('[data-line]');
-
     function embed(s) {
-      if (s.type === 'youtube') {
-        return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(s.id) + '?autoplay=1&rel=0&playsinline=1';
-      }
+      if (s.type === 'youtube') return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(s.id) + '?autoplay=1&rel=0&playsinline=1';
       if (s.type === 'bunny') return s.url + (s.url.indexOf('?') < 0 ? '?' : '&') + 'autoplay=true&preload=true';
       return s.url;
     }
@@ -115,7 +180,7 @@
         el.src = embed(s);
         el.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
         el.setAttribute('allowfullscreen', '');
-        el.title = '视频播放';
+        el.title = zh ? '视频播放' : 'Video';
       }
       start.hidden = true;
       player.appendChild(el);

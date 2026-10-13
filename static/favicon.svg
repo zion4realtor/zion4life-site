@@ -1,1 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#15322C"/><path d="M7 20a9 9 0 0 1 18 0z" fill="#F0C46A"/><rect x="4" y="22" width="24" height="2.4" rx="1.2" fill="#F4F1E6"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="ys" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16375e"/><stop offset=".68" stop-color="#2a74ad"/><stop offset="1" stop-color="#5cb6e5"/></linearGradient>
+    <linearGradient id="yb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7d9" stop-opacity="1"/><stop offset=".55" stop-color="#ffdb7e" stop-opacity=".55"/><stop offset="1" stop-color="#ffdb7e" stop-opacity="0"/></linearGradient>
+    <linearGradient id="ym" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6dc"/><stop offset=".4" stop-color="#ffffff"/><stop offset="1" stop-color="#d4ebfa"/></linearGradient>
+    <radialGradient id="yg" cx="32" cy="27" r="13" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff0bd"/><stop offset="1" stop-color="#fff0bd" stop-opacity="0"/></radialGradient>
+    <clipPath id="yc"><rect width="64" height="64" rx="16"/></clipPath>
+  </defs>
+  <g clip-path="url(#yc)">
+    <rect width="64" height="64" fill="url(#ys)"/>
+    <path d="M26 -2 H38 L60 46 H4 Z" fill="url(#yb)"/>
+    <circle cx="32" cy="28" r="13" fill="url(#yg)"/>
+    <path d="M-2 52 L9 45 L17 49 L-2 64 Z M66 50 L57 44 L50 48 L66 61 Z" fill="#1c5687"/>
+    <path d="M-2 66 L32 25 L41 35 L45.5 31.5 L66 55 V66 Z" fill="url(#ym)"/>
+    <path d="M32 25 L14 66 H-2 Z" fill="#a6cfee" opacity=".55"/>
+    <path d="M32 25 L27.6 30.3 L30.2 31.6 L32.2 29.6 L34.6 32 L36.8 30.1 Z" fill="#ffe39a"/>
+  </g>
+</svg>

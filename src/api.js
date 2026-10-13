@@ -10,7 +10,7 @@ import {
   icsCalendar, sessionsBetween, sessionLabel, localDate, addDays, minutesText,
 } from './schedule.js';
 import { BOOKS } from './bible.js';
-import { sendMail, layout } from './mail.js';
+import { sendMail, layout, sendAsk } from './mail.js';
 
 export const SITE = 'https://zion4life.faith';
 const HOUR = 3600000;
@@ -267,6 +267,22 @@ export async function handleApi(request, env, url, now = Date.now()) {
       { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 
+  // 有问题想问？ Stored first (so nothing is lost), then emailed to Zion when mail is set up.
+  if (p === '/api/ask' && method === 'POST') {
+    const b = await readBody(request, 20000);
+    const zh = b?.lang !== 'en';
+    if (!b || b.website) return fail(zh ? '内容不完整' : 'Something is missing');
+    const message = str(b.message, 3000);
+    if (!message) return fail(zh ? '先写下你想问的。' : 'Write your question first.');
+    const reply = str(b.reply, 120);
+    if (reply && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(reply)) return fail(zh ? '回信邮箱好像不对，可以不填。' : 'That email looks wrong. You can leave it empty.');
+    if (!(await rateOk(db, request, 'ask', 10, now))) return fail(zh ? '今天发得太多了，明天再试。' : 'Too many today. Please try again tomorrow.', 429);
+    const ask = { message, name: str(b.name, 40), reply, lang: zh ? 'zh' : 'en', page: str(b.page, 200) };
+    const { id } = await db('askAdd', ask);
+    if (await sendAsk(env, ask)) await db('askMailed', { id });
+    return json({ ok: true });
+  }
+
   if (p.startsWith('/api/admin/')) return adminRoute(request, env, db, p, now);
   return null;
 }
@@ -433,6 +449,9 @@ async function groupRoute(request, env, db, g, action, url, now) {
 async function adminRoute(request, env, db, p, now) {
   const key = request.headers.get('x-admin') || '';
   if (!env.ADMIN_KEY || key !== env.ADMIN_KEY) return fail('需要管理密码', 403);
+  if (p === '/api/admin/asks' && request.method === 'GET') {
+    return json({ ok: true, asks: await db('asks', {}) });
+  }
   if (p === '/api/admin/groups' && request.method === 'GET') {
     const list = await db('allGroups', {});
     return json({ ok: true, groups: list.map((g) => groupView(g, now)) });

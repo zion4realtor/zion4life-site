@@ -1,8 +1,8 @@
-// zion4life.faith plaza and groups: /square/, /square/new/, /g/<id>, /admin/.
+// 有光 (zion4life.faith) 搭子: /dazi/, /dazi/new/, /g/<id>, /me/ (my groups), /admin/.
 // Talks to /api/* (src/api.js). No dependencies. Everything user-written goes through esc().
 (function () {
   'use strict';
-  var KINDS = { read: '读经小组', pray: '祷告小组', feed: '喂养小组' };
+  var KINDS = { read: '饭搭子', pray: '呼吸搭子', feed: '投喂搭子' };
   var WEEK = ['日', '一', '二', '三', '四', '五', '六'];
   var page = document.querySelector('[data-page]');
   if (!page) return;
@@ -115,7 +115,7 @@
       api('/api/plaza' + (kind ? '?kind=' + kind : '')).then(function (r) {
         if (!r.ok) { list.innerHTML = '<p class="form-error">' + esc(r.error) + '</p>'; return; }
         if (!r.groups.length) {
-          list.innerHTML = '<div class="empty"><p>' + (kind ? '还没有' + KINDS[kind] + '。' : '广场上还没有小组。') + '第一个由你发起吧。</p><a class="btn btn-life" href="/square/new/' + (kind ? '?kind=' + kind : '') + '">发起一个小组</a></div>';
+          list.innerHTML = '<div class="empty"><p>' + (kind ? '还没有' + KINDS[kind] + '。' : '广场上还没有搭子。') + '第一个由你发起吧。</p><a class="btn btn-life" href="/dazi/new/' + (kind ? '?kind=' + kind : '') + '">发起一个搭子</a></div>';
           return;
         }
         list.innerHTML = r.groups.map(function (g) { return card(g, false); }).join('');
@@ -138,6 +138,18 @@
         $('[data-mine]').innerHTML = r.groups.map(function (g) { return card(g, true); }).join('');
       });
     }
+  }
+
+  // ---------- my groups (on /me/) ----------
+  function initMine() {
+    var tokens = loadTokens();
+    var all = Object.keys(tokens).map(function (k) { return tokens[k]; });
+    if (!all.length) return;
+    api('/api/mine', { method: 'POST', body: { tokens: all } }).then(function (r) {
+      if (!r.ok || !r.groups.length) return;
+      $('#mine').hidden = false;
+      $('[data-mine]').innerHTML = r.groups.map(function (g) { return card(g, true); }).join('');
+    });
   }
 
   // ---------- new group form ----------
@@ -231,7 +243,7 @@
           err.textContent = r.error;
           err.hidden = false;
           btn.disabled = false;
-          btn.textContent = '发起小组';
+          btn.textContent = '发起搭子';
           err.scrollIntoView({ block: 'center', behavior: 'smooth' });
           return;
         }
@@ -282,13 +294,13 @@
 
     function render() {
       var r = state;
-      if (!r.ok) { root.innerHTML = '<h1 class="page-title">找不到这个小组</h1><p class="page-lead">' + esc(r.error) + '</p><p><a class="btn btn-life" href="/square/">去小组广场</a></p>'; return; }
+      if (!r.ok) { root.innerHTML = '<h1 class="page-title">找不到这个搭子</h1><p class="page-lead">' + esc(r.error) + '</p><p><a class="btn btn-life" href="/dazi/">去搭子广场</a></p>'; return; }
       var g = r.group;
       document.title = g.title + '｜Zion4Life';
       if (r.needInvite) {
         root.innerHTML = tag(g.kind) + '<h1 class="g-title">' + esc(g.title) + '</h1>' +
-          '<p class="page-lead">这个小组不公开，需要用' + (g.ownerName ? esc(g.ownerName) + '发给你的' : '') + '邀请链接打开。</p>' +
-          '<p><a class="btn btn-line" href="/square/">去小组广场看看</a></p>';
+          '<p class="page-lead">这个搭子不公开，需要用' + (g.ownerName ? esc(g.ownerName) + '发给你的' : '') + '邀请链接打开。</p>' +
+          '<p><a class="btn btn-line" href="/dazi/">去搭子广场看看</a></p>';
         return;
       }
       var me = r.me;
@@ -296,14 +308,14 @@
       var isOwner = active && me.role === 'owner';
       var h = '';
       if (isNew && isOwner) {
-        h += '<div class="notice"><strong>小组建好了。</strong>把邀请链接发给朋友，他们点开、留下称呼和联系方式，就加入了。<button class="btn btn-dawn" type="button" data-copy-invite>复制邀请链接</button></div>';
+        h += '<div class="notice"><strong>搭子建好了。</strong>把邀请链接发给朋友，他们点开、留下称呼和联系方式，就加入了。<button class="btn btn-dawn" type="button" data-copy-invite>复制邀请链接</button></div>';
       }
       h += tag(g.kind) + '<h1 class="g-title">' + esc(g.title) + '</h1>';
       h += '<p class="g-by">' + (g.ownerName ? esc(g.ownerName) + ' 发起' : '') + (g.status === 'closed' ? '<span class="pill">已结束</span>' : '') + '</p>';
       if (g.intro) h += '<p class="g-intro">' + esc(g.intro) + '</p>';
 
       // the covenant
-      h += '<section class="covenant-card"><h2>小组的约</h2><dl class="terms">';
+      h += '<section class="covenant-card"><h2>搭子的约</h2><dl class="terms">';
       h += '<dt>时间</dt><dd>' + esc(g.scheduleText) + (viewerTz && viewerTz !== g.tz && g.next ? '<small>按你手机的时间，下次是' + esc(when(g.next.start)) + '</small>' : '') + '</dd>';
       h += '<dt>' + (g.kind === 'read' ? '计划' : '内容') + '</dt><dd>' + esc(g.planText || '发起人会随时更新') + (g.kind !== 'read' && g.plan.link ? '<small><a href="' + esc(g.plan.link) + '" target="_blank" rel="noopener">打开材料</a></small>' : '') + '</dd>';
       h += '<dt>人数</dt><dd>' + g.memberCount + ' 人已立约' + (g.max ? '，最多 ' + g.max + ' 人' : '') + '</dd>';
@@ -328,15 +340,15 @@
       h += records(g, r, active);
       if (active) h += membersBlock(g, r, isOwner);
       if (isOwner) h += ownerBlock(g);
-      if (active && !isOwner) h += '<p class="leave"><button type="button" class="link-btn" data-leave>退出这个小组</button></p>';
+      if (active && !isOwner) h += '<p class="leave"><button type="button" class="link-btn" data-leave>退出这个搭子</button></p>';
       root.innerHTML = h;
       isNew = false;
       bind(g, r);
     }
 
     function joinForm(g, r) {
-      if (g.status !== 'active') return '<section class="notice">这个小组已经结束了。</section>';
-      if (g.max && g.memberCount >= g.max) return '<section class="notice">小组人数已经满了。</section>';
+      if (g.status !== 'active') return '<section class="notice">这个搭子已经结束了。</section>';
+      if (g.max && g.memberCount >= g.max) return '<section class="notice">搭子人数已经满了。</section>';
       var direct = r.inviteOk || g.joinMode === 'open';
       var verb = { read: '读经', pray: '祷告', feed: '追求' }[g.kind];
       return '<section class="join"><h2 class="sub-h">' + (direct ? '立约加入' : '申请加入') + '</h2>' +
@@ -370,7 +382,7 @@
     }
 
     function tools(g, r) {
-      return '<section class="tools"><h2 class="sub-h">小组工具</h2><div class="tool-list">' +
+      return '<section class="tools"><h2 class="sub-h">搭子工具</h2><div class="tool-list">' +
         '<a class="tool" href="/api/groups/' + gid + '/calendar" data-cal><strong>加到手机日历</strong><span>每次开始前 10 分钟，手机会提醒你</span></a>' +
         '<button type="button" class="tool" data-copy-invite><strong>邀请朋友</strong><span>复制邀请链接，发给想一起的人</span></button>' +
         '<button type="button" class="tool" data-copy-me><strong>我的专属链接</strong><span>换了手机，用它打开就能接着打卡（不要转发）</span></button>' +
@@ -420,8 +432,8 @@
           '<button class="btn btn-line" type="submit">更新内容</button></form>';
       }
       h += g.status === 'closed'
-        ? '<p><button type="button" class="btn btn-line" data-reopen>重新开始这个小组</button></p>'
-        : '<p><button type="button" class="link-btn danger" data-close>结束这个小组</button></p>';
+        ? '<p><button type="button" class="btn btn-line" data-reopen>重新开始这个搭子</button></p>'
+        : '<p><button type="button" class="link-btn danger" data-close>结束这个搭子</button></p>';
       return h + '</section>';
     }
 
@@ -449,7 +461,7 @@
       });
       var lv = $('[data-leave]', root);
       if (lv) lv.addEventListener('click', function () {
-        if (!confirm('确定要退出这个小组吗？')) return;
+        if (!confirm('确定要退出这个搭子吗？')) return;
         api('/api/groups/' + gid + '/leave', { method: 'POST', token: token(), body: {} }).then(function (x) {
           if (x.ok) { dropToken(gid); toast('已经退出'); load(); } else toast(x.error);
         });
@@ -457,12 +469,12 @@
       $$('[data-approve]', root).forEach(function (b) { b.addEventListener('click', function () { manage({ action: 'approve', mid: b.getAttribute('data-approve') }, '已同意'); }); });
       $$('[data-decline]', root).forEach(function (b) { b.addEventListener('click', function () { manage({ action: 'decline', mid: b.getAttribute('data-decline') }, '已拒绝'); }); });
       $$('[data-remove]', root).forEach(function (b) {
-        b.addEventListener('click', function () { if (confirm('把 ' + b.getAttribute('data-name') + ' 移出小组？')) manage({ action: 'remove', mid: b.getAttribute('data-remove') }, '已移出'); });
+        b.addEventListener('click', function () { if (confirm('把 ' + b.getAttribute('data-name') + ' 移出搭子？')) manage({ action: 'remove', mid: b.getAttribute('data-remove') }, '已移出'); });
       });
       var cl = $('[data-close]', root);
-      if (cl) cl.addEventListener('click', function () { if (confirm('结束后不会再发提醒，也不能再加入。确定结束吗？')) manage({ action: 'close' }, '小组已结束'); });
+      if (cl) cl.addEventListener('click', function () { if (confirm('结束后不会再发提醒，也不能再加入。确定结束吗？')) manage({ action: 'close' }, '搭子已结束'); });
       var ro = $('[data-reopen]', root);
-      if (ro) ro.addEventListener('click', function () { manage({ action: 'reopen' }, '小组重新开始了'); });
+      if (ro) ro.addEventListener('click', function () { manage({ action: 'reopen' }, '搭子重新开始了'); });
       var mat = $('[data-material]', root);
       if (mat) mat.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -605,17 +617,30 @@
     var list = $('[data-admin-list]');
     var key = '';
     try { key = localStorage.getItem('z4l.admin') || ''; } catch (e) {}
+    function loadAsks() {
+      fetch('/api/admin/asks', { headers: { 'X-Admin': key } }).then(function (r) { return r.json(); }).then(function (r) {
+        if (!r.ok) return;
+        $('[data-admin-asks]').hidden = false;
+        $('[data-ask-list]').innerHTML = r.asks.length ? r.asks.map(function (a) {
+          return '<div class="gcard"><p class="gmeta">' + esc(new Date(a.created).toLocaleString('zh-CN')) + (a.name ? '，' + esc(a.name) : '') + (a.reply ? '，回信邮箱：' + esc(a.reply) : '') + (a.lang === 'en' ? '，英文页面' : '') + '</p>' +
+            '<p style="margin:6px 0 0;white-space:pre-wrap">' + esc(a.message) + '</p></div>';
+        }).join('') : '<p class="muted">还没有人发来问题。</p>';
+      });
+    }
     function load() {
+      $('[data-admin-groups]').hidden = false;
+      loadAsks();
       fetch('/api/admin/groups', { headers: { 'X-Admin': key } }).then(function (r) { return r.json(); }).then(function (r) {
         if (!r.ok) { list.innerHTML = '<p class="form-error">' + esc(r.error) + '</p>'; return; }
         form.hidden = true;
+        $('[data-admin-groups]').hidden = false;
         list.innerHTML = r.groups.length ? r.groups.map(function (g) {
           return '<div class="gcard admin-row">' + tag(g.kind) + '<h3><a href="/g/' + esc(g.id) + '">' + esc(g.title) + '</a></h3>' +
             '<p class="gmeta">' + esc(g.ownerName) + ' 发起，' + g.memberCount + ' 人，' + (g.visibility === 'public' ? '广场公开' : '仅邀请') + '，状态：' + esc({ active: '正常', hidden: '已撤下', closed: '已结束' }[g.status]) + '</p>' +
             '<p class="btn-row">' + (g.status === 'hidden'
               ? '<button class="btn btn-line btn-sm" data-st="active" data-id="' + esc(g.id) + '">恢复</button>'
               : '<button class="btn btn-line btn-sm" data-st="hidden" data-id="' + esc(g.id) + '">撤下</button>') + '</p></div>';
-        }).join('') : '<p class="muted">还没有小组。</p>';
+        }).join('') : '<p class="muted">还没有搭子。</p>';
         $$('[data-st]', list).forEach(function (b) {
           b.addEventListener('click', function () {
             fetch('/api/admin/groups/' + b.getAttribute('data-id'), { method: 'POST', headers: { 'X-Admin': key, 'Content-Type': 'application/json' }, body: JSON.stringify({ status: b.getAttribute('data-st') }) })
@@ -634,6 +659,7 @@
   }
 
   if (kindOfPage === 'square') initSquare();
+  else if (kindOfPage === 'me') initMine();
   else if (kindOfPage === 'new') initNew();
   else if (kindOfPage === 'group') initGroup();
   else if (kindOfPage === 'admin') initAdmin();

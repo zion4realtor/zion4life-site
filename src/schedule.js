@@ -9,7 +9,7 @@ import { BOOKS, TOTAL_CHAPTERS, chapterIndex, chapterAt, chaptersText, chapterLi
 
 const DAY = 86400000;
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
-export const KINDS = { read: '读经小组', pray: '祷告小组', feed: '喂养小组' };
+export const KINDS = { read: '饭搭子', pray: '呼吸搭子', feed: '投喂搭子' };
 export const TZ_LABELS = {
   'Asia/Shanghai': '北京时间', 'Asia/Hong_Kong': '香港时间', 'Asia/Taipei': '台北时间', 'Asia/Singapore': '新加坡时间',
   'Asia/Tokyo': '东京时间', 'Asia/Seoul': '首尔时间', 'Australia/Sydney': '悉尼时间', 'Europe/London': '伦敦时间',

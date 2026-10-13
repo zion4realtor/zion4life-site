@@ -214,7 +214,7 @@ test('reminders go out once per session, 5–20 minutes ahead', async () => {
 test('group page shell carries the group name for link previews', async () => {
   const { id } = (await call('/api/groups', { method: 'POST', body: READ })).body;
   const page = await call(`/g/${id}`);
-  assert.match(page.body, /<title>一起读约翰福音｜老陈邀请你加入读经小组<\/title>/);
+  assert.match(page.body, /<title>一起读约翰福音｜老陈邀请你加入饭搭子<\/title>/);
 });
 
 test('validation messages', async () => {

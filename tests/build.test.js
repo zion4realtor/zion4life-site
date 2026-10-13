@@ -1,4 +1,4 @@
-// node --test: checks the Markdown converter and that the built site has what the shared links need.
+// node --test: the Markdown converter, and that the built site has what shared links need, in both languages.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -17,15 +17,27 @@ test('markdown: verse with source line, lists, Chinese line joins', () => {
   assert.match(h, /<p>第一句第二句<\/p>/);
 });
 
-test('build output', () => {
+test('build output: both languages, tags, tiles fill whole rows', () => {
   execFileSync('node', ['build.mjs'], { cwd: ROOT });
-  for (const p of ['index.html', 'read/index.html', 'pray/index.html', 'watch/index.html', 'square/index.html', 'square/new/index.html', 'g/index.html', 'admin/index.html', '404.html', 'sitemap.xml']) {
-    assert.ok(fs.existsSync(path.join(ROOT, 'dist', p)), p);
+  const pages = ['index.html', 'en/index.html', 'huxi/index.html', 'en/huxi/index.html', 'me/index.html', 'en/me/index.html',
+    'dazi/index.html', 'en/dazi/index.html', 'dazi/new/index.html', 'g/index.html', 'admin/index.html', 't/mystery/index.html',
+    'en/t/mystery/index.html', 'a/rensheng-aomi/index.html', 'en/a/rensheng-aomi/index.html', 'v/fule-rensheng/index.html', '404.html', 'sitemap.xml'];
+  for (const p of pages) assert.ok(fs.existsSync(path.join(ROOT, 'dist', p)), p);
+  for (const p of ['index.html', 'en/index.html']) {
+    const html = dist(p);
+    let cells = 0;
+    for (const m of html.matchAll(/<a class="(tile[^"]*)"/g)) cells += /\bbig\b/.test(m[1]) ? 4 : /\bw2\b/.test(m[1]) ? 2 : 1;
+    assert.equal(cells % 3, 0, `${p}: tiles leave a gap in the last row`);
+    assert.match(html, /data-ask/, 'question box');
   }
-  const pray = dist('pray/index.html');
-  assert.match(pray, /id="pray-data"/, 'today data for the daily link');
+  assert.match(dist('en/index.html'), /<html lang="en">/);
+  assert.match(dist('en/a/rensheng-aomi/index.html'), /The Mystery of Life/);
+  assert.match(dist('huxi/index.html'), /id="huxi-data"/);
   // Nothing may load from Google or public CDNs: those are blocked or slow in mainland China.
-  for (const f of ['index.html', 'pray/index.html', 'square/index.html', 'square/new/index.html', 'g/index.html']) {
+  for (const f of ['index.html', 'en/index.html', 'huxi/index.html', 'dazi/index.html', 'g/index.html', 'a/rensheng-aomi/index.html']) {
     assert.doesNotMatch(dist(f), /googleapis|gstatic|jsdelivr|unpkg|cdnjs|google-analytics|googletagmanager/, f);
   }
+  // Old addresses keep working.
+  const redirects = dist('_redirects');
+  for (const from of ['/read/:slug/', '/pray/', '/square/', '/watch/:slug/']) assert.ok(redirects.includes(from), from);
 });

@@ -6,6 +6,7 @@
 //   audio     voice notes (base64; short clips only)
 //   reminded  which session reminders went out, so each is sent once
 //   rate      per-visitor daily counters (hashed, never the raw IP)
+//   ask       questions sent from the 有问题想问 box (also emailed to Zion when mail is set up)
 // The Durable Object takes { op, args } as JSON. Every op is a plain function of a
 // `sql` handle so tests can run the same code against node:sqlite.
 
@@ -25,6 +26,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS audio (id TEXT PRIMARY KEY, gid TEXT NOT NULL, mid TEXT NOT NULL, mime TEXT NOT NULL, data TEXT NOT NULL, created INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS reminded (gid TEXT NOT NULL, n INTEGER NOT NULL, sent INTEGER NOT NULL, PRIMARY KEY (gid, n))',
   'CREATE TABLE IF NOT EXISTS rate (day TEXT NOT NULL, who TEXT NOT NULL, kind TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (day, who, kind))',
+  `CREATE TABLE IF NOT EXISTS ask (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT NOT NULL, name TEXT NOT NULL, reply TEXT NOT NULL,
+    lang TEXT NOT NULL, page TEXT NOT NULL, mailed INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)`,
 ];
 
 export function migrate(sql) {
@@ -199,6 +202,17 @@ export const OPS = {
     if (mine >= perDay) return { ok: false };
     sql.exec('INSERT INTO rate (day, who, kind, count) VALUES (?, ?, ?, 1) ON CONFLICT (day, who, kind) DO UPDATE SET count = count + 1', day, who, kind);
     return { ok: true };
+  },
+  askAdd(sql, { message, name, reply, lang, page, now = Date.now() }) {
+    sql.exec('INSERT INTO ask (message, name, reply, lang, page, created) VALUES (?, ?, ?, ?, ?, ?)', message, name, reply, lang, page, now);
+    return { ok: true, id: first(sql, 'SELECT last_insert_rowid() AS id').id };
+  },
+  askMailed(sql, { id }) {
+    sql.exec('UPDATE ask SET mailed = 1 WHERE id = ?', id);
+    return { ok: true };
+  },
+  asks(sql, { limit = 200 }) {
+    return rows(sql, 'SELECT * FROM ask ORDER BY id DESC LIMIT ?', limit);
   },
   prune(sql, { day }) {
     sql.exec('DELETE FROM rate WHERE day < ?', day);

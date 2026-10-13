@@ -1,5 +1,5 @@
-// build.mjs: builds zion4life.faith into dist/. No dependencies; run `node build.mjs`.
-// Content lives in content/ (see README.md). Static files in static/ are copied as is.
+// build.mjs: builds 有光 (zion4life.faith) into dist/. No dependencies; run `node build.mjs`.
+// Two languages: Chinese at the root, English under /en/. Content lives in content/ (see README.md).
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -11,27 +11,77 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CONTENT = path.join(ROOT, 'content');
 const STATIC = path.join(ROOT, 'static');
 const DIST = path.join(ROOT, 'dist');
-
+const LANGS = ['zh', 'en'];
 const site = readJSON('site.json');
-const NAV = [
-  ['/read/', '文章'],
-  ['/watch/', '视频'],
-  ['/pray/', '祷告'],
-  ['/square/', '广场'],
-];
-const KINDS = { message: '福音信息', testimony: '见证' };
-const WEEK = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+const TAGS = readJSON('tags.json');
+const TAG = Object.fromEntries(TAGS.map((t) => [t.id, t]));
+const TINTS = { aqua: 'var(--t-aqua)', mint: 'var(--t-mint)', sky: 'var(--t-sky)', lilac: 'var(--t-lilac)', peach: 'var(--t-peach)', sun: 'var(--t-sun)' };
+
+// ---------- words on the page ----------
+const S = {
+  zh: {
+    tabs: ['粮仓', '呼吸', '搭子', '我的'],
+    today: '今日呼吸', dazi: '搭子', daziSub: '一起吃饭、一起呼吸', newest: '最新：',
+    back: '回粮仓', count: (n) => (n ? `${n} 样粮食` : '还没上架'),
+    all: '全部', reads: '文章', videos: '视频', kind: { page: '单页', article: '文章', video: '视频' },
+    min: (m) => (m >= 60 ? `约 ${m % 60 ? `${Math.floor(m / 60)} 小时 ${m % 60} 分钟` : `${m / 60} 小时`}` : `${m} 分钟`),
+    readMin: (m) => `约 ${m} 分钟读完`,
+    empty: '这一格还空着，粮食正在路上。', sample: '示例',
+    sampleNote: '排版示例：正文是占位内容，正式内容到了会替换。',
+    fallback: '这篇还没有中文版，先显示英文原文。',
+    shareArticle: '如果这篇对你有帮助，也发给你关心的人。', shareVideo: '把这段视频发给你关心的人。',
+    shareBtn: '分享给朋友', shareWx: '在微信里，点右上角“···”，就能发送给朋友或分享到朋友圈。',
+    more: '继续吃', play: '播放', soon: '视频即将上线', lineTip: '播放不了的话，换一条线路试试。',
+    huxi: '呼吸', huxiSub: '每天打开这个链接，都是当天的内容。', huxiShare: '把这个链接发给弟兄姊妹，他们每天打开，看到的都是当天的呼吸。',
+    huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', todayLink: '看今天的呼吸',
+    week: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'], weekShort: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+    md: (m, d) => `${m}月${d}日`, full: (y, m, d) => `${y}年${m}月${d}日`,
+    me: '我的', meSub: '你的搭子、打卡和留言，都会在这里。',
+    signupT: '注册和登录正在建造中', signupP: '开放以后，用邮箱就能注册，不用记密码。你加入的搭子、打过的卡、留过的言都会跟着你，换手机也在。',
+    myGroups: '我的搭子',
+    askT: '有问题想问？', askP: '写下来，我们会认真看。想收到回复的话，留一个邮箱。',
+    askMsg: '想问什么，都可以写在这里', askName: '怎么称呼你（可以不填）', askReply: '回信邮箱（可以不填）', askSend: '发送',
+    askDone: '收到了，谢谢你。我们会认真看。',
+    plazaT: '搭子广场', plazaP: '约上两三个人，定好时间，一起坚持。',
+    copyright: (y) => `© ${y} ${site.owner}`,
+    notFound: '找不到这个页面', notFoundP: '链接可能输错了，或者内容已经换了位置。', home: '回到粮仓',
+  },
+  en: {
+    tabs: ['Granary', 'Breathe', 'Buddies', 'Me'],
+    today: 'Breathe today', dazi: 'Buddies', daziSub: 'Eat together, breathe together', newest: 'New: ',
+    back: 'Back to the Granary', count: (n) => (n ? `${n} ${n > 1 ? 'things' : 'thing'} to eat` : 'Nothing here yet'),
+    all: 'All', reads: 'Reads', videos: 'Videos', kind: { page: 'One page', article: 'Read', video: 'Video' },
+    min: (m) => (m >= 60 ? `about ${m % 60 ? `${Math.floor(m / 60)} hr ${m % 60} min` : `${m / 60} hr`}` : `${m} min`),
+    readMin: (m) => `${m} min read`,
+    empty: 'This shelf is still empty. Food is on the way.', sample: 'Sample',
+    sampleNote: 'Layout sample: the text is a placeholder and will be replaced with the real content.',
+    fallback: 'This piece has no English version yet, so the Chinese original is shown.',
+    shareArticle: 'If this helped you, send it to someone you care about.', shareVideo: 'Send this video to someone you care about.',
+    shareBtn: 'Share', shareWx: 'In WeChat, tap "···" at the top right to send it to a friend or to Moments.',
+    more: 'Keep eating', play: 'Play', soon: 'Video coming soon', lineTip: 'If it will not play, try another line.',
+    huxi: 'Breathe', huxiSub: 'Open this link any day and you see that day.', huxiShare: 'Send this link to brothers and sisters. Each day they open it, they see that day.',
+    huxiDayShare: 'Send this day to brothers and sisters.', past: 'Earlier days', todayLink: 'See today',
+    week: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], weekShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    md: (m, d) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${d}`,
+    full: (y, m, d) => `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${d}, ${y}`,
+    me: 'Me', meSub: 'Your buddies, check-ins and messages live here.',
+    signupT: 'Sign-up is being built', signupP: 'Soon you can sign up with just your email, no password to remember. Your buddy groups, check-ins and messages will follow you, even on a new phone.',
+    myGroups: 'My buddy groups',
+    askT: 'Have a question?', askP: 'Write it here and we will read it carefully. Leave an email if you would like a reply.',
+    askMsg: 'Ask anything here', askName: 'Your name (optional)', askReply: 'Email for a reply (optional)', askSend: 'Send',
+    askDone: 'Got it, thank you. We will read it carefully.',
+    plazaT: 'Buddies', plazaP: 'Buddy groups are being rebuilt with full English support. For now, the plaza is in Chinese.',
+    copyright: (y) => `© ${y} ${site.owner}`,
+    notFound: 'Page not found', notFoundP: 'The link may be mistyped, or the page has moved.', home: 'Back to the Granary',
+  },
+};
 
 // ---------- helpers ----------
 function readJSON(rel) {
   return JSON.parse(fs.readFileSync(path.join(CONTENT, rel), 'utf8'));
 }
 export function esc(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 export function parseDoc(text) {
   const m = text.replace(/\r/g, '').match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -52,13 +102,11 @@ export function parseDoc(text) {
 function inline(s) {
   let h = esc(s);
   h = h.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, a, u) => `<img src="${u}" alt="${a}" loading="lazy">`);
-  h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) =>
-    `<a href="${u}"${/^https?:/.test(u) ? ' rel="noopener" target="_blank"' : ''}>${t}</a>`);
+  h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => `<a href="${u}"${/^https?:/.test(u) ? ' rel="noopener" target="_blank"' : ''}>${t}</a>`);
   h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   h = h.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
   return h;
 }
-// Join wrapped lines: no space between Chinese characters, one space between Latin words.
 function joinLines(lines) {
   return lines.reduce((acc, l) => {
     l = l.trim();
@@ -78,8 +126,7 @@ export function md(src) {
     if (!l.trim()) { i++; continue; }
     let m;
     if ((m = l.match(/^(#{2,4})\s+(.*)$/))) {
-      const n = m[1].length;
-      out.push(`<h${n}>${inline(m[2])}</h${n}>`);
+      out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
       i++;
     } else if (/^---+\s*$/.test(l)) {
       out.push('<hr>');
@@ -109,497 +156,477 @@ export function md(src) {
 const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
 function readMinutes(text) {
   const cjk = (text.match(/[\u3400-\u9fff]/g) || []).length;
-  const words = (text.replace(/[\u3400-\u9fff]/g, ' ').match(/[A-Za-z0-9]+/g) || []).length;
-  return Math.max(1, Math.round(cjk / 380 + words / 200));
+  const words = (text.replace(/[\u3400-\u9fff]/g, ' ').match(/[A-Za-z0-9']+/g) || []).length;
+  return Math.max(1, Math.round(cjk / 380 + words / 220));
 }
-function dateParts(iso) {
-  const [y, mo, d] = iso.split('-').map(Number);
-  const wd = new Date(Date.UTC(y, mo - 1, d)).getUTCDay();
-  return { y, mo, d, md: `${mo}月${d}日`, full: `${y}年${mo}月${d}日`, wd: WEEK[wd], wdShort: WEEK[wd].replace('星期', '周') };
+function dateParts(iso, lang) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const L = S[lang];
+  return { md: L.md(m, d), full: L.full(y, m, d), wd: L.week[wd], wdShort: L.weekShort[wd], d };
 }
-function duration(min) {
-  if (min >= 60) {
-    const h = Math.floor(min / 60), r = min % 60;
-    return r ? `约 ${h} 小时 ${r} 分钟` : `约 ${h} 小时`;
-  }
-  return `${min} 分钟`;
-}
-// The audience is mostly in China, so "today" at build time is China's date.
-// The page script then switches to the visitor's own date if it differs.
 const TODAY = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+const shiftDate = (iso, days) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+};
+const splitTags = (v) => (Array.isArray(v) ? v : String(v || '').split(/[,，\s]+/)).map((x) => x.trim()).filter(Boolean);
 
 // ---------- content ----------
-function loadDir(dir) {
+// A piece of writing is <slug>.zh.md and/or <slug>.en.md. Shared fields (date, type, tags, sample) may sit in either.
+function loadPairs(dir) {
   const full = path.join(CONTENT, dir);
-  if (!fs.existsSync(full)) return [];
-  return fs.readdirSync(full).filter((f) => f.endsWith('.md') && !f.startsWith('_')).map((f) => {
+  const map = new Map();
+  for (const f of fs.readdirSync(full)) {
+    const m = f.match(/^(.+)\.(zh|en)\.md$/);
+    if (!m || f.startsWith('_')) continue;
     const { meta, body } = parseDoc(fs.readFileSync(path.join(full, f), 'utf8'));
-    return { ...meta, slug: f.replace(/\.md$/, ''), html: md(body) };
-  });
+    if (!map.has(m[1])) map.set(m[1], { slug: m[1], meta: {}, langs: {} });
+    const e = map.get(m[1]);
+    Object.assign(e.meta, Object.fromEntries(Object.entries(meta).filter(([k]) => !['title', 'summary'].includes(k))));
+    e.langs[m[2]] = { title: meta.title || '', summary: meta.summary || '', html: md(body) };
+  }
+  for (const e of map.values()) {
+    for (const lang of LANGS) {
+      if (!e.langs[lang]) {
+        const other = e.langs[lang === 'zh' ? 'en' : 'zh'];
+        e.langs[lang] = { ...other, fallback: true };
+      }
+    }
+  }
+  return [...map.values()];
 }
-const articles = loadDir('articles')
-  .filter((a) => !a.hidden)
-  .map((a) => ({ ...a, minutes: readMinutes(plain(a.html)) }))
-  .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-const prayers = loadDir('pray')
-  .map((p) => ({ ...p, date: p.date || p.slug, excerpt: plain(p.html.split('\n')[0]).slice(0, 80) }))
+const articles = loadPairs('articles')
+  .filter((a) => !a.meta.hidden)
+  .map((a) => {
+    const tags = splitTags(a.meta.tags);
+    for (const t of tags) if (!TAG[t]) throw new Error(`content/articles/${a.slug}: unknown tag "${t}" (add it to content/tags.json)`);
+    return {
+      kind: a.meta.type === 'page' ? 'page' : 'article', slug: a.slug, date: String(a.meta.date || ''), tags, sample: !!a.meta.sample,
+      zh: a.langs.zh, en: a.langs.en, minutes: Object.fromEntries(LANGS.map((l) => [l, readMinutes(plain(a.langs[l].html))])),
+    };
+  })
   .sort((a, b) => b.date.localeCompare(a.date));
-const videos = readJSON('videos.json').sort((a, b) => String(b.date).localeCompare(String(a.date)));
+const videos = readJSON('videos.json').map((v) => {
+  for (const t of v.tags || []) if (!TAG[t]) throw new Error(`videos.json ${v.slug}: unknown tag "${t}"`);
+  return { ...v, kind: 'video', tags: v.tags || [], sources: v.sources || [] };
+}).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+const items = [...articles, ...videos].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+const itemsOf = (tagId) => items.filter((i) => i.tags.includes(tagId));
 
-for (const p of prayers) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date)) throw new Error(`content/pray/${p.slug}.md: date must be YYYY-MM-DD`);
-}
-for (const v of videos) {
-  if (!KINDS[v.kind]) throw new Error(`videos.json ${v.slug}: kind must be ${Object.keys(KINDS).join(' or ')}`);
-}
+const huxi = loadPairs('huxi').map((p) => {
+  const date = String(p.meta.date || p.slug);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`content/huxi/${p.slug}: date must be YYYY-MM-DD`);
+  const ex = (l) => plain(p.langs[l].html.split('\n')[0]).slice(0, 90);
+  return { date, sample: !!p.meta.sample, zh: { ...p.langs.zh, excerpt: ex('zh') }, en: { ...p.langs.en, excerpt: ex('en') } };
+}).sort((a, b) => b.date.localeCompare(a.date));
+const todayHuxi = huxi.find((p) => p.date <= TODAY) || huxi[huxi.length - 1];
+const recentHuxi = huxi.filter((p) => p.date >= shiftDate(TODAY, -2));
 
 // ---------- assets ----------
 fs.rmSync(DIST, { recursive: true, force: true });
 fs.cpSync(STATIC, DIST, { recursive: true });
 const ver = (rel) => crypto.createHash('sha1').update(fs.readFileSync(path.join(STATIC, rel))).digest('hex').slice(0, 10);
 const CSS = `/css/site.css?v=${ver('css/site.css')}`;
-const SERIF = `/css/serif.css?v=${ver('css/serif.css')}`;
+const FONT = `/css/wenkai.css?v=${ver('css/wenkai.css')}`;
 const JS = `/js/site.js?v=${ver('js/site.js')}`;
 const GROUPS_JS = `/js/groups.js?v=${ver('js/groups.js')}`;
+const LOGO = fs.readFileSync(path.join(STATIC, 'logo.svg'), 'utf8').replace('<svg ', '<svg class="logo" aria-hidden="true" ');
+const MASCOT = (cls = 'mascot') => `<svg class="${cls}" viewBox="0 0 100 124" aria-hidden="true"><path d="M50 3C50 3 11 51 11 80a39 39 0 0 0 78 0C89 51 50 3 50 3z" fill="var(--t-aqua)"/><ellipse cx="36" cy="40" rx="7" ry="12" transform="rotate(28 36 40)" fill="#fff" opacity=".7"/><ellipse cx="38" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><ellipse cx="62" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><circle cx="39.5" cy="77.5" r="1.6" fill="#fff"/><circle cx="63.5" cy="77.5" r="1.6" fill="#fff"/><ellipse cx="29" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><ellipse cx="71" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><path d="M45 92q5 5 10 0" stroke="#1b2a38" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
+const ICON = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2.2"/><path d="M17 13.5c0 0-3.5 3.6-3.5 5.2a3.5 3.5 0 0 0 7 0c0-1.6-3.5-5.2-3.5-5.2z"/></svg>',
+  huxi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/></svg>',
+  dazi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 12h17a8.5 7.5 0 0 1-17 0z"/><path d="M15 3.5l-3 7M19 4.5l-5 6" stroke-linecap="round"/></svg>',
+  me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8.5" r="4"/><path d="M4 20.5c1.4-3.8 4.4-5.5 8-5.5s6.6 1.7 8 5.5" stroke-linecap="round"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>',
+};
 
 // ---------- layout ----------
-const MARK = `<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 20a9 9 0 0 1 18 0z" fill="var(--dawn)"/><rect x="3" y="22" width="26" height="2.4" rx="1.2" fill="currentColor"/></svg>`;
+const pre = (lang) => (lang === 'en' ? '/en' : '');
+const U = (lang, p) => pre(lang) + p;
+const TABS = [['home', '/'], ['huxi', '/huxi/'], ['dazi', '/dazi/'], ['me', '/me/']];
+const sampleTag = (x, lang) => (x.sample ? `<span class="tag-s">${S[lang].sample}</span>` : '');
+const json = (id, data) => `<script type="application/json" id="${id}">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
+const urls = [];
 
-function page({ title, desc = site.description, url, body, active = '', noindex = false, head = '', scripts = [] }) {
-  const full = title ? `${title}｜${site.name}` : `${site.name}｜${site.nameZh}`;
-  const canonical = site.url + url;
-  const nav = NAV.map(([href, label]) =>
-    `<a href="${href}"${active === href ? ' aria-current="page"' : ''}>${label}</a>`).join('');
+function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scripts = [], only = false }) {
+  const L = S[lang];
+  const name = site[lang].name;
+  const full = title ? `${title}｜${name}` : `${name}｜zion4life.faith`;
+  const canonical = site.url + U(lang, p);
+  const alt = (l) => (only ? U(l, '/') : U(l, p));
+  const tabs = TABS.map(([k, href], i) =>
+    `<a href="${U(lang, href)}"${tab === k ? ' aria-current="page"' : ''}>${ICON[k]}<span>${L.tabs[i]}</span></a>`).join('');
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${lang === 'zh' ? 'zh-CN' : 'en'}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(full)}</title>
-<meta name="description" content="${esc(desc)}">
+<meta name="description" content="${esc(desc || site[lang].description)}">
 <link rel="canonical" href="${canonical}">
-${noindex ? '<meta name="robots" content="noindex">\n' : ''}<meta property="og:type" content="article">
-<meta property="og:site_name" content="${esc(site.name)}">
-<meta property="og:title" content="${esc(title || site.nameZh)}">
-<meta property="og:description" content="${esc(desc)}">
+${only ? '' : LANGS.map((l) => `<link rel="alternate" hreflang="${l === 'zh' ? 'zh-CN' : 'en'}" href="${site.url + U(l, p)}">`).join('\n')}
+${noindex ? '<meta name="robots" content="noindex">' : ''}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${esc(name)}">
+<meta property="og:title" content="${esc(title || name)}">
+<meta property="og:description" content="${esc(desc || site[lang].description)}">
 <meta property="og:url" content="${canonical}">
-<meta property="og:image" content="${site.url}/img/og.png">
+<meta property="og:image" content="${site.url}/img/og-${lang}.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="format-detection" content="telephone=no">
-<meta name="theme-color" content="#15322C">
+<meta name="theme-color" content="#eaf6ff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c1824" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="${SERIF}">
+<link rel="stylesheet" href="${FONT}">
 <link rel="stylesheet" href="${CSS}">
-${head}</head>
+</head>
 <body>
-<header class="top"><div class="wrap top-in">
-<a class="brand" href="/">${MARK}<span>${esc(site.name)}</span></a>
-<nav class="nav" aria-label="栏目">${nav}</nav>
+<header class="topbar"><div class="wrap topbar-in">
+<a class="brand" href="${U(lang, '/')}">${LOGO}<span><b>${esc(name)}</b><small>zion4life.faith</small></span></a>
+<nav class="lang" aria-label="Language"><a href="${alt('zh')}" hreflang="zh-CN"${lang === 'zh' ? ' aria-current="true"' : ''} data-lang="zh">中</a><a href="${alt('en')}" hreflang="en"${lang === 'en' ? ' aria-current="true"' : ''} data-lang="en">EN</a></nav>
 </div></header>
+<main class="wrap">
 ${body}
-<footer class="foot"><div class="wrap">
-<a class="brand brand-foot" href="/">${MARK}<span>${esc(site.name)}</span></a>
-<p class="foot-line">${esc(site.footerLine)}</p>
-<nav class="foot-nav" aria-label="栏目">${NAV.map(([h, l]) => `<a href="${h}">${l}</a>`).join('')}</nav>
-<p class="foot-copy">© ${new Date().getFullYear()} ${esc(site.name)}</p>
-</div></footer>
+<footer class="foot"><b>${esc(name)}</b> zion4life.faith<br><span class="mail">${esc(site.contact)}</span><br>${esc(L.copyright(new Date().getFullYear()))}</footer>
+</main>
+<div class="tab-space"></div>
+<nav class="tabbar" aria-label="${lang === 'zh' ? '菜单' : 'Menu'}"><div class="tabbar-in">${tabs}</div></nav>
 <div class="toast" role="status" aria-live="polite" hidden></div>
 <script src="${JS}" defer></script>
-${scripts.map((s) => `<script src="${s}" defer></script>\n`).join('')}</body>
+${scripts.map((s) => `<script src="${s}" defer></script>`).join('\n')}
+</body>
 </html>
 `;
 }
-function write(url, html) {
-  const file = path.join(DIST, url === '/' ? 'index.html' : url.replace(/^\//, '').replace(/\/$/, '') + '/index.html');
+function write(urlPath, html) {
+  const file = path.join(DIST, urlPath === '/' ? 'index.html' : `${urlPath.replace(/^\//, '').replace(/\/$/, '')}/index.html`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, html);
 }
-const sampleTag = (x) => (x.sample ? ' <span class="tag">示例</span>' : '');
-const jsonScript = (id, data) =>
-  `<script type="application/json" id="${id}">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
-
-function shareBox(text, shareUrl, title) {
-  return `<div class="share" data-share data-url="${esc(site.url + shareUrl)}" data-title="${esc(title)}">
-<p>${esc(text)}</p>
-<button class="btn btn-life" type="button" data-share-btn>分享给朋友</button>
-<p class="share-wx" hidden>在微信里，点右上角“···”，就能发送给朋友或分享到朋友圈。</p>
-</div>`;
-}
-function articleList(list) {
-  return `<ul class="list">${list.map((a) => `<li><a href="/read/${a.slug}/">
-<h3>${esc(a.title)}${sampleTag(a)}</h3>
-${a.summary ? `<p>${esc(a.summary)}</p>` : ''}
-<span class="meta">约 ${a.minutes} 分钟读完</span>
-</a></li>`).join('')}</ul>`;
-}
-function poster(v, big = false) {
-  return `<span class="poster${big ? ' poster-big' : ''}" aria-hidden="true">
-<span class="poster-sun"></span>
-<span class="poster-dur">${duration(v.minutes).replace('约 ', '')}</span>
-<span class="poster-title">${esc(v.title)}</span>
-${big ? `<span class="poster-play">${v.sources.length ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>' : ''}</span>` : ''}
-</span>`;
-}
-function videoMeta(v) {
-  return [v.speaker ? `${v.speaker}` : '', duration(v.minutes)].filter(Boolean).map((t) => `<span>${esc(t)}</span>`).join('');
-}
-function videoTile(v) {
-  return `<a class="vtile" href="/watch/${v.slug}/">${poster(v)}
-<span class="vtile-meta">${videoMeta(v)}${sampleTag(v)}</span></a>`;
-}
-function videoGroups(list, scroll) {
-  return Object.entries(KINDS).map(([k, label]) => {
-    const vs = list.filter((v) => v.kind === k);
-    if (!vs.length) return '';
-    return `<div class="vgroup"><h3>${label}</h3><div class="${scroll ? 'vscroll' : 'vgrid'}">${vs.map(videoTile).join('')}</div></div>`;
-  }).join('');
+function emit(lang, p, opts) {
+  write(U(lang, p), page({ ...opts, lang, path: p }));
+  if (!opts.noindex) urls.push(U(lang, p));
 }
 
-// ---------- prayer ----------
-// prayer entries the page script may switch to: everything from two days ago onward (covers time zones and entries written ahead).
-const recentPrayers = prayers.filter((p) => p.date >= shiftDate(TODAY, -2));
-function shiftDate(iso, days) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+// ---------- shared pieces ----------
+function itemHref(it, lang) {
+  return U(lang, it.kind === 'video' ? `/v/${it.slug}/` : `/a/${it.slug}/`);
 }
-const todayPrayer = prayers.find((p) => p.date <= TODAY) || prayers[prayers.length - 1];
-
-function prayerDay(p, live) {
-  const d = dateParts(p.date);
-  return `<article class="p-day"${live ? ` data-pray-today data-date="${p.date}"` : ''}>
-<div class="p-date"><span class="p-md" data-f="md">${d.md}</span><span class="p-wd" data-f="wd">${d.wd}</span></div>
-<h2 class="p-title"><span data-f="title">${esc(p.title)}</span>${sampleTag(p)}</h2>
-<div class="prose" data-f="html">${p.html}</div>
-</article>`;
+function card(it, lang, current) {
+  const L = S[lang];
+  const c = it[lang];
+  const tint = TINTS[TAG[it.tags[0]]?.tint || 'aqua'];
+  const others = it.tags.filter((x) => x !== current).map((x) => `<span class="other">${esc(TAG[x][lang])}</span>`).join('');
+  if (it.kind === 'video') {
+    return `<a class="card" href="${itemHref(it, lang)}" data-kind="videos" style="--tint:${tint}">
+<span class="poster"><span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span>${MASCOT()}</span>
+<span class="card-body" style="display:block"><span class="kind">${L.kind.video}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3><p>${esc(c.summary)}</p><span class="meta">${others}</span></span></a>`;
+  }
+  return `<a class="card" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}"><span class="card-body" style="display:block">
+<span class="kind">${L.kind[it.kind]}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
+<span class="meta"><span>${esc(L.min(it.minutes[lang]))}</span>${others}</span></span></a>`;
 }
-function archive(current) {
-  return `<section class="p-archive"><h2>往期祷告</h2><ul class="arch">${prayers.map((p) => {
-    const d = dateParts(p.date);
-    const hide = p.date > TODAY || p.date === current;
-    return `<li data-arch="${p.date}"${hide ? ' hidden' : ''}><a href="/pray/${p.date}/"><time datetime="${p.date}">${d.md} ${d.wdShort}</time><span>${esc(p.title)}</span></a></li>`;
-  }).join('')}</ul></section>`;
+function shareBox(lang, text, sharePath, title) {
+  const L = S[lang];
+  return `<div class="share" data-share data-url="${esc(site.url + sharePath)}" data-title="${esc(title)}" data-copied="${lang === 'zh' ? '链接已复制，粘贴发给朋友就可以了' : 'Link copied. Paste it to a friend.'}">
+<p>${esc(text)}</p><button class="btn btn-water" type="button" data-share-btn data-copy-label="${lang === 'zh' ? '复制链接' : 'Copy link'}">${L.shareBtn}</button>
+<p class="share-wx" hidden>${esc(L.shareWx)}</p></div>`;
+}
+function askBox(lang) {
+  const L = S[lang];
+  return `<form class="ask" data-ask data-lang="${lang}" data-done="${esc(L.askDone)}" novalidate>
+<h2>${esc(L.askT)}</h2><p>${esc(L.askP)}</p>
+<textarea name="message" maxlength="3000" required placeholder="${esc(L.askMsg)}" aria-label="${esc(L.askMsg)}"></textarea>
+<div class="row"><input name="name" maxlength="40" placeholder="${esc(L.askName)}" aria-label="${esc(L.askName)}" autocomplete="nickname"><input name="reply" type="email" maxlength="120" placeholder="${esc(L.askReply)}" aria-label="${esc(L.askReply)}" autocomplete="email" inputmode="email"></div>
+<input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+<p class="form-error" data-error hidden></p>
+<button class="btn btn-water btn-block" type="submit">${esc(L.askSend)}</button>
+</form>`;
+}
+function huxiData(lang, list) {
+  return list.map((p) => {
+    const d = dateParts(p.date, lang);
+    return { date: p.date, md: d.md, d: String(d.d), wd: d.wd, title: p[lang].title, excerpt: p[lang].excerpt, html: p[lang].html, sample: p.sample };
+  });
 }
 
 // ---------- pages ----------
-const urls = [];
-function emit(url, opts) {
-  write(url, page({ ...opts, url }));
-  if (!opts.noindex) urls.push(url);
-}
+for (const lang of LANGS) {
+  const L = S[lang];
 
-// Home
-{
-  const hero = articles.find((a) => a.slug === site.heroArticle) || articles[0];
-  const tp = todayPrayer;
-  const tpd = tp && dateParts(tp.date);
-  const body = `<main>
-<section class="hero">
-<div class="hero-glow" aria-hidden="true"></div>
-<div class="sun" aria-hidden="true"></div>
-<div class="wrap hero-in">
-<h1 class="hero-q">${site.heroQuestion.map((s) => `<span>${esc(s)}</span>`).join('')}</h1>
-<p class="hero-lead">${esc(site.heroLead)}</p>
-${hero ? `<a class="btn btn-dawn" href="/read/${hero.slug}/">读《${esc(hero.title)}》</a>` : ''}
-</div>
-</section>
-
-${tp ? `<section class="band band-mist">
-<div class="wrap">
-<div class="sec-head"><h2>每日祷告</h2><a href="/pray/#archive">往期</a></div>
-<a class="today" href="/pray/" data-pray-today data-date="${tp.date}">
-<span class="today-date"><b data-f="md">${tpd.md}</b><span data-f="wd">${tpd.wd}</span></span>
-<strong class="today-title" data-f="title">${esc(tp.title)}</strong>
-<span class="today-ex" data-f="excerpt">${esc(tp.excerpt)}</span>
-<span class="today-go">打开今日祷告</span>
-</a>
-</div>
-${jsonScript('pray-data', recentPrayers.map((p) => ({ date: p.date, ...pick(dateParts(p.date), 'md', 'wd'), title: p.title, excerpt: p.excerpt })))}
-</section>` : ''}
-
-<section class="band">
-<div class="wrap">
-<div class="sec-head"><h2>文章</h2><a href="/read/">全部</a></div>
-${articleList(articles.slice(0, 5))}
-</div>
-</section>
-
-${videos.length ? `<section class="band band-mist">
-<div class="wrap">
-<div class="sec-head"><h2>视频</h2><a href="/watch/">全部</a></div>
-${videoGroups(videos, true)}
-</div>
-</section>` : ''}
-
-<section class="band">
-<div class="wrap">
-<div class="sec-head"><h2>小组广场</h2><a href="/square/">进入</a></div>
-<p class="lead-p">约上两三个人，定好时间，一起读经、祷告。到了时间提醒你，读完还能打卡、写心得。</p>
-<div class="kind-row">${Object.entries(GROUP_KINDS).map(([k, l]) => `<a class="gtag gtag-${k}" href="/square/?kind=${k}">${l}</a>`).join('')}</div>
-<p class="btn-row"><a class="btn btn-life" href="/square/new/">发起一个小组</a><a class="btn btn-line" href="/square/">看看广场</a></p>
-</div>
-</section>
-</main>`;
-  emit('/', { title: '', body });
-}
-function pick(o, ...keys) {
-  return Object.fromEntries(keys.map((k) => [k, o[k]]));
-}
-
-// Articles
-emit('/read/', {
-  title: '文章',
-  active: '/read/',
-  body: `<main class="wrap page">
-<h1 class="page-title">文章</h1>
-<p class="page-lead">一篇几分钟，适合在手机上慢慢读。</p>
-${articleList(articles)}
-</main>`,
-});
-for (const a of articles) {
-  const d = dateParts(a.date);
-  const others = articles.filter((x) => x.slug !== a.slug).slice(0, 4);
-  emit(`/read/${a.slug}/`, {
-    title: a.title,
-    desc: a.summary || plain(a.html).slice(0, 90),
-    active: '/read/',
-    noindex: !!a.sample,
-    body: `<main class="wrap article">
-<article>
-<h1 class="a-title">${esc(a.title)}</h1>
-<div class="a-meta"><time datetime="${a.date}">${d.full}</time><span>约 ${a.minutes} 分钟读完</span></div>
-${a.sample ? '<p class="sample-note">排版示例：正文是占位文字，正式内容到了会替换。</p>' : ''}
-<div class="prose">
-${a.html}
-</div>
-</article>
-${shareBox('如果这篇文章对你有帮助，也发给你关心的人。', `/read/${a.slug}/`, a.title)}
-${others.length ? `<section class="more"><h2>继续读</h2>${articleList(others)}</section>` : ''}
-</main>`,
-  });
-}
-
-// Prayer: /pray/ always shows today's entry; /pray/<date>/ shows one day.
-if (prayers.length) {
-  emit('/pray/', {
-    title: '每日祷告',
-    desc: '每天打开这个链接，都是当天的祷告。',
-    active: '/pray/',
-    body: `<main class="wrap page pray">
-<h1 class="page-title">每日祷告</h1>
-<p class="page-lead">每天打开这个链接，都是当天的祷告。</p>
-${prayerDay(todayPrayer, true)}
-${shareBox('把这个链接发给弟兄姊妹，他们每天打开，看到的都是当天的祷告。', '/pray/', '每日祷告')}
-<div id="archive">${archive(todayPrayer.date)}</div>
-${jsonScript('pray-data', recentPrayers.map((p) => ({ date: p.date, ...pick(dateParts(p.date), 'md', 'wd'), title: p.title, html: p.html, sample: !!p.sample })))}
-</main>`,
-  });
-  for (const p of prayers) {
-    const d = dateParts(p.date);
-    emit(`/pray/${p.date}/`, {
-      title: `${d.md}祷告`,
-      desc: p.title,
-      active: '/pray/',
-      noindex: !!p.sample,
-      body: `<main class="wrap page pray">
-<p class="back"><a href="/pray/">看今天的祷告</a></p>
-${prayerDay(p, false)}
-${shareBox('把这一天的祷告发给弟兄姊妹。', `/pray/${p.date}/`, `${d.md}祷告`)}
-${archive(p.date)}
-</main>`,
+  // 粮仓 (home): today's 呼吸, 搭子, then every tag as a tile. Tiles fill whole rows of three.
+  {
+    const tiles = [{ type: 'today', cells: 2 }, { type: 'dazi', cells: 1 }];
+    for (const t of TAGS) tiles.push({ type: 'tag', tag: t, cells: t.size === 'big' ? 4 : t.size === 'wide' ? 2 : 1, size: t.size });
+    let total = tiles.reduce((s, x) => s + x.cells, 0);
+    for (let i = tiles.length - 1; total % 3 && i >= 0; i--) {
+      if (tiles[i].type === 'tag' && !tiles[i].size) { tiles[i].size = 'wide'; tiles[i].cells = 2; total++; }
+    }
+    const tp = todayHuxi;
+    const tpd = tp && dateParts(tp.date, lang);
+    const html = tiles.map((x) => {
+      if (x.type === 'today') {
+        return `<a class="tile w2" href="${U(lang, '/huxi/')}" style="--tint:var(--t-sun)" data-ripple${tp ? ` data-huxi-today data-date="${tp.date}"` : ''}>
+<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/></svg>
+<span class="name">${esc(L.today)}</span><span class="sub">${tp ? `<span data-f="md">${esc(tpd.md)}</span> <span data-f="title">${esc(tp[lang].title)}</span>` : ''}</span></a>`;
+      }
+      if (x.type === 'dazi') {
+        return `<a class="tile" href="${U(lang, '/dazi/')}" style="--tint:var(--t-mint)" data-ripple><span class="name">${esc(L.dazi)}</span><span class="sub">${esc(L.daziSub)}</span></a>`;
+      }
+      const t = x.tag;
+      const list = itemsOf(t.id);
+      const cls = `tile${x.size === 'big' ? ' w2 h2 big' : x.size === 'wide' ? ' w2' : ''}${t.person ? ' person' : ''}`;
+      const sub = list.length && x.size ? L.newest + list[0][lang].title : '';
+      return `<a class="${cls}" href="${U(lang, `/t/${t.id}/`)}" style="--tint:${TINTS[t.tint] || TINTS.aqua}" data-ripple>${x.size === 'big' ? MASCOT() : ''}${t.person ? `<span class="avatar">${esc(t.person[lang])}</span>` : list.length ? `<span class="num">${list.length}</span>` : ''}
+<span class="name">${esc(t[lang])}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</a>`;
+    }).join('\n');
+    emit(lang, '/', {
+      title: '',
+      tab: 'home',
+      body: `<section class="hello"><h1>${esc(site[lang].hi)}</h1><p>${esc(site[lang].hiSub)}</p></section>
+<section class="grid">${html}</section>
+${json('huxi-data', huxiData(lang, recentHuxi).map(({ html: _h, ...r }) => r))}
+${askBox(lang)}`,
     });
   }
-}
 
-// Videos
-emit('/watch/', {
-  title: '视频',
-  active: '/watch/',
-  body: `<main class="wrap page">
-<h1 class="page-title">视频</h1>
-<p class="page-lead">福音信息和生命见证，有长有短。</p>
-${videoGroups(videos, false)}
-</main>`,
-});
-for (const v of videos) {
-  const others = videos.filter((x) => x.slug !== v.slug && x.kind === v.kind).slice(0, 4);
-  const sources = (v.sources || []).map((s, i) => ({ ...s, label: s.label || `线路${i + 1}` }));
-  emit(`/watch/${v.slug}/`, {
-    title: v.title,
-    desc: v.summary || v.title,
-    active: '/watch/',
-    noindex: !!v.sample,
-    body: `<main class="wrap page watch">
-<div class="player" data-player>
-<button class="player-start" type="button"${sources.length ? '' : ' disabled'} aria-label="${sources.length ? '播放' : '视频即将上线'}">${poster(v, true)}</button>
-${sources.length ? '' : '<p class="player-soon">视频即将上线</p>'}
-${jsonScript(`src-${v.slug}`, sources)}
+  // tag pages
+  for (const t of TAGS) {
+    const list = itemsOf(t.id);
+    const reads = list.filter((i) => i.kind !== 'video').length;
+    const vids = list.length - reads;
+    const chips = list.length
+      ? `<div class="chips" role="group" data-filters>${[['all', list.length], ['reads', reads], ['videos', vids]].filter(([k, n]) => k === 'all' || n)
+        .map(([k, n]) => `<button type="button" data-filter="${k}" aria-pressed="${k === 'all'}">${L[k]} ${n}</button>`).join('')}</div>`
+      : '';
+    emit(lang, `/t/${t.id}/`, {
+      title: t[lang],
+      desc: `${t[lang]}｜${site[lang].description}`,
+      tab: 'home',
+      body: `<section class="page" style="--tint:${TINTS[t.tint] || TINTS.aqua}">
+<a class="back" href="${U(lang, '/')}">← ${esc(L.back)}</a>
+<div class="banner"><h1>${esc(t[lang])}</h1><p>${esc(L.count(list.length))}</p>${MASCOT()}</div>
+${chips}
+${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).join('\n')}</div>` : `<div class="empty">${MASCOT()}<p>${esc(L.empty)}</p></div>`}
+</section>`,
+    });
+  }
+
+  // articles and single pages
+  for (const a of articles) {
+    const c = a[lang];
+    const related = items.filter((x) => x !== a && x.tags.some((t) => a.tags.includes(t))).slice(0, 4);
+    emit(lang, `/a/${a.slug}/`, {
+      title: c.title,
+      desc: c.summary || plain(c.html).slice(0, 90),
+      tab: 'home',
+      noindex: a.sample,
+      body: `<article class="article" style="--tint:${TINTS[TAG[a.tags[0]]?.tint] || TINTS.aqua}">
+<a class="back" href="${U(lang, a.tags[0] ? `/t/${a.tags[0]}/` : '/')}">← ${esc(a.tags[0] ? TAG[a.tags[0]][lang] : L.back)}</a>
+<h1 class="a-title">${esc(c.title)}</h1>
+<div class="a-meta">${a.date ? `<time datetime="${a.date}">${esc(dateParts(a.date, lang).full)}</time>` : ''}<span>${esc(L.readMin(a.minutes[lang]))}</span></div>
+<div class="a-tags">${a.tags.map((t) => `<a class="chiplink" style="--tint:${TINTS[TAG[t].tint]}" href="${U(lang, `/t/${t}/`)}">${esc(TAG[t][lang])}</a>`).join('')}</div>
+${c.fallback ? `<p class="note-box">${esc(L.fallback)}</p>` : ''}${a.sample ? `<p class="note-box">${esc(L.sampleNote)}</p>` : ''}
+<div class="prose"${c.fallback ? ` lang="${lang === 'zh' ? 'en' : 'zh-CN'}"` : ''}>
+${c.html}
 </div>
-${sources.length > 1 ? `<div class="lines" role="group" aria-label="播放线路">${sources.map((s, i) => `<button type="button" data-line="${i}"${i ? '' : ' aria-pressed="true"'}>${esc(s.label)}</button>`).join('')}</div>` : ''}
-<h1 class="w-title">${esc(v.title)}${sampleTag(v)}</h1>
-<div class="a-meta">${videoMeta(v)}</div>
-${v.summary ? `<p class="w-sum">${esc(v.summary)}</p>` : ''}
-${sources.length > 1 ? '<p class="w-note">播放不了的话，换一条线路试试。</p>' : ''}
-${shareBox('把这段视频发给你关心的人。', `/watch/${v.slug}/`, v.title)}
-${others.length ? `<section class="more"><h2>更多${KINDS[v.kind]}</h2><div class="vgrid">${others.map(videoTile).join('')}</div></section>` : ''}
-</main>`,
+${shareBox(lang, L.shareArticle, U(lang, `/a/${a.slug}/`), c.title)}
+${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}
+</article>`,
+    });
+  }
+
+  // videos
+  for (const v of videos) {
+    const c = v[lang];
+    const sources = v.sources.map((s, i) => ({ ...s, label: s.label || (lang === 'zh' ? `线路${i + 1}` : `Line ${i + 1}`) }));
+    const related = items.filter((x) => x !== v && x.tags.some((t) => v.tags.includes(t))).slice(0, 4);
+    emit(lang, `/v/${v.slug}/`, {
+      title: c.title,
+      desc: c.summary || c.title,
+      tab: 'home',
+      noindex: v.sample,
+      body: `<article class="article" style="--tint:${TINTS[TAG[v.tags[0]]?.tint] || TINTS.sky}">
+<a class="back" href="${U(lang, v.tags[0] ? `/t/${v.tags[0]}/` : '/')}">← ${esc(v.tags[0] ? TAG[v.tags[0]][lang] : L.back)}</a>
+<div class="player" data-player>
+<button class="player-start" type="button"${sources.length ? '' : ' disabled'} aria-label="${sources.length ? L.play : L.soon}"><span class="poster"><span class="ptitle">${esc(c.title)}</span>${sources.length ? `<span class="play">${ICON.play}</span>` : ''}<span class="dur">${esc(L.min(v.minutes))}</span>${MASCOT()}</span></button>
+${sources.length ? '' : `<p class="player-soon">${esc(L.soon)}</p>`}
+${json(`src-${v.slug}`, sources)}
+</div>
+${sources.length > 1 ? `<div class="lines" role="group">${sources.map((s, i) => `<button type="button" data-line="${i}"${i ? '' : ' aria-pressed="true"'}>${esc(s.label)}</button>`).join('')}</div>` : ''}
+<h1 class="a-title">${esc(c.title)}${sampleTag(v, lang)}</h1>
+<div class="a-meta"><span>${esc(L.min(v.minutes))}</span></div>
+<div class="a-tags">${v.tags.map((t) => `<a class="chiplink" style="--tint:${TINTS[TAG[t].tint]}" href="${U(lang, `/t/${t}/`)}">${esc(TAG[t][lang])}</a>`).join('')}</div>
+${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
+${sources.length > 1 ? `<p class="muted">${esc(L.lineTip)}</p>` : ''}
+${shareBox(lang, L.shareVideo, U(lang, `/v/${v.slug}/`), c.title)}
+${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}
+</article>`,
+    });
+  }
+
+  // 呼吸: /huxi/ always shows today's; /huxi/<date>/ shows one day
+  if (huxi.length) {
+    const day = (p, live) => {
+      const d = dateParts(p.date, lang);
+      return `<article class="day"${live ? ` data-huxi-today data-date="${p.date}"` : ''}>
+<div class="day-date"><span class="d" data-f="md">${esc(d.md)}</span><span class="w" data-f="wd">${esc(d.wd)}</span></div>
+<h2><span data-f="title">${esc(p[lang].title)}</span>${sampleTag(p, lang)}</h2>
+<div class="prose" data-f="html">${p[lang].html}</div></article>`;
+    };
+    const archive = (current) => `<section class="more" id="archive"><h2 class="sec-h">${esc(L.past)}</h2><ul class="arch">${huxi.map((p) => {
+      const d = dateParts(p.date, lang);
+      const hide = p.date > TODAY || p.date === current;
+      return `<li data-arch="${p.date}"${hide ? ' hidden' : ''}><a href="${U(lang, `/huxi/${p.date}/`)}"><time datetime="${p.date}">${esc(d.md)} ${esc(d.wdShort)}</time><span>${esc(p[lang].title)}</span></a></li>`;
+    }).join('')}</ul></section>`;
+    emit(lang, '/huxi/', {
+      title: L.huxi,
+      desc: L.huxiSub,
+      tab: 'huxi',
+      body: `<section class="page" style="--tint:var(--t-sun)">
+<div class="banner"><h1>${esc(L.huxi)}</h1><p>${esc(L.huxiSub)}</p></div>
+${day(todayHuxi, true)}
+${shareBox(lang, L.huxiShare, U(lang, '/huxi/'), L.huxi)}
+${archive(todayHuxi.date)}
+${json('huxi-data', huxiData(lang, recentHuxi))}
+</section>`,
+    });
+    for (const p of huxi) {
+      const d = dateParts(p.date, lang);
+      emit(lang, `/huxi/${p.date}/`, {
+        title: `${d.md} ${L.huxi}`,
+        desc: p[lang].title,
+        tab: 'huxi',
+        noindex: p.sample,
+        body: `<section class="page" style="--tint:var(--t-sun)">
+<a class="back" href="${U(lang, '/huxi/')}">← ${esc(L.todayLink)}</a>
+${day(p, false)}
+${shareBox(lang, L.huxiDayShare, U(lang, `/huxi/${p.date}/`), `${d.md} ${L.huxi}`)}
+${archive(p.date)}
+</section>`,
+      });
+    }
+  }
+
+  // 我的
+  emit(lang, '/me/', {
+    title: L.me,
+    tab: 'me',
+    noindex: true,
+    scripts: lang === 'zh' ? [GROUPS_JS] : [],
+    body: `<section class="page" data-page="me" style="--tint:var(--t-sky)">
+<div class="banner"><h1>${esc(L.me)}</h1><p>${esc(L.meSub)}</p>${MASCOT()}</div>
+<div class="info"><h2>${esc(L.signupT)}</h2><p>${esc(L.signupP)}</p></div>
+${lang === 'zh' ? `<section class="more" id="mine" hidden><h2 class="sec-h">${esc(L.myGroups)}</h2><div class="glist" data-mine></div></section>` : ''}
+${askBox(lang)}
+</section>`,
   });
 }
 
-// ---------- plaza and groups (the data comes from /api/*, rendered by static/js/groups.js) ----------
+// ---------- 搭子 (group plaza; Chinese for now, rebuilt with both languages in the next step) ----------
 const KIND_INFO = {
-  read: ['读经小组', '定好一卷圣经，按次往下读。'],
-  pray: ['祷告小组', '定好时间，一起为人为事祷告。'],
-  feed: ['喂养小组', '陪伴新朋友，一起追求、一起成长。'],
+  read: [GROUP_KINDS.read, '定好一卷圣经，按次往下读。'],
+  pray: [GROUP_KINDS.pray, '定好时间，一起为人为事呼吸。'],
+  feed: [GROUP_KINDS.feed, '陪伴新朋友，一起追求、一起成长。'],
 };
 const WEEK_SHORT = ['日', '一', '二', '三', '四', '五', '六'];
-
-emit('/square/', {
-  title: '小组广场',
-  desc: '读经小组、祷告小组、喂养小组：约上几个人，定好时间，一起坚持。',
-  active: '/square/',
+emit('zh', '/dazi/', {
+  title: S.zh.plazaT,
+  desc: S.zh.plazaP,
+  tab: 'dazi',
   scripts: [GROUPS_JS],
-  body: `<main class="wrap page" data-page="square">
-<h1 class="page-title">小组广场</h1>
-<p class="page-lead">约上两三个人，定好时间，一起坚持。看到合适的小组可以申请加入，也可以自己发起一个。</p>
-<p class="btn-row"><a class="btn btn-life" href="/square/new/">发起一个小组</a></p>
-<section id="mine" class="mine" hidden><h2 class="sub-h">我的小组</h2><div class="glist" data-mine></div></section>
-<div class="tabs" role="tablist" aria-label="小组类型">
+  body: `<section class="page" data-page="square" style="--tint:var(--t-mint)">
+<div class="banner"><h1>${esc(S.zh.plazaT)}</h1><p>${esc(S.zh.plazaP)}</p></div>
+<p class="btn-row"><a class="btn btn-water" href="/dazi/new/">发起一个搭子</a></p>
+<section id="mine" class="mine" hidden><h2 class="sub-h">我的搭子</h2><div class="glist" data-mine></div></section>
+<div class="tabs" role="tablist" aria-label="搭子类型">
 <button type="button" role="tab" data-kind="" aria-selected="true">全部</button>
 ${Object.entries(GROUP_KINDS).map(([k, l]) => `<button type="button" role="tab" data-kind="${k}" aria-selected="false">${l}</button>`).join('')}
 </div>
 <div class="glist" data-plaza aria-live="polite"><p class="muted">正在载入……</p></div>
-</main>`,
+</section>`,
+});
+emit('en', '/dazi/', {
+  title: S.en.plazaT,
+  tab: 'dazi',
+  body: `<section class="page" style="--tint:var(--t-mint)">
+<div class="banner"><h1>${esc(S.en.plazaT)}</h1><p>${esc(S.en.plazaP)}</p>${MASCOT()}</div>
+<p><a class="btn btn-water" href="/dazi/">Open the plaza (Chinese)</a></p>
+</section>`,
 });
 
 const bookOptions = BOOKS.map((b) => `<option value="${b.n}" data-ch="${b.chapters}"${b.n === 43 ? ' selected' : ''}>${b.name}</option>`).join('');
 const tzOptions = Object.entries(TZ_LABELS).map(([tz, label]) => `<option value="${tz}">${label}</option>`).join('');
-const chip = (name, value, label, checked = false, type = 'checkbox') =>
-  `<label class="chip"><input type="${type}" name="${name}" value="${value}"${checked ? ' checked' : ''}><span>${label}</span></label>`;
-
-emit('/square/new/', {
-  title: '发起一个小组',
-  active: '/square/',
-  noindex: true,
-  scripts: [GROUPS_JS],
-  body: `<main class="wrap page" data-page="new">
-<p class="back"><a href="/square/">回到广场</a></p>
-<h1 class="page-title">发起一个小组</h1>
+const chip = (name, value, label) => `<label class="chip"><input type="checkbox" name="${name}" value="${value}"><span>${label}</span></label>`;
+write('/dazi/new/', page({
+  lang: 'zh', title: '发起一个搭子', path: '/dazi/new/', tab: 'dazi', noindex: true, only: true, scripts: [GROUPS_JS],
+  body: `<section class="page" data-page="new">
+<a class="back" href="/dazi/">← 回搭子广场</a>
+<h1 class="page-title">发起一个搭子</h1>
 <p class="page-lead">填好下面几项，会生成一个邀请链接。朋友点开链接、留下称呼和联系方式，就算立约加入了。</p>
 <form class="form" data-new novalidate>
-<fieldset>
-<legend>小组类型</legend>
-<div class="kind-pick">
+<fieldset><legend>搭子类型</legend><div class="kind-pick">
 ${Object.entries(KIND_INFO).map(([k, [l, d]], i) => `<label class="kind-opt"><input type="radio" name="kind" value="${k}"${i ? '' : ' checked'}><span class="gtag gtag-${k}">${l}</span><small>${d}</small></label>`).join('')}
-</div>
-</fieldset>
-
-<fieldset>
-<legend>名称和介绍</legend>
-<label class="field"><span>小组名称</span><input name="title" maxlength="40" required placeholder="例如：一起读约翰福音"></label>
+</div></fieldset>
+<fieldset><legend>名称和介绍</legend>
+<label class="field"><span>搭子名称</span><input name="title" maxlength="40" required placeholder="例如：一起读约翰福音"></label>
 <label class="field"><span>简单介绍<em>可以不写</em></span><textarea name="intro" maxlength="300" rows="3" placeholder="例如：每次读完分享一两句，不需要什么基础。"></textarea></label>
 </fieldset>
-
-<fieldset data-for="read">
-<legend>读什么</legend>
-<div class="row2">
-<label class="field"><span>书卷</span><select name="book">${bookOptions}</select></label>
-<label class="field"><span>从第几章开始</span><select name="chapter"></select></label>
-</div>
+<fieldset data-for="read"><legend>读什么</legend>
+<div class="row2"><label class="field"><span>书卷</span><select name="book">${bookOptions}</select></label><label class="field"><span>从第几章开始</span><select name="chapter"></select></label></div>
 <label class="field"><span>每次读几章</span><select name="per">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}">${n} 章</option>`).join('')}</select></label>
 <label class="check"><input type="checkbox" name="cont"><span>这一卷读完后，接着读下一卷</span></label>
 </fieldset>
-
-<fieldset data-for="pray feed" hidden>
-<legend>每次的内容</legend>
-<label class="field"><span>内容或材料<em>以后可以随时更新</em></span><textarea name="material" maxlength="300" rows="3" placeholder="例如：为家中还没有信主的亲人祷告"></textarea></label>
+<fieldset data-for="pray feed" hidden><legend>每次的内容</legend>
+<label class="field"><span>内容或材料<em>以后可以随时更新</em></span><textarea name="material" maxlength="300" rows="3" placeholder="例如：为家中还没有信主的亲人呼吸"></textarea></label>
 <label class="field"><span>材料链接<em>可以不填</em></span><input name="link" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
 </fieldset>
-
-<fieldset>
-<legend>什么时候</legend>
+<fieldset><legend>什么时候</legend>
 <div class="field"><span>每周哪几天</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => chip('days', d, `周${WEEK_SHORT[d]}`)).join('')}</div></div>
-<div class="row2">
-<label class="field"><span>几点开始</span><input name="time" type="time" value="20:00" required></label>
-<label class="field"><span>每次多长</span><select name="minutes">${[15, 20, 30, 45, 60, 90, 120].map((m) => `<option value="${m}"${m === 30 ? ' selected' : ''}>${m < 60 ? `${m} 分钟` : `${m / 60} 小时`.replace('1.5 小时', '1 小时 30 分钟')}</option>`).join('')}</select></label>
-</div>
-<div class="row2">
-<label class="field"><span>从哪天开始</span><input name="startDate" type="date" required></label>
-<label class="field"><span>按哪里的时间</span><select name="tz">${tzOptions}</select></label>
-</div>
-<p class="hint">组员在世界各地都没关系，每个人看到的都是自己手机上的时间。</p>
+<div class="row2"><label class="field"><span>几点开始</span><input name="time" type="time" value="20:00" required></label>
+<label class="field"><span>每次多长</span><select name="minutes">${[15, 20, 30, 45, 60, 90, 120].map((m) => `<option value="${m}"${m === 30 ? ' selected' : ''}>${m < 60 ? `${m} 分钟` : m === 90 ? '1 小时 30 分钟' : `${m / 60} 小时`}</option>`).join('')}</select></label></div>
+<div class="row2"><label class="field"><span>从哪天开始</span><input name="startDate" type="date" required></label><label class="field"><span>按哪里的时间</span><select name="tz">${tzOptions}</select></label></div>
+<p class="hint">搭子在世界各地都没关系，每个人看到的都是自己手机上的时间。</p>
 </fieldset>
-
-<fieldset>
-<legend>谁能加入</legend>
-<div class="radios">
-<label class="check"><input type="radio" name="visibility" value="public" checked><span>放在广场上，别人可以看到、申请加入</span></label>
-<label class="check"><input type="radio" name="visibility" value="invite"><span>不公开，只有收到邀请链接的人能加入</span></label>
-</div>
-<div class="radios" data-for-public>
-<p class="field-label">广场上的人想加入时</p>
-<label class="check"><input type="radio" name="joinMode" value="approve" checked><span>要我同意</span></label>
-<label class="check"><input type="radio" name="joinMode" value="open"><span>直接加入</span></label>
-</div>
-<label class="field"><span>最多几个人</span><select name="max">${[3, 5, 8, 12, 20, 50].map((n) => `<option value="${n}"${n === 12 ? ' selected' : ''}>${n} 人</option>`).join('')}<option value="">不限</option></select></label>
+<fieldset><legend>谁能加入</legend>
+<div class="radios"><label class="check"><input type="radio" name="visibility" value="public" checked><span>放在广场上，别人可以看到、申请加入</span></label>
+<label class="check"><input type="radio" name="visibility" value="invite"><span>不公开，只有收到邀请链接的人能加入</span></label></div>
+<div class="radios" data-for-public><p class="field-label">广场上的人想加入时</p><label class="check"><input type="radio" name="joinMode" value="approve" checked><span>要我同意</span></label><label class="check"><input type="radio" name="joinMode" value="open"><span>直接加入</span></label></div>
+<label class="field"><span>最多几个人</span><select name="max">${[2, 3, 4, 5, 6, 8, 12].map((n) => `<option value="${n}"${n === 6 ? ' selected' : ''}>${n} 人</option>`).join('')}<option value="">不限</option></select></label>
 </fieldset>
-
-<fieldset>
-<legend>你的信息</legend>
+<fieldset><legend>你的信息</legend>
 <label class="field"><span>你的称呼</span><input name="name" maxlength="20" required placeholder="例如：陈弟兄、小李" autocomplete="nickname"></label>
 <label class="field"><span>邮箱或手机号</span><input name="contact" maxlength="120" required placeholder="用来发提醒" autocomplete="email" inputmode="email"></label>
-<p class="hint">联系方式只用来发提醒，任何人都看不到。填邮箱可以收到提醒邮件；手机号的短信提醒以后开通，现在可以先把时间加进手机日历。</p>
+<p class="hint">联系方式只用来发提醒，任何人都看不到。</p>
 <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
 </fieldset>
-
-<section class="covenant-card" aria-live="polite">
-<h2>小组的约</h2>
-<p data-summary></p>
-<label class="check"><input type="checkbox" name="covenant"><span data-covenant-text>我愿意按上面的约定，坚定持续地和组员一起读经。</span></label>
-</section>
+<section class="covenant-card" aria-live="polite"><h2>搭子的约</h2><p data-summary></p>
+<label class="check"><input type="checkbox" name="covenant"><span data-covenant-text>我愿意按上面的约定，坚定持续地和搭子们一起吃饭。</span></label></section>
 <p class="form-error" data-error role="alert" hidden></p>
-<button class="btn btn-life btn-block" type="submit">发起小组</button>
+<button class="btn btn-water btn-block" type="submit">发起搭子</button>
 </form>
-</main>`,
-});
-
-write('/g/', page({
-  title: '小组',
-  url: '/g/',
-  active: '/square/',
-  noindex: true,
-  scripts: [GROUPS_JS],
-  body: `<main class="wrap page" data-page="group">
-<div data-group aria-live="polite"><p class="muted">正在载入小组……</p></div>
-</main>`,
+</section>`,
 }));
-
+write('/g/', page({ lang: 'zh', title: '搭子', path: '/g/', tab: 'dazi', noindex: true, only: true, scripts: [GROUPS_JS], body: '<section class="page" data-page="group"><div data-group aria-live="polite"><p class="muted">正在载入……</p></div></section>' }));
 write('/admin/', page({
-  title: '管理',
-  url: '/admin/',
-  noindex: true,
-  scripts: [GROUPS_JS],
-  body: `<main class="wrap page" data-page="admin">
-<h1 class="page-title">管理小组</h1>
-<p class="page-lead">撤下不合适的小组：撤下后广场和小组页面都看不到。</p>
-<form class="form admin-key" data-admin-key><label class="field"><span>管理密码</span><input name="key" type="password" autocomplete="current-password"></label><button class="btn btn-life" type="submit">进入</button></form>
-<div class="glist" data-admin-list></div>
-</main>`,
+  lang: 'zh', title: '管理', path: '/admin/', noindex: true, only: true, scripts: [GROUPS_JS],
+  body: `<section class="page" data-page="admin">
+<h1 class="page-title">管理</h1>
+<p class="page-lead">看大家发来的问题，撤下不合适的搭子。</p>
+<form class="form admin-key" data-admin-key><label class="field"><span>管理密码</span><input name="key" type="password" autocomplete="current-password"></label><button class="btn btn-water" type="submit">进入</button></form>
+<section data-admin-asks hidden><h2 class="sub-h">大家发来的问题</h2><div class="glist" data-ask-list></div></section>
+<section data-admin-groups hidden><h2 class="sub-h">搭子</h2><div class="glist" data-admin-list></div></section>
+</section>`,
 }));
 
-// 404
-write('/404', page({
-  title: '找不到这个页面',
-  url: '/404',
-  noindex: true,
-  body: `<main class="wrap page">
-<h1 class="page-title">找不到这个页面</h1>
-<p class="page-lead">链接可能输错了，或者内容已经换了位置。</p>
-<p><a class="btn btn-life" href="/">回到首页</a></p>
-</main>`,
+// 404 (both languages on one page)
+fs.writeFileSync(path.join(DIST, '404.html'), page({
+  lang: 'zh', title: S.zh.notFound, path: '/404', noindex: true, only: true,
+  body: `<section class="page"><div class="banner"><h1>${S.zh.notFound}</h1><p>${S.zh.notFoundP}<br>${S.en.notFoundP}</p>${MASCOT()}</div>
+<p class="btn-row"><a class="btn btn-water" href="/">${S.zh.home}</a><a class="btn btn-line" href="/en/">${S.en.home}</a></p></section>`,
 }));
-fs.renameSync(path.join(DIST, '404/index.html'), path.join(DIST, '404.html'));
-fs.rmdirSync(path.join(DIST, '404'));
 
 // sitemap + robots
 fs.writeFileSync(path.join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
@@ -609,4 +636,4 @@ ${urls.map((u) => `<url><loc>${site.url}${u}</loc></url>`).join('\n')}
 `);
 fs.writeFileSync(path.join(DIST, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${site.url}/sitemap.xml\n`);
 
-console.log(`built ${urls.length} pages: ${articles.length} articles, ${videos.length} videos, ${prayers.length} prayer days (today ${TODAY}: ${todayPrayer?.date ?? 'none'})`);
+console.log(`built ${urls.length} indexed pages: ${articles.length} articles, ${videos.length} videos, ${huxi.length} 呼吸 days, ${TAGS.length} tags, 2 languages (today ${TODAY}: ${todayHuxi?.date ?? 'none'})`);
