@@ -2,6 +2,15 @@
 // bibleread.online's Bible addresses. 1,189 chapters in all. Shared by the Worker, build.mjs
 // and (through /data/bible.json) the pages.
 const NT = (s) => `the-${s}`;
+// Chinese Life-study pages on lsmchinese.org: the book's code (Old Testament under ot/;
+// 1–2 Samuel, Kings and Chronicles share one series each).
+const LSZ = [
+  'ot/gen', 'ot/exo', 'ot/lev', 'ot/num', 'ot/deu', 'ot/jos', 'ot/jud', 'ot/ruth', 'ot/sam', 'ot/sam', 'ot/king', 'ot/king', 'ot/chr', 'ot/chr',
+  'ot/ezr', 'ot/neh', 'ot/est', 'ot/job', 'ot/psa', 'ot/pro', 'ot/ecc', 'ot/song', 'ot/isa', 'ot/jer', 'ot/lam', 'ot/eze', 'ot/dan', 'ot/hos',
+  'ot/joe', 'ot/amos', 'ot/oba', 'ot/jona', 'ot/mich', 'ot/nahu', 'ot/haba', 'ot/zeph', 'ot/hag', 'ot/zech', 'ot/mala',
+  'matt', 'mark', 'luke', 'john', 'acts', 'roma', '1cor', '2cor', 'gal', 'ephi', 'phil', 'col', '1the', '2the', '1tim', '2tim', 'titu', 'phmn',
+  'hebr', 'jame', '1pet', '2pet', '1joh', '2joh', '3joh', 'juda', 'rev',
+];
 export const BOOKS = [
   ['创世记', '创', 'Genesis', 50, 'genesis'], ['出埃及记', '出', 'Exodus', 40, 'exodus'], ['利未记', '利', 'Leviticus', 27, 'leviticus'],
   ['民数记', '民', 'Numbers', 36, 'numbers'], ['申命记', '申', 'Deuteronomy', 34, 'deuteronomy'], ['约书亚记', '书', 'Joshua', 24, 'joshua'],
@@ -31,7 +40,7 @@ export const BOOKS = [
   ['彼得前书', '彼前', '1 Peter', 5, NT('first-epistle-of-peter')], ['彼得后书', '彼后', '2 Peter', 3, NT('second-epistle-of-peter')],
   ['约翰一书', '约壹', '1 John', 5, NT('first-epistle-of-john')], ['约翰二书', '约贰', '2 John', 1, NT('second-epistle-of-john')],
   ['约翰三书', '约叁', '3 John', 1, NT('third-epistle-of-john')], ['犹大书', '犹', 'Jude', 1, NT('epistle-of-jude')], ['启示录', '启', 'Revelation', 22, 'revelation'],
-].map(([zh, short, en, chapters, slug], i) => ({ n: i + 1, zh, short, en, chapters, slug, ls: en.toLowerCase().replace(/ /g, '-'), name: zh }));
+].map(([zh, short, en, chapters, slug], i) => ({ n: i + 1, zh, short, en, chapters, slug, ls: en.toLowerCase().replace(/ /g, '-'), lsz: LSZ[i], name: zh }));
 
 export const TOTAL_CHAPTERS = BOOKS.reduce((s, b) => s + b.chapters, 0);
 
@@ -43,10 +52,11 @@ export const BIBLE_LINKS = {
   en: 'https://bibleread.online/bible/{slug}/{c}/',
   zh: 'https://recoveryversion.com.tw/verse/{n}/{c}?verse=1',
 };
-// Chinese Life-study: none yet (the initiator can paste one). Set it when Zion sends one.
+// {lsz} the book's lsmchinese.org code, {mm} the message number with two digits (three
+// for Genesis and Exodus, which have over 100 messages).
 export const LIFE_STUDY_LINKS = {
   en: 'https://bibleread.online/life-study-of-the-bible/life-study-of-{ls}/{m}/',
-  zh: '',
+  zh: 'https://www.lsmchinese.org/lifestudy/{lsz}{mm}.html',
 };
 
 const START = [];
@@ -63,14 +73,15 @@ export function chapterAt(index) {
 }
 const fill = (tpl, book, extra) => {
   const b = BOOKS[book - 1];
-  return Object.entries({ n: book, slug: b.slug, ls: b.ls, ...extra }).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, String(v)), tpl);
+  return Object.entries({ n: book, slug: b.slug, ls: b.ls, lsz: b.lsz, ...extra }).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, String(v)), tpl);
 };
 export function chapterLink(book, chapter, lang = 'zh') {
   return BIBLE_LINKS[lang] ? fill(BIBLE_LINKS[lang], book, { c: chapter }) : null;
 }
 // A Life-study message online, or null when there is no address for this language.
 export function lifeStudyLink(book, message, lang = 'zh') {
-  return LIFE_STUDY_LINKS[lang] ? fill(LIFE_STUDY_LINKS[lang], book, { m: message }) : null;
+  const mm = String(message).padStart(book <= 2 ? 3 : 2, '0');
+  return LIFE_STUDY_LINKS[lang] ? fill(LIFE_STUDY_LINKS[lang], book, { m: message, mm }) : null;
 }
 export const bookName = (book, lang) => (lang === 'en' ? BOOKS[book - 1].en : BOOKS[book - 1].zh);
 // "约翰福音 第3章", "约翰福音 第3–4章", "约翰福音 第21章、使徒行传 第1章" / "John 3", "John 3–4", "John 21; Acts 1"

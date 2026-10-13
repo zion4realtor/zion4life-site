@@ -266,6 +266,40 @@
     const empty = $('[data-empty]');
     if (empty) empty.hidden = true;
   });
+  // ---------- subscriptions (a tag, or 呼吸) and the unread count on 我的 ----------
+  let subsPromise = null;
+  const subs = (fresh) => {
+    if (!subsPromise || fresh) subsPromise = me().then((m) => (m.user ? api('/api/subs') : { topics: [] })).then((r) => r.topics || []);
+    return subsPromise;
+  };
+  function subButton(btn, topic) {
+    const on = btn.getAttribute('data-on') || t('已订阅', 'Subscribed');
+    const off = btn.getAttribute('data-off') || t('订阅', 'Subscribe');
+    const paint = (x) => { btn.textContent = x ? `✓ ${on}` : off; btn.setAttribute('aria-pressed', String(x)); };
+    subs().then((list) => paint(list.includes(topic)));
+    btn.addEventListener('click', async () => {
+      try { await requireLogin(t('订阅要先登录（不用密码）。', 'Sign in first to subscribe (no password).')); } catch (x) { return; }
+      const now = (await subs()).includes(topic);
+      const r = await api('/api/subs', { body: { topic, on: !now } });
+      if (!r.ok) { toast(r.error); return; }
+      subsPromise = Promise.resolve(r.topics);
+      paint(r.topics.includes(topic));
+      toast(r.topics.includes(topic) ? t('订阅好了，有更新会发到“我的”里。', 'Subscribed. Updates arrive in “Me”.') : t('取消订阅了', 'Unsubscribed'));
+    });
+    document.addEventListener('yg:login', () => subs(true).then((list) => paint(list.includes(topic))));
+  }
+  $$('[data-sub]').forEach((b) => subButton(b, b.getAttribute('data-sub')));
+  const badge = (n) => {
+    const tab = $('.tabbar a[href$="/me/"]');
+    if (!tab) return;
+    let b = $('.badge', tab);
+    if (!n) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement('i'); b.className = 'badge'; tab.appendChild(b); }
+    b.textContent = n > 99 ? '99+' : String(n);
+  };
+  me().then((m) => badge(m.unread || 0)).catch(() => {});
+  document.addEventListener('yg:login', (e) => badge(e.detail?.unread || 0));
+
   $$('[data-tag-tools]').forEach(async (box) => {
     const tag = box.getAttribute('data-tag-tools');
     const person = box.hasAttribute('data-person');
@@ -277,7 +311,8 @@
       if (manages) h = `<a class="btn btn-water btn-sm" href="${pre}/write/?tag=${encodeURIComponent(tag)}">✎ ${t('写一篇', 'Write')}</a><span class="muted">${m.admin && !(m.manages || []).includes(tag) ? t('你是网站管理员', 'You run this site') : t('你管理这个标签', 'You manage this tag')}</span>`;
       else if (claim) h = `<span class="muted">${t('认领申请已经提交，正在等网站确认。', 'Your claim is waiting for the site to confirm.')}</span>`;
       else if (person) h = `<button type="button" class="link-btn" data-claim>${t('这是我本人？认领这个标签', 'Is this you? Claim this tag')}</button>`;
-      box.innerHTML = h;
+      box.innerHTML = `${h}<button type="button" class="btn btn-line btn-sm sub-btn" data-sub-tag></button>`;
+      subButton($('[data-sub-tag]', box), `tag:${tag}`);
       const b = $('[data-claim]', box);
       if (b) {
         b.addEventListener('click', async () => {
@@ -320,13 +355,23 @@ ${m.mail === false ? `<p class="muted">${t('（注册和登录还在准备中，
         return;
       }
       const u = m.user;
-      const mine = await api('/api/dazi/mine');
+      const [mine, inbox, tagList] = await Promise.all([api('/api/dazi/mine'), api('/api/inbox'), fetch('/data/tags.json').then((r) => r.json()).catch(() => [])]);
+      badge(0);
+      const topicName = (topic) => (topic === 'huxi' ? t('每天的呼吸', 'Daily Breathe') : ((tagList.find((x) => `tag:${x.id}` === topic) || {})[EN ? 'en' : 'zh'] || topic.slice(4)));
+      const L = EN ? 'en' : 'zh';
+      const msgs = inbox.ok ? inbox.list : [];
+      const msgHtml = (x) => `<li class="msg-item${x.unread ? ' unread' : ''}">${x.url ? `<a href="${esc(x.url.startsWith('/') ? `${pre}${x.url}` : x.url)}"${x.url.startsWith('/') ? '' : ' target="_blank" rel="noopener"'}>` : '<div>'}<b>${esc(x.title[L])}</b>${x.body[L] ? `<span>${esc(x.body[L]).replace(/\n/g, '<br>')}</span>` : ''}<time>${esc(ago(x.created))}</time>${x.url ? '</a>' : '</div>'}</li>`;
+      const topics = await subs(true);
       const cal = `${location.host}/api/cal/${u.cal}.ics${EN ? '?lang=en' : ''}`;
       meBox.innerHTML = `<div class="profile">
 <span class="avatar">${esc([...u.name][0] || '·')}</span>
 <div><h2>${esc(u.name)}</h2><p class="muted">${esc(u.email)}</p></div>
 <button type="button" class="link-btn" data-edit>${t('修改', 'Edit')}</button></div>
 <div class="id-line">${u.ids.length ? u.ids.map((k) => `<span class="chiplink">${esc(idName(k))}</span>`).join('') : `<span class="muted">${t('还没有身份标签', 'No identity tags yet')}</span>`}<span class="muted small">${u.idsPublic ? t('搭子们看得到', 'visible to buddies') : t('只有你自己看得到', 'only you see these')}</span></div>
+<section class="more inbox"><h2 class="sec-h">${t('消息', 'Messages')}${msgs.some((x) => x.unread) ? ` <small class="new">${t('新', 'new')}</small>` : ''}</h2>
+${msgs.length ? `<ul class="msg-list">${msgs.slice(0, 6).map(msgHtml).join('')}</ul>${msgs.length > 6 ? `<details class="msg-more"><summary>${t(`还有 ${msgs.length - 6} 条`, `${msgs.length - 6} more`)}</summary><ul class="msg-list">${msgs.slice(6).map(msgHtml).join('')}</ul></details>` : ''}` : `<p class="muted">${t('还没有消息。订阅喜欢的标签或每天的呼吸，有更新会出现在这里；搭子调整进度、上传资料，也会告诉你。', 'No messages yet. Subscribe to tags you like or to the daily Breathe and updates show up here; your buddy groups post here too.')}</p>`}
+<div class="sub-line"><span class="muted">${t('我的订阅：', 'Subscribed: ')}</span>${topics.length ? topics.map((x) => `<span class="chiplink">${esc(topicName(x))}</span>`).join('') : `<span class="muted">${t('还没有。在呼吸页和标签页可以订阅。', 'Nothing yet. Subscribe on the Breathe page and on tag pages.')}</span>`}${topics.includes('huxi') ? '' : `<a class="link-btn" href="${pre}/huxi/">${t('订阅每天的呼吸', 'Subscribe to Breathe')} →</a>`}</div>
+</section>
 <section class="more"><h2 class="sec-h">${t('我的搭子', 'My buddy groups')}</h2>
 ${mine.groups && mine.groups.length ? `<div class="mine-list">${mine.groups.map((g) => `<a class="mine-item" href="${pre}/g/${g.id}"><b>${esc(g.title)}</b><span>${g.next ? `${g.next.live ? t('正在进行', 'On now') : t('下次', 'Next')} ${esc(fmtDate.format(new Date(g.next.start)))} ${esc(fmtClock.format(new Date(g.next.start)))}` : g.finished ? t('已读完', 'Finished') : ''}</span></a>`).join('')}</div>` : `<p class="muted">${t('还没有加入搭子。', 'No buddy groups yet.')} <a href="${pre}/dazi/">${t('去广场看看', 'Visit the plaza')}</a></p>`}
 </section>
@@ -444,6 +489,17 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
       const tagName = Object.fromEntries(r.tags.map((x) => [x.id, x.zh]));
       const d = (ms) => new Date(ms).toLocaleString('zh-CN', { hour12: false });
       adminBox.innerHTML = `
+<section class="adm"><h2 class="sec-h">发消息给所有人 <small>${r.userCount} 位注册的人</small></h2>
+<form class="form adm-send" data-send novalidate>
+<label class="field"><span>标题</span><input name="title" maxlength="80" placeholder="例如：这个主日下午的特别聚会"></label>
+<label class="field"><span>内容</span><textarea name="body" rows="4" maxlength="3000"></textarea></label>
+<label class="field"><span>链接<em>可以不填</em></span><input name="url" maxlength="300" placeholder="/huxi/ 或 https://…"></label>
+<details><summary>英文（可以不填，英文用户就看中文）</summary>
+<label class="field"><span>Title</span><input name="titleEn" maxlength="120"></label>
+<label class="field"><span>Message</span><textarea name="bodyEn" rows="4" maxlength="4000"></textarea></label></details>
+<p class="form-error" data-error hidden></p><button class="btn btn-water" type="submit">发送</button>
+<p class="hint">每个人在“我的 → 消息”里会看到，我的菜单上会有红点。</p></form>
+${r.sent.length ? `<div class="adm-sent">${r.sent.slice(0, 8).map((x) => `<div class="adm-row"><p><b>${esc(x.title)}</b> <span class="muted">${esc(d(x.created))}</span></p><p class="muted">${esc(x.body.slice(0, 140))}</p></div>`).join('')}</div>` : ''}</section>
 <section class="adm"><h2 class="sec-h">认领申请 <small>${r.claims.length}</small></h2>${r.claims.length ? r.claims.map((c) => `<div class="adm-row"><p><b>${esc(c.name)}</b>（${esc(c.email)}）想认领「${esc(tagName[c.tag] || c.tag)}」${c.ids.length ? `，身份：${c.ids.map((k) => esc(idName(k))).join('、')}` : ''}</p>${c.note ? `<p class="muted">留言：${esc(c.note)}</p>` : ''}<p class="btn-row"><button class="btn btn-water btn-sm" data-claim="${c.id}" data-st="approved">同意</button><button class="btn btn-line btn-sm" data-claim="${c.id}" data-st="declined">不同意</button></p></div>`).join('') : '<p class="muted">没有待处理的申请。</p>'}</section>
 <section class="adm"><h2 class="sec-h">标签管理员</h2>
 <form class="adm-form" data-add-mgr><select name="tag">${r.tags.map((x) => `<option value="${x.id}">${esc(x.zh)}</option>`).join('')}</select><input name="email" type="email" placeholder="对方注册用的邮箱"><button class="btn btn-water btn-sm" type="submit">任命</button></form>
@@ -458,6 +514,15 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>�
         if (!x.ok) toast(x.error); else load();
       };
       $$('[data-claim]', adminBox).forEach((b) => b.addEventListener('click', () => post(`/api/admin/claims/${b.getAttribute('data-claim')}`, { status: b.getAttribute('data-st') })));
+      const sendF = $('[data-send]', adminBox);
+      sendF.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const er = $('[data-error]', sendF);
+        er.hidden = true;
+        if (!confirm(`发给所有 ${r.userCount} 位注册的人？`)) return;
+        const x = await api('/api/admin/broadcast', { body: { title: sendF.title.value, body: sendF.body.value, url: sendF.url.value, titleEn: sendF.titleEn.value, bodyEn: sendF.bodyEn.value } });
+        if (x.ok) { toast('发出去了'); load(); } else { er.textContent = x.error; er.hidden = false; }
+      });
       $$('[data-del-mgr]', adminBox).forEach((b) => b.addEventListener('click', () => {
         const [tag, uid] = b.getAttribute('data-del-mgr').split('|');
         if (confirm('取消这位管理员？')) post('/api/admin/managers/delete', { tag, uid });

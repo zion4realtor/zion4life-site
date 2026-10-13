@@ -37,6 +37,8 @@ const S = {
     more: '继续吃', play: '播放', soon: '视频即将上线', lineTip: '播放不了的话，换一条线路试试。',
     huxi: '呼吸', huxiSub: '每天打开这个链接，都是当天的内容。', huxiShare: '把这个链接发给弟兄姊妹，他们每天打开，看到的都是当天的呼吸。',
     huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', todayLink: '看今天的呼吸',
+    listen: '读给我听', listenPlay: '播放', listenPause: '暂停', listenAbout: (m) => `约 ${m} 分钟`, speed: '语速',
+    subHuxi: '订阅每天的呼吸', subHuxiOn: '已订阅', subHuxiHint: '订阅以后，每天的呼吸上新，“我的”里会收到消息。',
     week: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'], weekShort: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
     md: (m, d) => `${m}月${d}日`, full: (y, m, d) => `${y}年${m}月${d}日`,
     me: '我的', meSub: '你的搭子、打卡和留言，都会在这里。', loading: '正在载入……',
@@ -63,6 +65,8 @@ const S = {
     more: 'Keep eating', play: 'Play', soon: 'Video coming soon', lineTip: 'If it will not play, try another line.',
     huxi: 'Breathe', huxiSub: 'Open this link any day and you see that day.', huxiShare: 'Send this link to brothers and sisters. Each day they open it, they see that day.',
     huxiDayShare: 'Send this day to brothers and sisters.', past: 'Earlier days', todayLink: 'See today',
+    listen: 'Read it to me', listenPlay: 'Play', listenPause: 'Pause', listenAbout: (m) => `about ${m} min`, speed: 'Speed',
+    subHuxi: 'Subscribe to Breathe', subHuxiOn: 'Subscribed', subHuxiHint: 'Subscribers get a message in “Me” each day a new Breathe comes.',
     week: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], weekShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     md: (m, d) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${d}`,
     full: (y, m, d) => `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${d}, ${y}`,
@@ -111,6 +115,87 @@ const shiftDate = (iso, days) => {
 };
 const splitTags = (v) => (Array.isArray(v) ? v : String(v || '').split(/[,，\s]+/)).map((x) => x.trim()).filter(Boolean);
 
+// ---------- 呼吸 ----------
+// The Markdown HTML of a day, shaped for reading: each ## part in its own <section>, a line
+// that is only (《book》 …) a source, a line only in *italics* a note, and every block that is
+// read aloud numbered (data-s) so the player can show where it is.
+function huxiHtml(html) {
+  let n = 0;
+  let out = html
+    // a verse: the reference on top, then the words
+    .replace(/<blockquote class="verse"><p>([^]*?)<\/p>(?:<cite>([^]*?)<\/cite>)?<\/blockquote>/g, (_, v, c) => `<blockquote class="verse">${c ? `<cite>${c}</cite>` : ''}<p class="vt">${v}</p></blockquote>`)
+    .replace(/<p>([（(]《[^<]*[）)])<\/p>/g, '<p class="src">$1</p>')
+    .replace(/<p>(\((?:[^<]|<\/?em>)*\))<\/p>/g, (m, x) => (/^\(<em>/.test(x) ? `<p class="src">${x}</p>` : m))
+    .replace(/<p><em>([^<]*)<\/em><\/p>/g, '<p class="note">$1</p>')
+    .replace(/<(h2|h3|p|blockquote)( class="(?:verse|src)")?>/g, (m, tag, attrs = '') => `<${tag}${attrs} data-s="${++n}">`);
+  out = out.split(/(?=<h2 )/).map((x) => (x.startsWith('<h2 ') ? `<section class="hx-sec">${x}</section>` : x)).join('\n');
+  return out;
+}
+// The same day as text to read aloud: [{ t: text, s: [block numbers] }], in pieces of about
+// a paragraph. Block 0 is the headline and lede. References are written out ("罗十二1" →
+// "罗马书十二章1节", "Rom. 12:1" → "Romans 12:1").
+const EN_ABBR = {
+  'Gen.': 'Genesis', 'Exo.': 'Exodus', 'Lev.': 'Leviticus', 'Num.': 'Numbers', 'Deut.': 'Deuteronomy', 'Josh.': 'Joshua', 'Judg.': 'Judges',
+  'Psa.': 'Psalms', 'Prov.': 'Proverbs', 'Eccl.': 'Ecclesiastes', 'S.S.': 'Song of Songs', 'Isa.': 'Isaiah', 'Jer.': 'Jeremiah', 'Lam.': 'Lamentations',
+  'Ezek.': 'Ezekiel', 'Dan.': 'Daniel', 'Obad.': 'Obadiah', 'Hab.': 'Habakkuk', 'Zeph.': 'Zephaniah', 'Hag.': 'Haggai', 'Zech.': 'Zechariah', 'Mal.': 'Malachi',
+  'Matt.': 'Matthew', 'Rom.': 'Romans', 'Gal.': 'Galatians', 'Eph.': 'Ephesians', 'Phil.': 'Philippians', 'Col.': 'Colossians', 'Philem.': 'Philemon',
+  'Heb.': 'Hebrews', 'Rev.': 'Revelation', 'Neh.': 'Nehemiah', 'Esth.': 'Esther', 'Chron.': 'Chronicles', 'Sam.': 'Samuel', 'Cor.': 'Corinthians',
+  'Thes.': 'Thessalonians', 'Tim.': 'Timothy', 'Pet.': 'Peter',
+};
+const ORD = { 1: 'First', 2: 'Second', 3: 'Third' };
+const ZH_SHORT = [...BOOKS].sort((a, b) => b.short.length - a.short.length);
+const zhRefRe = new RegExp(`(${ZH_SHORT.map((b) => b.short).join('|')})([一二三四五六七八九十百]+|\\d+)[:：]?(\\d+)(?:[~～\\-–](\\d+))?`, 'g');
+function speakRefs(text, lang) {
+  if (lang === 'en') {
+    return text
+      .replace(/\b([123]) (Sam|Kings|Chron|Cor|Thes|Tim|Pet|John)\.?(?= \d)/g, (_, o, b) => `${ORD[o]} ${EN_ABBR[`${b}.`] || b}`)
+      .replace(/\b(S\.S\.|[A-Z][a-z]+\.)(?= \d)/g, (m) => EN_ABBR[m] || m)
+      .replace(/(\d+):(\d+)-(\d+)/g, '$1:$2 to $3');
+  }
+  return text.replace(zhRefRe, (m, short, ch, v, v2) => {
+    const b = ZH_SHORT.find((x) => x.short === short);
+    return `${b.zh}${ch}章${v}${v2 ? `至${v2}` : ''}节`;
+  });
+}
+function huxiSpeech(p, lang) {
+  const x = p[lang];
+  const d = dateParts(p.date, lang);
+  const max = lang === 'en' ? 520 : 260;
+  const say = (h) => plain(h).replace(/\s+/g, ' ').trim();
+  const blocks = [{ s: 0, t: lang === 'en' ? `Breathe for ${d.md}. ${x.title}. ${x.lede}` : `${d.md}的呼吸。${x.title}。${x.lede}` }];
+  for (const m of x.html.matchAll(/<(h2|h3|p|blockquote)[^>]*data-s="(\d+)"[^>]*>([^]*?)<\/\1>/g)) {
+    const [, tag, k, inner] = m;
+    let t;
+    if (tag === 'blockquote') {
+      const cite = (inner.match(/<cite>([^]*?)<\/cite>/) || [])[1] || '';
+      t = `${say(cite)}${lang === 'en' ? '. ' : '。'}${say(inner.replace(/<cite>[^]*?<\/cite>/, ''))}`;
+    } else if (/class="src"/.test(m[0])) {
+      const inside = say(inner).replace(/^[（(]|[）)]$/g, '');
+      t = lang === 'en' ? `From ${inside}.` : `摘自${inside}。`;
+    } else {
+      t = say(inner);
+      // a heading is its own sentence when read aloud
+      if (tag !== 'p' && t && !/[。！？.!?：:]$/.test(t)) t += lang === 'en' ? '.' : '。';
+    }
+    if (t) blocks.push({ s: Number(k), t: speakRefs(t, lang) });
+  }
+  // pieces: whole blocks together up to `max`; a longer block split at sentence ends
+  const chunks = [];
+  let cur = null;
+  const push = (t, s) => {
+    if (cur && cur.t.length + t.length + 1 <= max) { cur.t += (lang === 'en' ? ' ' : '') + t; if (!cur.s.includes(s)) cur.s.push(s); return; }
+    cur = { t, s: [s] };
+    chunks.push(cur);
+  };
+  for (const b of blocks) {
+    if (b.t.length <= max) { push(b.t, b.s); continue; }
+    const sentences = b.t.match(lang === 'en' ? /[^.!?;]+[.!?;]+["”’)]*\s*|[^.!?;]+$/g : /[^。！？；]+[。！？；]+[”’）」]*|[^。！？；]+$/g) || [b.t];
+    for (const st of sentences) push(st.trim(), b.s);
+  }
+  const hash = crypto.createHash('sha1').update(`melotts-1|${lang}|${chunks.map((c) => c.t).join('\n')}`).digest('hex');
+  return { hash, chars: chunks.reduce((n, c) => n + c.t.length, 0), chunks };
+}
+
 // ---------- content ----------
 // A piece of writing is <slug>.zh.md and/or <slug>.en.md. Shared fields (date, type, tags, sample) may sit in either.
 function loadPairs(dir) {
@@ -122,8 +207,8 @@ function loadPairs(dir) {
     const { meta, body } = parseDoc(fs.readFileSync(path.join(full, f), 'utf8'));
     if (!map.has(m[1])) map.set(m[1], { slug: m[1], meta: {}, langs: {} });
     const e = map.get(m[1]);
-    Object.assign(e.meta, Object.fromEntries(Object.entries(meta).filter(([k]) => !['title', 'summary'].includes(k))));
-    e.langs[m[2]] = { title: meta.title || '', summary: meta.summary || '', html: md(body) };
+    Object.assign(e.meta, Object.fromEntries(Object.entries(meta).filter(([k]) => !['title', 'summary', 'lede'].includes(k))));
+    e.langs[m[2]] = { title: meta.title || '', summary: meta.summary || '', lede: meta.lede || '', html: md(body) };
   }
   for (const e of map.values()) {
     for (const lang of LANGS) {
@@ -153,11 +238,20 @@ const videos = readJSON('videos.json').map((v) => {
 const items = [...articles, ...videos].sort((a, b) => String(b.date).localeCompare(String(a.date)));
 const itemsOf = (tagId) => items.filter((i) => i.tags.includes(tagId));
 
+// 呼吸 days: a headline (title), a lede, then ## sections (verses as > quotes, the burden,
+// the ministry with ### headings and (source) lines). huxiHtml() shapes them for reading;
+// huxiSpeech() writes the same text out to be read aloud (src/audio.js records it).
 const huxi = loadPairs('huxi').map((p) => {
   const date = String(p.meta.date || p.slug);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`content/huxi/${p.slug}: date must be YYYY-MM-DD`);
-  const ex = (l) => plain(p.langs[l].html.split('\n')[0]).slice(0, 90);
-  return { date, sample: !!p.meta.sample, zh: { ...p.langs.zh, excerpt: ex('zh') }, en: { ...p.langs.en, excerpt: ex('en') } };
+  const one = (l) => {
+    const x = p.langs[l];
+    const html = huxiHtml(x.html);
+    return { ...x, html, excerpt: (x.lede || plain(x.html.split('\n')[0])).slice(0, 90) };
+  };
+  const day = { date, sample: !!p.meta.sample, zh: one('zh'), en: one('en') };
+  day.speech = { zh: huxiSpeech(day, 'zh'), en: huxiSpeech(day, 'en') };
+  return day;
 }).sort((a, b) => b.date.localeCompare(a.date));
 const todayHuxi = huxi.find((p) => p.date <= TODAY) || huxi[huxi.length - 1];
 const recentHuxi = huxi.filter((p) => p.date >= shiftDate(TODAY, -2));
@@ -171,6 +265,7 @@ const FONT = `/css/wenkai.css?v=${ver('css/wenkai.css')}`;
 const JS = `/js/site.js?v=${ver('js/site.js')}`;
 const APP_JS = `/js/app.js?v=${ver('js/app.js')}`;
 const DAZI_JS = `/js/dazi.js?v=${ver('js/dazi.js')}`;
+const HUXI_JS = `/js/huxi.js?v=${ver('js/huxi.js')}`;
 const LOGO = fs.readFileSync(path.join(STATIC, 'logo.svg'), 'utf8').replace('<svg ', '<svg class="logo" aria-hidden="true" ');
 const MASCOT = (cls = 'mascot') => `<svg class="${cls}" viewBox="0 0 100 124" aria-hidden="true"><path d="M50 3C50 3 11 51 11 80a39 39 0 0 0 78 0C89 51 50 3 50 3z" fill="var(--t-aqua)"/><ellipse cx="36" cy="40" rx="7" ry="12" transform="rotate(28 36 40)" fill="#fff" opacity=".7"/><ellipse cx="38" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><ellipse cx="62" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><circle cx="39.5" cy="77.5" r="1.6" fill="#fff"/><circle cx="63.5" cy="77.5" r="1.6" fill="#fff"/><ellipse cx="29" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><ellipse cx="71" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><path d="M45 92q5 5 10 0" stroke="#1b2a38" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
 const ICON = {
@@ -289,7 +384,7 @@ function askBox(lang) {
 function huxiData(lang, list) {
   return list.map((p) => {
     const d = dateParts(p.date, lang);
-    return { date: p.date, md: d.md, d: String(d.d), wd: d.wd, title: p[lang].title, excerpt: p[lang].excerpt, html: p[lang].html, sample: p.sample };
+    return { date: p.date, md: d.md, full: d.full, d: String(d.d), wd: d.wd, title: p[lang].title, lede: p[lang].lede, excerpt: p[lang].excerpt, html: p[lang].html, sample: p.sample };
   });
 }
 
@@ -415,12 +510,27 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
 
   // 呼吸: /huxi/ always shows today's; /huxi/<date>/ shows one day
   if (huxi.length) {
+    const minutes = (p) => Math.max(1, Math.round(p.speech[lang].chars / (lang === 'en' ? 14 : 4.2) / 60));
+    // 读给我听: plays the day's recording (static/js/huxi.js), under the headline
+    const listen = (p) => `<div class="hx-audio" data-audio data-l-play="${esc(L.listenPlay)}" data-l-pause="${esc(L.listenPause)}">
+<button class="hx-play" type="button" data-play aria-label="${esc(L.listen)}"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z" fill="currentColor"/></svg></button>
+<div class="hx-a-main"><p class="hx-a-top"><b>${esc(L.listen)}</b><span data-time>${esc(L.listenAbout(minutes(p)))}</span></p>
+<div class="hx-a-bar" data-bar role="slider" aria-label="${esc(L.listen)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><i data-fill></i></div></div>
+<button class="hx-speed" type="button" data-speed aria-label="${esc(L.speed)}">1×</button>
+<p class="hx-a-msg" data-msg hidden></p></div>`;
     const day = (p, live) => {
       const d = dateParts(p.date, lang);
-      return `<article class="day"${live ? ` data-huxi-today data-date="${p.date}"` : ''}>
-<div class="day-date"><span class="d" data-f="md">${esc(d.md)}</span><span class="w" data-f="wd">${esc(d.wd)}</span></div>
-<h2><span data-f="title">${esc(p[lang].title)}</span>${sampleTag(p, lang)}</h2>
-<div class="prose" data-f="html">${p[lang].html}</div></article>`;
+      const x = p[lang];
+      return `<article class="hx"${live ? ' data-huxi-today' : ''} data-date="${p.date}">
+<header class="hx-hero" data-s="0">
+<p class="hx-date"><span data-f="full">${esc(d.full)}</span><span class="dot">·</span><span data-f="wd">${esc(d.wd)}</span></p>
+<h1 class="hx-title"><span data-f="title">${esc(x.title)}</span>${sampleTag(p, lang)}</h1>
+<p class="hx-lede" data-f="lede"${x.lede ? '' : ' hidden'}>${esc(x.lede)}</p>
+</header>
+${listen(p)}
+<div class="hx-body" lang="${lang === 'en' ? 'en' : 'zh-CN'}" data-f="html">${x.html}</div>
+<p class="hx-sub"><button type="button" class="btn btn-line btn-sm" data-sub="huxi" data-on="${esc(L.subHuxiOn)}" data-off="${esc(L.subHuxi)}">${esc(L.subHuxi)}</button><span class="hint">${esc(L.subHuxiHint)}</span></p>
+</article>`;
     };
     const archive = (current) => `<section class="more" id="archive"><h2 class="sec-h">${esc(L.past)}</h2><ul class="arch">${huxi.map((p) => {
       const d = dateParts(p.date, lang);
@@ -431,8 +541,9 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
       title: L.huxi,
       desc: L.huxiSub,
       tab: 'huxi',
-      body: `<section class="page" style="--tint:var(--t-sun)">
-<div class="banner"><h1>${esc(L.huxi)}</h1><p>${esc(L.huxiSub)}</p></div>
+      scripts: [HUXI_JS],
+      body: `<section class="page hx-page" style="--tint:var(--t-sun)">
+<p class="hx-kicker"><b>${esc(L.huxi)}</b>${esc(L.huxiSub)}</p>
 ${day(todayHuxi, true)}
 ${shareBox(lang, L.huxiShare, U(lang, '/huxi/'), L.huxi)}
 ${archive(todayHuxi.date)}
@@ -446,7 +557,8 @@ ${json('huxi-data', huxiData(lang, recentHuxi))}
         desc: p[lang].title,
         tab: 'huxi',
         noindex: p.sample,
-        body: `<section class="page" style="--tint:var(--t-sun)">
+        scripts: [HUXI_JS],
+        body: `<section class="page hx-page" style="--tint:var(--t-sun)">
 <a class="back" href="${U(lang, '/huxi/')}">← ${esc(L.todayLink)}</a>
 ${day(p, false)}
 ${shareBox(lang, L.huxiDayShare, U(lang, `/huxi/${p.date}/`), `${d.md} ${L.huxi}`)}
@@ -479,12 +591,15 @@ function writeData(rel, data) {
   fs.writeFileSync(file, JSON.stringify(data));
 }
 writeData('tags.json', TAGS);
-writeData('items.json', items.map((i) => ({ key: `${i.kind === 'video' ? 'v' : 'a'}:${i.slug}`, tags: i.tags, zh: i.zh.title, en: i.en.title })));
+writeData('items.json', items.map((i) => ({ key: `${i.kind === 'video' ? 'v' : 'a'}:${i.slug}`, tags: i.tags, date: i.date, zh: i.zh.title, en: i.en.title })));
 writeData('bible.json', BOOKS.map((b) => ({ n: b.n, zh: b.zh, en: b.en, ch: b.chapters })));
 writeData('feed.json', feed.map((p) => ({ n: p.n, sample: p.sample, zh: { title: p.zh.title }, en: { title: p.en.title } })));
 for (const p of feed) writeData(`feed/${p.n}.json`, { n: p.n, sample: p.sample, zh: { title: p.zh.title, html: p.zh.html }, en: { title: p.en.title, html: p.en.html } });
 writeData('huxi.json', huxi.map((p) => ({ date: p.date, zh: { title: p.zh.title }, en: { title: p.en.title } })));
-for (const p of huxi) writeData(`huxi/${p.date}.json`, { date: p.date, sample: p.sample, zh: { title: p.zh.title, html: p.zh.html }, en: { title: p.en.title, html: p.en.html } });
+for (const p of huxi) {
+  writeData(`huxi/${p.date}.json`, { date: p.date, sample: p.sample, zh: { title: p.zh.title, lede: p.zh.lede, html: p.zh.html }, en: { title: p.en.title, lede: p.en.lede, html: p.en.html } });
+  writeData(`huxi/${p.date}.speech.json`, p.speech);
+}
 
 // ---------- 搭子 ----------
 const DZ = {
@@ -537,6 +652,7 @@ function planFields(key, k, lang, D, hidden) {
     else if (f.type === 'chapter') input = `<select name="${id}" data-plan="${f.name}" data-chapters></select>`;
     else if (f.type === 'select') input = `<select name="${id}" data-plan="${f.name}">${f.options.map((o) => (Array.isArray(o) ? opt(o[0], o[1][lang], o[0] === f.value) : opt(o, String(o), o === f.value))).join('')}</select>`;
     else if (f.type === 'lesson') input = `<select name="${id}" data-plan="${f.name}">${feed.map((p) => opt(p.n, `${p.n}. ${p[lang].title}`, p.n === (f.value || 1))).join('')}</select>`;
+    else if (f.type === 'tag') input = `<select name="${id}" data-plan="${f.name}">${TAGS.map((t) => opt(t.id, `${t[lang]}（${itemsOf(t.id).length}）`.replace(/（(\d+)）$/, lang === 'en' ? ' ($1)' : '（$1 篇）'), false)).join('')}</select>`;
     else if (f.type === 'num') input = `<input name="${id}" data-plan="${f.name}" type="number" min="${f.min}" max="${f.max}" value="${f.value}" inputmode="numeric">`;
     else if (f.type === 'url') input = `<input name="${id}" data-plan="${f.name}" type="url" inputmode="url" maxlength="300" placeholder="https://">`;
     else if (f.type === 'text') input = `<input name="${id}" data-plan="${f.name}" maxlength="${f.max || 60}"${f.placeholder ? ` placeholder="${esc(f.placeholder[lang])}"` : ''}>`;
@@ -557,6 +673,7 @@ for (const lang of LANGS) {
   const D = DZ[lang];
   const config = json('dazi-config', {
     kinds: kindsForPage(lang),
+    tags: TAGS.map((t) => [t.id, t[lang]]),
     venues: Object.fromEntries(Object.entries(VENUES).map(([k, v]) => [k, { name: v[lang], icon: VENUE_ICON[k] }])),
     feedCount: feed.length,
     ids: Object.fromEntries(Object.entries(IDENTITIES).map(([k, v]) => [k, v[lang === 'en' ? 1 : 0]])),

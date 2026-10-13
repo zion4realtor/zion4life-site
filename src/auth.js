@@ -25,7 +25,9 @@ function setCookie(url, token, maxAgeMs) {
   const secure = url.protocol === 'https:' ? '; Secure' : '';
   return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}${secure}`;
 }
-export const adminEmails = (env) => String(env.ADMIN_EMAILS || 'zion.chen@hotmail.com').toLowerCase().split(/[,\s]+/).filter(Boolean);
+// Zion: light@zion4life.faith (his account, the platform's first) and his old Hotmail.
+export const ADMIN_DEFAULT = 'light@zion4life.faith,zion.chen@hotmail.com';
+export const adminEmails = (env) => String(env.ADMIN_EMAILS || ADMIN_DEFAULT).toLowerCase().split(/[,\s]+/).filter(Boolean);
 export const isAdmin = (env, user) => !!user && adminEmails(env).includes(user.email);
 
 // The signed-in account for this request, or null.
@@ -51,6 +53,7 @@ export async function meView(env, db, user) {
     admin: isAdmin(env, user),
     manages: tags,
     claims,
+    unread: (await db('unread', { uid: user.id })).n,
   };
 }
 // a***@example.com, so the page can show which address is signed in without exposing it in full.

@@ -90,7 +90,9 @@ test('bible: 66 books, 1,189 chapters, Recovery Version and Life-study links', (
   assert.equal(chapterLink(43, 3, 'en'), 'https://bibleread.online/bible/the-gospel-according-to-john/3/');
   assert.equal(chapterLink(43, 3, 'zh'), 'https://recoveryversion.com.tw/verse/43/3?verse=1');
   assert.equal(lifeStudyLink(43, 3, 'en'), 'https://bibleread.online/life-study-of-the-bible/life-study-of-john/3/');
-  assert.equal(lifeStudyLink(43, 3, 'zh'), null, 'no Chinese Life-study address yet');
+  assert.equal(lifeStudyLink(43, 3, 'zh'), 'https://www.lsmchinese.org/lifestudy/john03.html');
+  assert.equal(lifeStudyLink(1, 5, 'zh'), 'https://www.lsmchinese.org/lifestudy/ot/gen005.html', 'Genesis has three digits');
+  assert.equal(lifeStudyLink(10, 20, 'zh'), 'https://www.lsmchinese.org/lifestudy/ot/sam20.html', '1–2 Samuel are one series');
   assert.equal(chapterLink(9, 1, 'en'), 'https://bibleread.online/bible/first-samuel/1/');
   assert.equal(chapterLink(22, 2, 'en'), 'https://bibleread.online/bible/song-of-songs/2/');
   assert.equal(chapterLink(57, 1, 'en'), 'https://bibleread.online/bible/the-epistle-of-paul-to-philemon/1/');
@@ -132,7 +134,7 @@ test('schedule: sessions, time zones, the kinds of reading', () => {
   assert.deepEqual(readingFor(life, 2).links.map((l) => l.url), ['https://example.org/ls/7', 'https://example.org/ls/8']);
   const lifeAuto = { ...life, plan: { ...life.plan, link: '' } };
   assert.equal(readingFor(lifeAuto, 1).links[0].url, 'https://bibleread.online/life-study-of-the-bible/life-study-of-john/5/');
-  assert.equal(readingFor({ ...lifeAuto, lang: 'zh' }, 1).links[0].url, null);
+  assert.equal(readingFor({ ...lifeAuto, lang: 'zh' }, 1).links[0].url, 'https://www.lsmchinese.org/lifestudy/john05.html');
   // 晨兴: weeks of six days
   const morning = { ...g, kind: 'morning', plan: { set: '2026年秋季训练', weeks: 12, week: 1, day: 1, per: 1, link: '' } };
   assert.equal(totalSessions(morning), 72);
@@ -145,6 +147,25 @@ test('schedule: sessions, time zones, the kinds of reading', () => {
   assert.equal(planText(morning, 'zh'), '《2026年秋季训练》，从第1周周一开始，每次1天，共72次读完');
   assert.equal(planText({ ...morning, plan: { ...morning.plan, set: '' } }, 'en'), 'From week 1, Day 1; 1 day each time, 72 times in all');
   assert.equal(readingFor({ ...morning, plan: { ...morning.plan, link: 'https://example.org/mr/{w}/{d}' } }, 8).links[0].url, 'https://example.org/mr/2/2');
+  assert.equal(readingFor(morning, 1).full, '《2026年秋季训练》第1周 周一', 'reminders say which book');
+  // a stemofjesse.org day page: every day links to its own week and day
+  const soj = 'https://www.stemofjesse.org/doku/doku.php/%E6%99%A8%E5%85%B4%E5%9C%A3%E8%A8%80:2026:2026.01.%E5%9B%BD%E9%99%85%E5%8D%8E%E8%AF%AD%E7%89%B9%E4%BC%9A:%E7%AC%AC%E4%B8%80%E5%91%A8:%E5%91%A8%E4%B8%80';
+  assert.equal(decodeURI(readingFor({ ...morning, plan: { ...morning.plan, link: soj } }, 69).links[0].url), 'https://www.stemofjesse.org/doku/doku.php/晨兴圣言:2026:2026.01.国际华语特会:第十二周:周三');
+  // no link at all: the reminder still says the book, week and day
+  assert.deepEqual(readingFor({ ...morning, lang: 'en', plan: { ...morning.plan, set: '2026 Spring Elders’ Conference' } }, 2).links, [{ label: '2026 Spring Elders’ Conference, Week 1, Day 2', url: null }]);
+  // the initiator changes the plan: from time 5 read John 3 again, and after John read Acts
+  const legs = { ...g, legs: [{ from: 5, plan: { book: 43, chapter: 3, per: 1, cont: false } }] };
+  assert.equal(readingFor(legs, 4).text, '约翰福音 第4章');
+  assert.equal(readingFor(legs, 5).text, '约翰福音 第3章');
+  assert.equal(readingFor(legs, 6).text, '约翰福音 第4章');
+  assert.equal(totalSessions(legs), 4 + 19);
+  const next = { ...legs, legs: [...legs.legs, { from: 30, plan: { book: 44, chapter: 1, per: 1, cont: false } }] };
+  assert.equal(readingFor(next, 23).text, '约翰福音 第21章');
+  assert.equal(readingFor(next, 25), null, 'a gap between the two plans');
+  assert.equal(readingFor(next, 30).text, '使徒行传 第1章');
+  assert.equal(totalSessions(next), 29 + 28);
+  assert.deepEqual(sessionsBetween(next, session(next, 23).start, session(next, 31).start).map((x) => x.n), [23, 30], 'no reminders in a gap');
+  assert.equal(planText(next, 'zh', {}, 30), '从使徒行传第1章开始，每次1章，共28次读完');
   // every kind is complete: names, form fields, a summary, the functions
   for (const [key, k] of Object.entries(KINDS)) {
     for (const x of ['zh', 'en', 'tint', 'icon']) assert.ok(k[x], `${key}.${x}`);
@@ -379,4 +400,121 @@ test('validation', async () => {
   assert.equal((await call('/api/dazi', { body: groupBody() })).status, 401);
   const en = await call('/api/dazi', { body: groupBody({ days: [] }), cookie: owner, lang: 'en' });
   assert.equal(en.body.error, 'Pick the days of the week');
+});
+
+test('搭子: the initiator changes the plan; files; members hear about both', async () => {
+  const owner = await signIn('owner@example.com', '老陈');
+  const sam = await signIn('sam@example.com', '小山');
+  const amy = await signIn('amy@example.com', 'Amy');
+  // every day at 00:00 UTC since three days ago: times 1–4 have started
+  const start = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+  const { body: { id } } = await call('/api/dazi', { body: groupBody({ startDate: start }), cookie: owner });
+  await call(`/api/dazi/${id}/join`, { body: { sig: SIG }, cookie: sam });
+  const page = (await call(`/api/dazi/${id}`, { cookie: owner })).body;
+  const open = page.progress.from;
+  assert.equal(page.progress.plan.chapter, open, 'the form starts where the next time would');
+  assert.equal(page.progress.afterPlan.book, 44, 'after John comes Acts');
+  // only half of the chapter got read: read the same chapter again next time
+  const again = page.progress.plan.chapter - 1;
+  assert.equal((await call(`/api/dazi/${id}/manage`, { body: { action: 'progress', from: open, plan: { book: 43, chapter: again, per: 1 } }, cookie: sam })).status, 403);
+  assert.equal((await call(`/api/dazi/${id}/manage`, { body: { action: 'progress', from: 1, plan: { book: 43, chapter: 1, per: 1 } }, cookie: owner })).body.ok, false, 'past times stay as they were');
+  const ch = await call(`/api/dazi/${id}/manage`, { body: { action: 'progress', from: open, plan: { book: 43, chapter: again, per: 1 } }, cookie: owner });
+  assert.equal(ch.body.ok, true, JSON.stringify(ch.body));
+  const s = await call(`/api/dazi/${id}/s/${open}`, { cookie: sam });
+  assert.equal(s.body.session.reading.text, `约翰福音 第${again}章`);
+  // and after John, Acts
+  const pg = (await call(`/api/dazi/${id}`, { cookie: owner })).body.progress;
+  await call(`/api/dazi/${id}/manage`, { body: { action: 'progress', from: pg.afterFrom, plan: { book: 44, chapter: 1, per: 1 } }, cookie: owner });
+  const after = (await call(`/api/dazi/${id}`, { cookie: sam })).body.group;
+  assert.equal(after.later.at(-1).text, '从使徒行传第1章开始，每次1章，共28次读完');
+  // 资料: the initiator puts in a PDF; members open it; strangers cannot
+  const pdf = new Uint8Array(2500000).map((_, i) => i % 251);
+  const up = await worker.fetch(new Request(`https://zion4life.faith/api/dazi/${id}/files?name=${encodeURIComponent('晨兴圣言 第一周.pdf')}`, {
+    method: 'POST', headers: { cookie: owner, origin: 'https://zion4life.faith', 'content-type': 'application/pdf', 'content-length': String(pdf.length) }, body: pdf,
+  }), env);
+  const upj = await up.json();
+  assert.equal(upj.ok, true, JSON.stringify(upj));
+  const files = (await call(`/api/dazi/${id}/files`, { cookie: sam })).body.files;
+  assert.equal(files[0].name, '晨兴圣言 第一周.pdf');
+  assert.equal(files[0].size, pdf.length);
+  const got = await worker.fetch(new Request(`https://zion4life.faith/api/dazi/${id}/files/${upj.id}`, { headers: { cookie: sam } }), env);
+  assert.equal(got.headers.get('content-type'), 'application/pdf');
+  assert.deepEqual(new Uint8Array(await got.arrayBuffer()), pdf, 'the bytes come back whole (in pieces under 1 MB inside)');
+  assert.equal((await call(`/api/dazi/${id}/files/${upj.id}`, { cookie: amy })).status, 403);
+  const bad = await worker.fetch(new Request(`https://zion4life.faith/api/dazi/${id}/files?name=x.exe`, { method: 'POST', headers: { cookie: owner, origin: 'https://zion4life.faith', 'content-type': 'application/x-msdownload' }, body: 'MZ' }), env);
+  assert.equal(bad.status, 400);
+  // members got messages: two plan changes and a file
+  const inbox = (await call('/api/inbox', { cookie: sam })).body.list;
+  assert.equal(inbox.filter((m) => m.scope === `g:${id}`).length, 3);
+  assert.equal((await call('/api/inbox', { cookie: amy })).body.list.length, 0, 'not for people outside the group');
+  assert.equal((await call(`/api/dazi/${id}/files/${upj.id}/delete`, { body: {}, cookie: owner })).body.ok, true);
+  assert.equal((await call(`/api/dazi/${id}/files`, { cookie: sam })).body.files.length, 0);
+});
+
+test('我的 消息: subscriptions, managers’ posts, Zion’s announcements, unread count', async () => {
+  const zion = await signIn('zion.chen@hotmail.com', 'Zion');
+  const sam = await signIn('sam@example.com', '小山');
+  const li = await signIn('li@example.com', '李光宏');
+  await call('/api/admin/managers', { body: { tag: 'lgh', email: 'li@example.com' }, cookie: zion });
+  assert.equal((await call('/api/subs', { body: { topic: 'tag:nope', on: true }, cookie: sam })).body.ok, false);
+  assert.deepEqual((await call('/api/subs', { body: { topic: 'tag:lgh', on: true }, cookie: sam })).body.topics, ['tag:lgh']);
+  await call('/api/subs', { body: { topic: 'huxi', on: true }, cookie: sam });
+  const post = await call('/api/posts', { body: { tags: ['lgh'], kind: 'article', title: '十月的分享', body: '这是这个月的分享，一起来读。' }, cookie: li });
+  assert.equal(post.body.ok, true);
+  const bc = await call('/api/admin/broadcast', { body: { title: '主日下午特别聚会', body: '欢迎大家来。', url: '/huxi/' }, cookie: zion });
+  assert.equal(bc.body.ok, true);
+  assert.equal((await call('/api/admin/broadcast', { body: { title: 'x', body: 'y' }, cookie: sam })).status, 403);
+  assert.equal((await call('/api/me', { cookie: sam })).body.unread, 2);
+  const box = (await call('/api/inbox', { cookie: sam })).body.list;
+  assert.deepEqual(box.map((m) => m.title.zh), ['主日下午特别聚会', '「李光宏」有新内容']);
+  assert.equal(box[1].url.startsWith('/x/'), true);
+  assert.equal((await call('/api/me', { cookie: sam })).body.unread, 0, 'opening the box marks them read');
+  // the cron: the first run only records what is already on the site
+  const r = await runReminders(env, Date.now());
+  assert.equal(r.announced, 0);
+  assert.equal((await call('/api/inbox', { cookie: sam })).body.list.length, 2);
+});
+
+test('读给我听: the cron records 呼吸 days piece by piece; pieces play with Range', async () => {
+  const calls = [];
+  env.AI = { run: async (model, input) => { calls.push([model, input.lang, input.prompt.length]); return { audio: Buffer.from(`ID3-${input.prompt.slice(0, 4)}`.repeat(50)).toString('base64') }; } };
+  const days = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist/data/huxi.json'), 'utf8'));
+  const date = days[0].date;
+  const speech = JSON.parse(fs.readFileSync(path.join(ROOT, `dist/data/huxi/${date}.speech.json`), 'utf8'));
+  assert.ok(speech.zh.chunks.length > 3 && speech.en.chunks.length > 3);
+  assert.match(speech.zh.chunks.map((c) => c.t).join(''), /以弗所书四章16节/, 'references are written out to be read');
+  assert.match(speech.en.chunks.map((c) => c.t).join(' '), /Ephesians 4:16/);
+  let m = (await call(`/api/audio/huxi/${date}/zh.json`)).body;
+  assert.equal(m.ready, false);
+  for (let i = 0; i < 40 && !m.ready; i++) {
+    await runReminders(env, Date.parse(`${date}T12:00:00Z`));
+    m = (await call(`/api/audio/huxi/${date}/zh.json`)).body;
+  }
+  assert.equal(m.ready, true);
+  assert.equal(m.parts.length, speech.zh.chunks.length);
+  assert.equal(calls[0][0], '@cf/myshell-ai/melotts');
+  const part = await worker.fetch(new Request(`https://zion4life.faith${m.parts[0]}`, { headers: { range: 'bytes=0-9' } }), env);
+  assert.equal(part.status, 206);
+  assert.equal(part.headers.get('content-type'), 'audio/mpeg');
+  assert.equal(new TextDecoder().decode(await part.arrayBuffer()), `ID3-${speech.zh.chunks[0].t.slice(0, 4)}`.slice(0, 10));
+  const n = calls.length;
+  await runReminders(env, Date.parse(`${date}T12:00:00Z`));
+  const en = (await call(`/api/audio/huxi/${date}/en.json`)).body;
+  assert.ok(calls.length === n || !en.ready, 'nothing is recorded twice');
+});
+
+test('粮仓搭子 reads a tag piece by piece; Zion’s account is the first one', async () => {
+  const owner = await signIn('owner@example.com', '老陈');
+  const tags = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist/data/items.json'), 'utf8'));
+  const tag = tags[0].tags[0];
+  const c = await call('/api/dazi', { body: groupBody({ kind: 'tag', plan: { tag, start: 1 } }), cookie: owner });
+  assert.equal(c.body.ok, true, JSON.stringify(c.body));
+  const g = (await call(`/api/dazi/${c.body.id}`, { cookie: owner })).body.group;
+  const first = (g.current || g.next).reading;
+  assert.ok(first.links[0].url.startsWith('/'), 'links to the piece on this site');
+  assert.equal((await call('/api/dazi', { body: groupBody({ kind: 'tag', plan: { tag: 'nope' } }), cookie: owner })).body.error, '请选一个标签');
+  // a new database makes Zion's account first, as admin
+  const sql = fakeSql();
+  new Store({ storage: { sql } }, { ADMIN_EMAILS: 'light@zion4life.faith,zion.chen@hotmail.com' });
+  assert.deepEqual(sql.exec('SELECT email, name FROM user').toArray(), [{ email: 'light@zion4life.faith', name: 'Zion' }]);
 });

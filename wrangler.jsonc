@@ -9,9 +9,12 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-10-01",
   "keep_vars": true,
-  // The sender of every email (zion4life.faith is verified in Resend). The Resend key itself
-  // is the Secret RESEND_API_KEY, set in the Cloudflare dashboard.
-  "vars": { "FROM_EMAIL_ADDRESS": "有光 <hello@zion4life.faith>" },
+  // The sender of every email (zion4life.faith is verified in Resend) and Zion's admin
+  // accounts (the first is his own, made as the platform's first account). The Resend key
+  // itself is the Secret RESEND_API_KEY, set in the Cloudflare dashboard.
+  "vars": { "FROM_EMAIL_ADDRESS": "有光 <light@zion4life.faith>", "ADMIN_EMAILS": "light@zion4life.faith,zion.chen@hotmail.com" },
+  // Workers AI records the 呼吸 for 读给我听 (src/audio.js).
+  "ai": { "binding": "AI" },
   "build": { "command": "node build.mjs" },
   "assets": {
     "directory": "./dist",

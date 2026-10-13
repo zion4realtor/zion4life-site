@@ -1,6 +1,7 @@
 // 留言, tag managers, "this is me" claims, and posts written by tag managers.
 import { json, fail, str, randomId, readBody, rateOk, tr } from './util.js';
 import { currentUser, isAdmin, sameOrigin } from './auth.js';
+import { addMsg } from './inbox.js';
 
 // The site's tags and static pieces, published by build.mjs as /data/*.json.
 let cache = null;
@@ -168,6 +169,7 @@ export async function handleContent(request, env, db, url, now, lang) {
     if (kind === 'video' && !video) return fail(t('视频链接认不出来：支持 YouTube、B站、Vimeo、Bunny 和 .mp4 链接。', 'That video link is not recognized: YouTube, Bilibili, Vimeo, Bunny and .mp4 links work.'));
     if (kind === 'article' && body.length < 10) return fail(t('正文太短了', 'The text is too short'));
     let id = str(b.id, 10);
+    const isNew = !id;
     if (id) {
       const old = await db('postGet', { id });
       if (!old || !(admin || old.uid === user.id)) return fail(t('不能修改这篇', 'You cannot edit this'), 403);
@@ -176,6 +178,13 @@ export async function handleContent(request, env, db, url, now, lang) {
       id = randomId(10);
     }
     await db('postPut', { id, uid: user.id, tags, kind, lang: b.lang === 'en' ? 'en' : 'zh', title, summary: str(b.summary, 200), body, video, now });
+    // tell the tags' subscribers (我的 → 消息)
+    if (isNew) {
+      for (const tag of tags) {
+        await addMsg(db, { scope: `tag:${tag}`, now, url: `/x/${id}/`, author: user.id,
+          title: { zh: `「${data.tag[tag].zh}」有新内容`, en: `New in “${data.tag[tag].en}”` }, body: { zh: title, en: title } });
+      }
+    }
     return json({ ok: true, id });
   }
   if ((m = p.match(/^\/api\/posts\/([a-z0-9]{10})\/delete$/)) && method === 'POST') {

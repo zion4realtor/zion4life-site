@@ -80,9 +80,20 @@ text.recoveryversion.bible or bibleread.online), never from memory.
 - **New tag:** add an entry to `content/tags.json` (`tint`: aqua, mint, sky,
   lilac, peach or sun; `size`: `big` or `wide` for larger tiles; `person` for a
   person's tag shows an initial). The home grid always fills whole rows.
-- **呼吸:** add `content/huxi/<date>.zh.md` (with `date` and `title`) and
-  `<date>.en.md`. `/huxi/` shows the newest entry dated on or before the visitor's own
-  date, so days can be written ahead.
+- **呼吸:** Zion sends the day's text (a Word file is fine); add
+  `content/huxi/<date>.zh.md` and `<date>.en.md` (translated, verses from the Recovery
+  Version). Front matter: `date`, `title` (the headline, short) and `lede` (the rest of the
+  headline statement). Body: `## 今日祷读经节` with one `>` verse block each (last line
+  `—— 弗四16`), `## 今日负担` (the prayers, plain paragraphs), `## 职事的交通` with
+  `### headings`; a paragraph that is only `（《书名》第X章　…）` (English: `(*Title*, …)`)
+  shows as the source line, `---` separates, and a paragraph only in `*italics*` is a small
+  note (not read aloud). `/huxi/` shows the newest entry dated on or before the visitor's
+  own date, so days can be written ahead.
+- **读给我听:** nothing to do by hand. build.mjs writes `/data/huxi/<date>.speech.json`
+  (the day read aloud, references written out, in pieces); after the deploy the cron
+  records the latest days with Workers AI (MeloTTS) a few pieces every 5 minutes (a day
+  takes about half an hour per language) and keeps 30 days. Until a recording is ready the
+  page reads with the phone's own voice. Changing the text records it again.
 - **Video:** add an entry to `content/videos.json` with `slug`, `minutes`, `date`,
   `tags`, `zh` and `en` (`title`, `summary`) and `sources`, places to play it from:
   `{ "type": "youtube", "id": "…", "label": "海外线路" }`,
@@ -94,7 +105,7 @@ text.recoveryversion.bible or bibleread.online), never from memory.
 
 Every question is stored and listed on `/admin/`. It is also emailed to Zion when mail
 is set up: the `send_email` binding `ASK_MAIL` (Cloudflare Email Routing, destination
-Zion's verified address) with `ASK_FROM` (e.g. `hello@zion4life.faith`) and `ASK_TO`
+Zion's verified address) with `ASK_FROM` (e.g. `light@zion4life.faith`) and `ASK_TO`
 variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
 
 ## Accounts, 留言 and tag managers
@@ -108,17 +119,18 @@ variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
 - Tag managers: Zion appoints anyone to any tag on `/admin/`, or approves a 认领 request
   (the button shows on person tags such as 李光宏). Managers write articles and videos
   into their tags at `/write/`; they appear on the tag page and at `/x/<id>`.
-- Zion is the admin: any account whose email is in `ADMIN_EMAILS` (default
-  zion.chen@hotmail.com).
+- Zion is the admin: any account whose email is in `ADMIN_EMAILS` (light@zion4life.faith
+  and zion.chen@hotmail.com).
 
 ## 搭子 (groups)
 
-- Five kinds, each one entry in `src/kinds.js` (add a kind there; the form, the covenant
+- Six kinds, each one entry in `src/kinds.js` (add a kind there; the form, the covenant
   preview and the pages follow): 饭搭子 (Bible chapters, Recovery Version links), 呼吸搭子
   (the day's 呼吸), 投喂搭子 (the 投喂 lessons), 细嚼搭子 (Life-study messages), 晨兴搭子
   (晨兴圣言: weeks of six days, from a chosen week and day, 1/2/3/6 days a time; an
-  optional link where `{w}` and `{d}` become the week and day). Each group reads in Chinese
-  or English.
+  optional link: a stemofjesse.org day page, or `{w}` and `{d}` for the week and day; without
+  one, reminders still say which book, week and day), 粮仓搭子 (one 粮仓 tag's pieces, oldest
+  first, including what its managers post). Each group reads in Chinese or English.
 - Time zones: the initiator never picks one. The form sends the initiator's phone time zone;
   every page shows times converted to the viewer's own phone (a New York 9:00 is 21:00 in
   Beijing), link previews show no clock times, and emails use the time zone saved on the
@@ -131,6 +143,11 @@ variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
   stopped"), write notes the group can read, and check in; checking in more than three
   hours after a session ends counts as a make-up (补). The initiator sees a table of
   everyone's check-ins. Each group has a message board.
+- The initiator changes the plan in Settings (调整进度): from the next time on (read the
+  same chapter again), or what to read when the current plan is done (the next book).
+  Each change is a "leg" `{ from, plan }` in `dz.legs`; members get a message.
+- 资料: the initiator puts PDFs and pictures in the group (20 MB each, 200 MB a group);
+  only members open them. Bytes live in the Durable Object's `blob` table in 1 MB pieces.
 - Reminders: the 5-minute cron emails members as each session starts, with a link to that
   session's reading. Joining emails a calendar invitation (weekly repeat in the group's time
   zone). Each account has a calendar subscription `/api/cal/<key>.ics` covering all their
@@ -139,7 +156,19 @@ variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
   `bibleread.online/bible/<book>/<chapter>/`, Chinese
   `recoveryversion.com.tw/verse/<book number>/<chapter>?verse=1`; Life-study messages,
   English `bibleread.online/life-study-of-the-bible/life-study-of-<book>/<message>/`, Chinese
-  not set yet (an initiator can paste one; `{n}` in it becomes the message number).
+  `lsmchinese.org/lifestudy/<code><nn>.html` (an initiator can paste another site; `{n}` in it
+  becomes the message number).
+
+## 我的: 消息 and subscriptions
+
+- Signed-in people subscribe to any tag (button on the tag page) and to 呼吸 (button at the
+  end of each day). New pieces on the site, posts by a tag's managers and each new 呼吸 day
+  become messages in 我的 → 消息; the 我的 tab shows the unread count.
+- Groups post there too (plan changes, new files). Zion sends a message to everyone from
+  `/admin/` (发消息给所有人).
+- Zion's account is light@zion4life.faith, made as the platform's first account when the
+  database is empty (`seedAdmin` in `src/store.js`); `ADMIN_EMAILS` lists his admin
+  addresses.
 
 ## Settings
 
@@ -148,9 +177,10 @@ keeps them across deploys):
 
 - `RESEND_API_KEY` (Secret, from Resend → API keys; zion4life.faith is verified there):
   sign-in codes, reminders, invitations. Without it sign-in is closed and says so.
-  `FROM_EMAIL_ADDRESS` (`有光 <hello@zion4life.faith>`) is set in `wrangler.jsonc`.
-- hello@zion4life.faith: Cloudflare Email Routing forwards it to Zion's Hotmail.
-- `ADMIN_EMAILS`: admin accounts (default zion.chen@hotmail.com).
+  `FROM_EMAIL_ADDRESS` (`有光 <light@zion4life.faith>`) and `ADMIN_EMAILS` are set in
+  `wrangler.jsonc`; the AI binding (`AI`) records 呼吸.
+- light@zion4life.faith: Cloudflare Email Routing forwards it to Zion's Hotmail (until he
+  chooses a mailbox; see the notes he was sent).
 - Optional for the question box: `ASK_MAIL` (send_email binding), `ASK_FROM`, `ASK_TO`.
 - Local testing only: `DEV_SHOW_CODE=1` returns the sign-in code to the page instead of
   needing email (`npx wrangler dev --var DEV_SHOW_CODE:1`). Never set it on the live site.

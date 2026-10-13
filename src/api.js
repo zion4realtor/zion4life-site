@@ -2,17 +2,28 @@
 //   /api/me, /api/auth/*                  accounts (auth.js)
 //   /api/talk, /api/claims, /api/posts    留言, claims and tag managers' posts (content.js)
 //   /api/dazi/*, /api/cal/*               搭子 groups and calendar feeds (dazi.js)
+//   /api/inbox, /api/subs                 我的 → 消息, subscriptions (inbox.js)
+//   /api/audio/*                          the 呼吸 recordings (audio.js)
 //   /api/ask                              有问题想问 box
 //   /api/admin/*                          Zion's management page
 import { store } from './store.js';
 import { json, fail, str, readBody, rateOk, langOf, tr, isEmail } from './util.js';
 import { handleAuth, currentUser, isAdmin, sameOrigin } from './auth.js';
 import { handleContent, siteData } from './content.js';
-import { handleDazi, runReminders } from './dazi.js';
+import { handleDazi, runReminders as dazReminders } from './dazi.js';
+import { handleInbox, addMsg, announce } from './inbox.js';
+import { handleAudio, makeAudio } from './audio.js';
 import { sendAsk } from './mail.js';
 import { KINDS } from './schedule.js';
 
-export { runReminders };
+// The cron, every 5 minutes: 搭子 reminders, new pieces for subscribers, 呼吸 recordings.
+export async function runReminders(env, now = Date.now(), url = new URL('https://zion4life.faith')) {
+  const out = await dazReminders(env, now, url);
+  const db = store(env);
+  try { out.announced = (await announce(env, db, url, now)).sent; } catch (e) { console.error('[announce]', e?.stack || e); }
+  try { out.audio = await makeAudio(env, db, url, now); } catch (e) { console.error('[audio]', e?.stack || e); }
+  return out;
+}
 
 export async function handleApi(request, env, url, now = Date.now()) {
   const db = store(env);
@@ -23,6 +34,8 @@ export async function handleApi(request, env, url, now = Date.now()) {
   if (p === '/api/me' || p.startsWith('/api/auth/')) return handleAuth(request, env, db, url, now, lang);
   if (p.startsWith('/api/talk') || p === '/api/claims' || p.startsWith('/api/posts')) return handleContent(request, env, db, url, now, lang);
   if (p.startsWith('/api/dazi') || p.startsWith('/api/cal/')) return handleDazi(request, env, db, url, now, lang);
+  if (p === '/api/inbox' || p === '/api/subs') return handleInbox(request, env, db, url, now, lang);
+  if (p.startsWith('/api/audio/')) return handleAudio(request, env, db, url, now);
 
   // 有问题想问？ Stored first (so nothing is lost), then emailed to Zion when mail is set up.
   if (p === '/api/ask' && request.method === 'POST') {
@@ -56,8 +69,9 @@ async function adminRoute(request, env, db, url, now) {
 
   if (p === '/api/admin/overview' && request.method === 'GET') {
     const data = await siteData(env, url);
-    const [asks, claims, managers, groups, talk, posts, users, count] = await Promise.all([
+    const [asks, claims, managers, groups, talk, posts, users, count, sent] = await Promise.all([
       db('asks', {}), db('claims', {}), db('mgrList', {}), db('dzAll', {}), db('talkRecent', {}), db('postsAll', {}), db('users', { limit: 150 }), db('userCount', {}),
+      db('msgsAll', {}),
     ]);
     return json({
       ok: true,
@@ -67,11 +81,22 @@ async function adminRoute(request, env, db, url, now) {
       groups: groups.map((g) => ({ id: g.id, kind: g.kind, kindLabel: KINDS[g.kind].zh, lang: g.lang, title: g.title, visibility: g.visibility, join: g.join, status: g.status, members: g.members.length, owner: g.members.find((x) => x.role === 'owner')?.name || '', created: g.created })),
       talk, posts,
       users: users.map((u) => ({ id: u.id, name: u.name, email: u.email, ids: u.ids, created: u.created })), userCount: count.n,
+      sent: sent.map((x) => ({ id: x.id, title: x.title_zh, body: x.body_zh, created: x.created })),
     });
   }
   if (request.method !== 'POST') return fail('Not found', 404);
-  const b = (await readBody(request, 10000)) || {};
+  const b = (await readBody(request, 40000)) || {};
 
+  // a message to every account (我的 → 消息); English is optional
+  if (p === '/api/admin/broadcast') {
+    const title = { zh: str(b.title, 80), en: str(b.titleEn, 120) };
+    const body = { zh: str(b.body, 3000), en: str(b.bodyEn, 4000) };
+    if (!title.zh || !body.zh) return fail('请写标题和内容');
+    const link = str(b.url, 300);
+    if (link && !/^(https:\/\/\S+|\/\S*)$/.test(link)) return fail('链接要以 https:// 或 / 开头');
+    await addMsg(db, { scope: 'all', title, body, url: link, author: user.id, now });
+    return json({ ok: true });
+  }
   if ((m = p.match(/^\/api\/admin\/claims\/([a-z0-9]{10})$/))) {
     const r = await db('claimSet', { id: m[1], status: b.status === 'approved' ? 'approved' : 'declined', now });
     return r.ok ? json({ ok: true }) : fail('这个申请已经处理过了');

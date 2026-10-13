@@ -15,6 +15,13 @@
 //   dz_sent     which session reminders went out, so each is sent once
 //   rate        per-visitor daily counters (hashed, never the raw IP)
 //   ask         questions from the 有问题想问 box
+//   dz_file     资料 the initiator put in a group (PDF, pictures); the bytes are in `blob`
+//   blob        file bytes, in pieces under 1 MB (also the 呼吸 recordings)
+//   audio       the 呼吸 recordings: which day, which language, how many pieces, for which text
+//   sub         who subscribed to what (a tag, or 呼吸)
+//   msg         messages for 我的 → 消息: to everyone, one person, a tag's or 呼吸's subscribers,
+//               or a group's members; `seen` holds when each person last opened them
+//   announced   pieces and 呼吸 days already announced to subscribers
 // The Durable Object takes { op, args } as JSON. Every op is a plain function of a `sql`
 // handle so the tests run the same code against node:sqlite.
 
@@ -51,10 +58,23 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS rate (day TEXT NOT NULL, who TEXT NOT NULL, kind TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (day, who, kind))',
   `CREATE TABLE IF NOT EXISTS ask (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT NOT NULL, name TEXT NOT NULL, reply TEXT NOT NULL,
     lang TEXT NOT NULL, page TEXT NOT NULL, mailed INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS dz_file (id TEXT PRIMARY KEY, gid TEXT NOT NULL, uid TEXT NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL,
+    size INTEGER NOT NULL, created INTEGER NOT NULL)`,
+  'CREATE INDEX IF NOT EXISTS dz_file_gid ON dz_file (gid, created)',
+  'CREATE TABLE IF NOT EXISTS blob (key TEXT NOT NULL, i INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (key, i))',
+  `CREATE TABLE IF NOT EXISTS audio (key TEXT PRIMARY KEY, hash TEXT NOT NULL, parts INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0,
+    bytes INTEGER NOT NULL DEFAULT 0, tries INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL)`,
+  'CREATE TABLE IF NOT EXISTS sub (uid TEXT NOT NULL, topic TEXT NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (uid, topic))',
+  'CREATE INDEX IF NOT EXISTS sub_topic ON sub (topic)',
+  `CREATE TABLE IF NOT EXISTS msg (id TEXT PRIMARY KEY, scope TEXT NOT NULL, title_zh TEXT NOT NULL, title_en TEXT NOT NULL,
+    body_zh TEXT NOT NULL, body_en TEXT NOT NULL, url TEXT NOT NULL, author TEXT, created INTEGER NOT NULL)`,
+  'CREATE INDEX IF NOT EXISTS msg_scope ON msg (scope, created)',
+  'CREATE TABLE IF NOT EXISTS seen (uid TEXT PRIMARY KEY, at INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS announced (key TEXT PRIMARY KEY, at INTEGER NOT NULL)',
 ];
 
 // Columns added after the tables first went live.
-const ADDED = [['user', 'tz', "TEXT NOT NULL DEFAULT ''"]];
+const ADDED = [['user', 'tz', "TEXT NOT NULL DEFAULT ''"], ['dz', 'legs', "TEXT NOT NULL DEFAULT '[]'"]];
 
 export function migrate(sql) {
   for (const q of SCHEMA) sql.exec(q);
@@ -80,6 +100,7 @@ export function groupOf(r) {
     id: r.id, kind: r.kind, lang: r.lang, title: r.title, intro: r.intro, tz: r.tz, days: parse(r.days, []), time: r.time,
     minutes: r.minutes, startDate: r.start_date, plan: parse(r.plan, {}), venue: parse(r.venue, {}), visibility: r.visibility,
     join: r.join_mode, invite: r.invite, max: r.max_members, status: r.status, owner: r.owner, created: r.created,
+    legs: parse(r.legs || '[]', []),
   };
 }
 function membersOf(sql, gid, withSig = false) {
@@ -266,8 +287,9 @@ export const OPS = {
   dzActive(sql) {
     return rows(sql, "SELECT * FROM dz WHERE status = 'active'").map(groupOf);
   },
-  dzUpdate(sql, { id, title, intro, venue, plan, max, visibility, join, status }) {
+  dzUpdate(sql, { id, title, intro, venue, plan, legs, max, visibility, join, status }) {
     const set = (col, v) => sql.exec(`UPDATE dz SET ${col} = ? WHERE id = ?`, v, id);
+    if (legs != null) set('legs', JSON.stringify(legs));
     if (title != null) set('title', title);
     if (intro != null) set('intro', intro);
     if (venue != null) set('venue', JSON.stringify(venue));
@@ -355,6 +377,110 @@ export const OPS = {
     return { ok: true };
   },
 
+  // ---------- 资料: files in a group ----------
+  dzFileAdd(sql, { id, gid, uid, name, type, size, now = Date.now() }) {
+    sql.exec('INSERT INTO dz_file (id, gid, uid, name, type, size, created) VALUES (?, ?, ?, ?, ?, ?, ?)', id, gid, uid, name, type, size, now);
+    return { ok: true };
+  },
+  dzFiles(sql, { gid }) {
+    return rows(sql, 'SELECT id, name, type, size, created FROM dz_file WHERE gid = ? ORDER BY created DESC', gid);
+  },
+  dzFileGet(sql, { gid, id }) {
+    return first(sql, 'SELECT id, gid, name, type, size, created FROM dz_file WHERE gid = ? AND id = ?', gid, id);
+  },
+  dzFileDel(sql, { gid, id }) {
+    sql.exec('DELETE FROM dz_file WHERE gid = ? AND id = ?', gid, id);
+    sql.exec('DELETE FROM blob WHERE key = ?', `f:${id}`);
+    return { ok: true };
+  },
+  dzFilesSize(sql, { gid }) {
+    return { bytes: first(sql, 'SELECT COALESCE(SUM(size), 0) AS n FROM dz_file WHERE gid = ?', gid).n };
+  },
+  blobDel(sql, { key }) {
+    sql.exec('DELETE FROM blob WHERE key = ?', key);
+    return { ok: true };
+  },
+
+  // ---------- 呼吸 recordings ----------
+  audioGet(sql, { key }) {
+    return first(sql, 'SELECT * FROM audio WHERE key = ?', key);
+  },
+  audioList(sql, { prefix }) {
+    return rows(sql, 'SELECT * FROM audio WHERE key LIKE ? ORDER BY key', `${prefix}%`);
+  },
+  // Start (or restart, when the text changed) a recording of `parts` pieces.
+  audioStart(sql, { key, hash, parts, now = Date.now() }) {
+    const a = first(sql, 'SELECT hash FROM audio WHERE key = ?', key);
+    if (a && a.hash === hash) return { ok: false };
+    sql.exec('DELETE FROM blob WHERE key LIKE ?', `${key}/%`);
+    sql.exec('INSERT OR REPLACE INTO audio (key, hash, parts, done, bytes, tries, updated) VALUES (?, ?, ?, 0, 0, 0, ?)', key, hash, parts, now);
+    return { ok: true };
+  },
+  audioPart(sql, { key, done, bytes, now = Date.now() }) {
+    sql.exec('UPDATE audio SET done = ?, bytes = bytes + ?, tries = 0, updated = ? WHERE key = ?', done, bytes, now, key);
+    return { ok: true };
+  },
+  audioFail(sql, { key, now = Date.now() }) {
+    sql.exec('UPDATE audio SET tries = tries + 1, updated = ? WHERE key = ?', now, key);
+    return { ok: true };
+  },
+  audioDrop(sql, { key }) {
+    sql.exec('DELETE FROM audio WHERE key = ?', key);
+    sql.exec('DELETE FROM blob WHERE key LIKE ?', `${key}/%`);
+    return { ok: true };
+  },
+
+  // ---------- subscriptions and 消息 ----------
+  subSet(sql, { uid, topic, on, now = Date.now() }) {
+    if (on) sql.exec('INSERT OR IGNORE INTO sub (uid, topic, created) VALUES (?, ?, ?)', uid, topic, now);
+    else sql.exec('DELETE FROM sub WHERE uid = ? AND topic = ?', uid, topic);
+    return { ok: true };
+  },
+  subsOf(sql, { uid }) {
+    return rows(sql, 'SELECT topic, created FROM sub WHERE uid = ? ORDER BY created', uid).map((r) => r.topic);
+  },
+  subCount(sql, { topic }) {
+    return { n: first(sql, 'SELECT COUNT(*) AS n FROM sub WHERE topic = ?', topic).n };
+  },
+  // scope: 'all' · 'u:<uid>' · 'tag:<id>' · 'huxi' · 'g:<gid>'
+  msgAdd(sql, { id, scope, title, body = { zh: '', en: '' }, url = '', author = null, now = Date.now() }) {
+    sql.exec('INSERT INTO msg (id, scope, title_zh, title_en, body_zh, body_en, url, author, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, scope, title.zh, title.en || title.zh, body.zh || '', body.en || body.zh || '', url, author, now);
+    return { ok: true };
+  },
+  // Everything for one person: to everyone, to them, from what they subscribed to (since then),
+  // and from their groups (since they joined). Newest first.
+  inbox(sql, { uid, limit = 60 }) {
+    const list = rows(sql, `SELECT m.* FROM msg m WHERE m.scope = 'all' OR m.scope = ?
+      OR EXISTS (SELECT 1 FROM sub s WHERE s.uid = ? AND s.topic = m.scope AND m.created >= s.created)
+      OR EXISTS (SELECT 1 FROM dz_member d WHERE d.uid = ? AND d.status = 'active' AND m.scope = 'g:' || d.gid AND m.created >= d.created)
+      ORDER BY m.created DESC LIMIT ?`, `u:${uid}`, uid, uid, limit);
+    const seen = first(sql, 'SELECT at FROM seen WHERE uid = ?', uid)?.at || 0;
+    return { seen, list: list.map((m) => ({ id: m.id, scope: m.scope, title: { zh: m.title_zh, en: m.title_en }, body: { zh: m.body_zh, en: m.body_en }, url: m.url, created: m.created, unread: m.created > seen })) };
+  },
+  unread(sql, { uid }) {
+    const seen = first(sql, 'SELECT at FROM seen WHERE uid = ?', uid)?.at || 0;
+    return { n: first(sql, `SELECT COUNT(*) AS n FROM msg m WHERE m.created > ? AND (m.scope = 'all' OR m.scope = ?
+      OR EXISTS (SELECT 1 FROM sub s WHERE s.uid = ? AND s.topic = m.scope AND m.created >= s.created)
+      OR EXISTS (SELECT 1 FROM dz_member d WHERE d.uid = ? AND d.status = 'active' AND m.scope = 'g:' || d.gid AND m.created >= d.created))`, seen, `u:${uid}`, uid, uid).n };
+  },
+  inboxSeen(sql, { uid, now = Date.now() }) {
+    sql.exec('INSERT INTO seen (uid, at) VALUES (?, ?) ON CONFLICT (uid) DO UPDATE SET at = excluded.at', uid, now);
+    return { ok: true };
+  },
+  msgsAll(sql, { limit = 50 } = {}) {
+    return rows(sql, "SELECT * FROM msg WHERE scope = 'all' ORDER BY created DESC LIMIT ?", limit);
+  },
+  // Which of these keys have not been announced yet; marks them all announced.
+  // The very first time, only records what is already there (nothing is announced).
+  announce(sql, { keys, now = Date.now() }) {
+    const started = !!first(sql, "SELECT 1 AS x FROM announced WHERE key = '_started'");
+    const fresh = keys.filter((k) => !first(sql, 'SELECT 1 AS x FROM announced WHERE key = ?', k));
+    for (const k of fresh) sql.exec('INSERT OR IGNORE INTO announced (key, at) VALUES (?, ?)', k, now);
+    if (!started) sql.exec("INSERT OR IGNORE INTO announced (key, at) VALUES ('_started', ?)", now);
+    return { fresh: started ? fresh : [] };
+  },
+
   // ---------- counters, questions ----------
   bump(sql, { day, who, kind, perDay }) {
     const mine = first(sql, 'SELECT count FROM rate WHERE day = ? AND who = ? AND kind = ?', day, who, kind)?.count || 0;
@@ -381,25 +507,62 @@ export const OPS = {
   },
 };
 
+// Zion's admin account is the platform's first account (made when there is none yet).
+export function seedAdmin(sql, env) {
+  if (!env) return;
+  const email = String(env.ADMIN_EMAILS || 'light@zion4life.faith').toLowerCase().split(/[,\s]+/).filter(Boolean)[0];
+  if (!email || first(sql, 'SELECT 1 AS x FROM user LIMIT 1')) return;
+  const rnd = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
+  const now = Date.now();
+  sql.exec("INSERT INTO user (id, email, name, ids, ids_public, lang, cal, tz, created, seen) VALUES (?, ?, 'Zion', '[]', 0, 'zh', ?, '', ?, ?)",
+    rnd(10), email, rnd(24), now, now);
+}
+
+const MB = 1000000;
 export class Store {
-  constructor(state) {
+  constructor(state, env) {
     this.sql = state.storage.sql;
     migrate(this.sql);
+    seedAdmin(this.sql, env);
   }
 
   async fetch(request) {
+    const u = new URL(request.url);
+    // file bytes: PUT stores the body in pieces under 1 MB, GET returns them joined
+    if (u.pathname === '/blob') {
+      const key = u.searchParams.get('key');
+      if (request.method === 'PUT') {
+        const buf = new Uint8Array(await request.arrayBuffer());
+        this.sql.exec('DELETE FROM blob WHERE key = ?', key);
+        for (let i = 0, at = 0; at < buf.length; i++, at += MB) {
+          const piece = buf.slice(at, at + MB);
+          // Durable Objects take an ArrayBuffer; node:sqlite (the tests) takes the typed array
+          this.sql.exec('INSERT INTO blob (key, i, data) VALUES (?, ?, ?)', key, i, globalThis.process?.versions?.node ? piece : piece.buffer);
+        }
+        return Response.json({ ok: true, bytes: buf.length });
+      }
+      const parts = this.sql.exec('SELECT data FROM blob WHERE key = ? ORDER BY i', key).toArray();
+      if (!parts.length) return new Response('Not found', { status: 404 });
+      return new Response(new Blob(parts.map((p) => p.data)));
+    }
     const { op, args } = await request.json();
     if (!Object.hasOwn(OPS, op)) return Response.json({ error: `unknown op ${op}` }, { status: 400 });
     return Response.json(OPS[op](this.sql, args || {}) ?? null);
   }
 }
 
-// Worker-side client: store(env)('dzGet', { id }).
+// Worker-side client: store(env)('dzGet', { id }); store(env).put(key, bytes), .get(key) for file bytes.
 export function store(env) {
   const stub = env.STORE.get(env.STORE.idFromName('main'));
-  return async (op, args) => {
+  const db = async (op, args) => {
     const r = await stub.fetch('https://store/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op, args }) });
     if (!r.ok) throw new Error(`store ${op} failed: ${r.status}`);
     return r.json();
   };
+  db.put = async (key, body) => (await stub.fetch(`https://store/blob?key=${encodeURIComponent(key)}`, { method: 'PUT', body })).json();
+  db.get = async (key) => {
+    const r = await stub.fetch(`https://store/blob?key=${encodeURIComponent(key)}`);
+    return r.ok ? r : null;
+  };
+  return db;
 }

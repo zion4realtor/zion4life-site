@@ -6,7 +6,7 @@
 // phone). Everyone else sees the times converted to their own phone's time zone.
 // Session n (1, 2, 3 …) is the n-th meeting day on or after startDate. What a session reads
 // depends on the kind (src/kinds.js).
-import { KINDS, kindTotal, kindReading, kindPlanText } from './kinds.js';
+import { KINDS, kindTotal, kindReading, kindPlanText, legAt } from './kinds.js';
 
 export { KINDS };
 const DAY = 86400000;
@@ -108,21 +108,27 @@ export function startedCount(g, ms, ctx = {}) {
   return total ? Math.min(n, total) : n;
 }
 // The session in progress (started and not yet ended), the latest started one, and the next one.
+// Whether session n has something to read (not a gap between two plans).
+export const planned = (g, n, ctx = {}) => n >= 1 && !!legAt(g, n, ctx);
 export function sessionState(g, ms, ctx = {}) {
   const total = totalSessions(g, ctx);
   const n = startedCount(g, ms, ctx);
-  const last = n ? session(g, n) : null;
-  const next = !total || n < total ? session(g, n + 1) : null;
-  return { total, done: n, current: last && ms < last.end ? last : null, last, next, finished: !!total && n >= total && !!last && ms >= last.end };
+  let ln = n;
+  while (ln > 0 && !planned(g, ln, ctx) && n - ln < 400) ln--;
+  const last = planned(g, ln, ctx) ? session(g, ln) : null;
+  let nn = n + 1;
+  while ((!total || nn <= total) && !planned(g, nn, ctx) && nn - n < 400) nn++;
+  const next = (!total || nn <= total) && planned(g, nn, ctx) ? session(g, nn) : null;
+  return { total, done: n, current: last && last.n === n && ms < last.end ? last : null, last, next, finished: !!total && n >= total && !!last && ms >= last.end };
 }
-// Sessions starting in [from, to).
+// Sessions with something to read, starting in [from, to).
 export function sessionsBetween(g, from, to, ctx = {}) {
   const out = [];
   const total = totalSessions(g, ctx);
-  for (let n = startedCount(g, from - 1, ctx) + 1; !total || n <= total; n++) {
+  for (let n = startedCount(g, from - 1, ctx) + 1, i = 0; (!total || n <= total) && i < 2000; n++, i++) {
     const s = session(g, n);
     if (s.start >= to) break;
-    if (s.start >= from) out.push(s);
+    if (s.start >= from && planned(g, n, ctx)) out.push(s);
     if (out.length > 400) break;
   }
   return out;
@@ -178,8 +184,9 @@ export function scheduleText(g, lang = 'zh', tz = g.tz, ms = Date.now(), ctx = {
   return en ? `${when}, ${minutesText(g.minutes, 'en')} each (${tzName(tz, 'en')})` : `${when}，每次${minutesText(g.minutes, 'zh')}（${tzName(tz, 'zh')}）`;
 }
 // The plan in words, in the viewer's language.
-export function planText(g, lang = 'zh', ctx = {}) {
-  return kindPlanText(g, lang, ctx);
+// The plan in words; with n, the plan in effect at session n.
+export function planText(g, lang = 'zh', ctx = {}, n) {
+  return kindPlanText(g, lang, ctx, n);
 }
 // "10月14日（周二）20:00 北京时间" / "Tue, Oct 14, 20:00 Beijing time", in time zone tz.
 export function sessionLabel(g, s, lang = 'zh', tz = g.tz) {

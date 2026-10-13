@@ -10,14 +10,35 @@ import { siteData } from './content.js';
 import { sendMail, layout } from './mail.js';
 import {
   KINDS, VENUES, validTimeZone, localDate, addDays, sessionState, session, startedCount, totalSessions, readingFor,
-  scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText, weekStarts,
+  scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText, weekStarts, planned,
 } from './schedule.js';
-import { kindPlan, kindEdit } from './kinds.js';
+import { kindPlan, kindEdit, legsOf, withLeg, progressView, planWords } from './kinds.js';
+import { addMsg } from './inbox.js';
 
 const HOUR = 3600000;
 const groupUrl = (g, lang, n) => `${SITE}${pre(lang)}/g/${g.id}${n ? `/${n}` : ''}`;
 const inviteUrl = (g, lang) => `${SITE}${pre(lang)}/g/${g.id}?i=${g.invite}`;
 const colorOf = (uid) => [...uid].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 6;
+// The first session that is not over yet (the initiator can change the plan from there on).
+function firstOpen(g, now, ctx) {
+  const c = startedCount(g, now, ctx);
+  return c && session(g, c).end > now ? c : c + 1;
+}
+// The pieces of the tags that 粮仓搭子 read: the build's pieces and what the tag's managers
+// posted, oldest first (ctx.tagItems, used by src/kinds.js).
+export async function withTagItems(db, ctx, groups) {
+  const tags = [...new Set(groups.filter((g) => g.kind === 'tag').flatMap((g) => legsOf(g).map((l) => l.plan.tag)).filter(Boolean))];
+  const tagItems = { ...(ctx.tagItems || {}) };
+  for (const tag of tags.filter((x) => !tagItems[x])) {
+    const built = Object.values(ctx.item || {}).filter((i) => i.tags.includes(tag))
+      .map((i) => ({ zh: i.zh, en: i.en, url: `/${i.key.replace(':', '/')}/`, at: Date.parse(i.date || '') || 0 }));
+    const posts = (await db('postsByTag', { tag, limit: 500 })).map((x) => ({ zh: x.title, en: x.title, url: `/x/${x.id}/`, at: x.created }));
+    tagItems[tag] = [...built, ...posts].sort((a, b) => a.at - b.at);
+  }
+  return tags.length ? { ...ctx, tagItems } : ctx;
+}
+const FILE_TYPES = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic', 'image/heif': 'heif' };
+const FILE_MAX = 20 * 1000000, GROUP_FILES_MAX = 200 * 1000000;
 
 // ---------- the "发起一个搭子" form ----------
 export function validateGroup(b, now, lang, ctx = {}) {
@@ -57,18 +78,20 @@ const validSig = (s) => typeof s === 'string' && s.length < 120000 && /^data:ima
 // ---------- what pages see ----------
 function sessionView(g, s, ctx) {
   if (!s) return null;
-  const r = readingFor(g, s.n, ctx);
-  return { n: s.n, date: s.date, start: s.start, end: s.end, reading: r };
+  return { n: s.n, date: s.date, start: s.start, end: s.end, reading: readingFor(g, s.n, ctx) };
 }
 // A group as the viewer may see it. Venue details and signatures are for members only.
 function groupView(g, lang, ctx, viewer) {
   const st = sessionState(g, ctx.now, ctx);
   const member = viewer?.member;
+  const at = (st.current || st.next || st.last)?.n || 1;
   return {
     id: g.id, kind: g.kind, lang: g.lang, title: g.title, intro: g.intro, status: g.status, visibility: g.visibility, join: g.join,
     minutes: g.minutes, startDate: g.startDate, first: session(g, 1).start, week: weekStarts(g, ctx.now, ctx), plan: g.plan, max: g.max,
     owner: g.members.find((m) => m.role === 'owner')?.name || '',
-    planText: planText(g, lang, ctx),
+    planText: planText(g, lang, ctx, at),
+    // what the initiator has already set to come later (接着读)
+    later: legsOf(g).filter((l) => l.from > at).map((l) => ({ from: l.from, text: planWords(g.kind, l.plan, lang, ctx) })),
     venue: { type: g.venue.type, info: member ? g.venue.info : undefined },
     members: g.members.map((m) => ({ key: viewer?.owner ? m.uid : undefined, name: m.name, ids: m.ids, role: m.role, c: colorOf(m.uid), me: !!viewer?.uid && m.uid === viewer.uid, signed: member ? m.signed : undefined, sig: member ? m.sig : undefined })),
     total: st.total, done: st.done, finished: st.finished,
@@ -81,9 +104,9 @@ function cardView(g, lang, ctx, uid) {
   const nx = st.current || st.next;
   return {
     id: g.id, kind: g.kind, lang: g.lang, title: g.title, join: g.join, visibility: g.visibility, status: g.status, max: g.max,
-    minutes: g.minutes, planText: planText(g, lang, ctx),
+    minutes: g.minutes, planText: planText(g, lang, ctx, nx?.n || st.last?.n || 1),
     seats: g.members.map((m) => ({ i: [...m.name][0] || '·', c: colorOf(m.uid), me: !!uid && m.uid === uid })),
-    next: nx ? { n: nx.n, start: nx.start, live: !!st.current, reading: readingFor(g, nx.n, ctx).text } : null,
+    next: nx ? { n: nx.n, start: nx.start, live: !!st.current, reading: readingFor(g, nx.n, ctx)?.text || '' } : null,
     finished: st.finished, mine: !!uid && g.members.some((m) => m.uid === uid), myRole: g.myRole,
   };
 }
@@ -93,7 +116,7 @@ function covenantLines(g, L, ctx, tz) {
   const t = tr(L);
   return [
     t(`时间：${scheduleText(g, 'zh', tz, ctx.now, ctx)}`, `When: ${scheduleText(g, 'en', tz, ctx.now, ctx)}`),
-    t(`读什么：${planText(g, 'zh', ctx)}`, `What: ${planText(g, 'en', ctx)}`),
+    t(`读什么：${planText(g, 'zh', ctx, firstOpen(g, ctx.now, ctx))}`, `What: ${planText(g, 'en', ctx, firstOpen(g, ctx.now, ctx))}`),
     t(`在哪里见面：${VENUES[g.venue.type].zh}${g.venue.info ? `（${g.venue.info}）` : ''}`, `Where: ${VENUES[g.venue.type].en}${g.venue.info ? ` (${g.venue.info})` : ''}`),
   ];
 }
@@ -108,7 +131,7 @@ function inviteFile(g, user, L, ctx, now) {
       description: t(`打开这次要读的材料：${SITE}/g/${g.id}/now\n在哪里见面：${VENUES[g.venue.type].zh}${g.venue.info ? ` ${g.venue.info}` : ''}`,
         `Open this time's reading: ${SITE}/en/g/${g.id}/now\nWhere: ${VENUES[g.venue.type].en}${g.venue.info ? ` ${g.venue.info}` : ''}`),
       url: `${SITE}${pre(L)}/g/${g.id}/now`,
-      organizer: { name: '有光 Light', email: 'hello@zion4life.faith' },
+      organizer: { name: '有光 Light', email: 'light@zion4life.faith' },
       attendee: { name: user.name, email: user.email },
     }, now, ctx),
   };
@@ -142,8 +165,8 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
   const { store } = await import('./store.js');
   const db = store(env);
   await db('prune', { day: new Date(now - 2 * 86400000).toISOString().slice(0, 10), now });
-  const ctx = { ...(await siteData(env, url)), now };
   const groups = await db('dzActive', {});
+  const ctx = await withTagItems(db, { ...(await siteData(env, url)), now }, groups);
   let sent = 0;
   for (const g of groups) {
     for (const s of sessionsBetween(g, now - 4 * 60000, now + 6 * 60000, ctx)) {
@@ -157,14 +180,14 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
           title: t(`${g.title}：现在开始`, `${g.title}: starting now`),
           lines: [
             t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh', u.tz || g.tz)}，${minutesText(g.minutes, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en', u.tz || g.tz)}, ${minutesText(g.minutes, 'en')}.`),
-            t(`这次读：${r.text}`, `This time: ${r.text}`),
+            t(`这次读：${r.full}`, `This time: ${r.full}`),
             t(`在哪里见面：${VENUES[g.venue.type].zh}`, `Where: ${VENUES[g.venue.type].en}`),
             t('读完回来点“打卡”，也可以写几句心得。', 'When you finish, come back to check in and jot a few notes.'),
           ],
           button: { label: t('打开这次的材料', 'Open this time’s reading'), url: groupUrl(g, L, s.n) },
           footer: t('不想收到这个搭子的邮件？打开搭子，在“设置”里关掉提醒。', 'No more emails from this group? Open it and turn reminders off in Settings.'),
         });
-        await sendMail(env, { to: u.email, subject: t(`【有光】${KINDS[g.kind].zh}·${r.text}`, `[Light] ${KINDS[g.kind].en}: ${r.text}`), html, text });
+        await sendMail(env, { to: u.email, subject: t(`【有光】${KINDS[g.kind].zh}·${r.full}`, `[Light] ${KINDS[g.kind].en}: ${r.full}`), html, text });
         sent++;
       }
     }
@@ -195,7 +218,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
   const p = url.pathname;
   const method = request.method;
   const data = await siteData(env, url);
-  const ctx = { ...data, now };
+  let ctx = { ...data, now };
   let m;
 
   // personal calendar feed: /api/cal/<key>.ics (subscribed by phone calendars, no cookie)
@@ -204,7 +227,9 @@ export async function handleDazi(request, env, db, url, now, lang) {
     if (!u) return new Response('Not found', { status: 404 });
     const L = url.searchParams.get('lang') === 'en' ? 'en' : u.lang || 'zh';
     const events = [];
-    for (const g of await db('dzMine', { uid: u.id })) {
+    const mineAll = await db('dzMine', { uid: u.id });
+    ctx = await withTagItems(db, ctx, mineAll);
+    for (const g of mineAll) {
       if (g.status === 'active') events.push(...sessionEvents(g, L, ctx, now - 7 * 86400000, now + 62 * 86400000));
     }
     return icsResponse(icsFeed(L === 'en' ? 'Light · buddies' : '有光·搭子', events.slice(0, 600), now), 'youguang');
@@ -216,11 +241,13 @@ export async function handleDazi(request, env, db, url, now, lang) {
   if (p === '/api/dazi/plaza' && method === 'GET') {
     const kind = KINDS[url.searchParams.get('kind')] ? url.searchParams.get('kind') : undefined;
     const list = await db('dzPlaza', { kind });
+    ctx = await withTagItems(db, ctx, list);
     return json({ ok: true, groups: list.map((g) => cardView(g, lang, ctx, user?.id)), feedCount: data.feedCount });
   }
   if (p === '/api/dazi/mine' && method === 'GET') {
     if (!user) return json({ ok: true, groups: [] });
     const list = await db('dzMine', { uid: user.id });
+    ctx = await withTagItems(db, ctx, list);
     return json({ ok: true, groups: list.map((g) => cardView(g, lang, ctx, user.id)) });
   }
 
@@ -245,6 +272,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
   const admin = isAdmin(env, user);
   const g = await db('dzGet', { id: gid, withSig: true });
   if (!g || (g.status === 'removed' && !admin)) return fail(t('这个搭子不存在，或者已经撤下了', 'This group does not exist or was taken down'), 404);
+  ctx = await withTagItems(db, ctx, [g]);
   const mem = user ? g.members.find((x) => x.uid === user.id) : null;
   const isOwner = mem?.role === 'owner';
   const invite = url.searchParams.get('i') || '';
@@ -262,7 +290,17 @@ export async function handleDazi(request, env, db, url, now, lang) {
       out.invite = inviteUrl(g, lang);
       out.myChecks = (await db('dzMyChecks', { gid: g.id, uid: user.id })).map((c) => ({ n: c.n, done: c.done, late: c.late }));
       out.checkMax = startedCount(g, now + 2 * HOUR, ctx);
-      if (isOwner) out.declined = await db('dzDeclined', { gid: g.id });
+      // the latest sessions that had something to read, newest first
+      out.recent = [];
+      for (let n = out.checkMax; n >= 1 && out.recent.length < 12 && out.checkMax - n < 400; n--) {
+        const r = planned(g, n, ctx) ? readingFor(g, n, ctx) : null;
+        if (r) out.recent.push({ n, text: r.text, start: session(g, n).start });
+      }
+      out.files = await db('dzFiles', { gid: g.id });
+      if (isOwner || admin) {
+        out.declined = await db('dzDeclined', { gid: g.id });
+        out.progress = progressView(g, firstOpen(g, now, ctx), lang, ctx);
+      }
     } else if (user) {
       const row = await db('dzMember', { gid: g.id, uid: user.id });
       out.me = row ? { status: row.status } : null;
@@ -281,7 +319,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
   // /g/<id>/now: whichever session is on now, or the next one
   if (action === 'now' && method === 'GET') {
     const st = sessionState(g, now + 2 * HOUR, ctx);
-    return json({ ok: true, n: st.done || 1 });
+    return json({ ok: true, n: (st.last || st.next)?.n || 1 });
   }
 
   // 立约: join with a signature
@@ -324,6 +362,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
     const n = Number(arg);
     const total = totalSessions(g, ctx);
     if (n < 1 || (total && n > total)) return fail(t('没有这一次', 'There is no such time'), 404);
+    if (!planned(g, n, ctx)) return fail(t('这一次没有安排读的', 'Nothing was planned for this time'), 404);
     const s = session(g, n);
     if (method === 'GET') {
       const checks = await db('dzChecks', { gid: g.id, from: n, to: n });
@@ -338,6 +377,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
           return { name: x.name, c: colorOf(x.uid), me: x.uid === user.id, done: c?.done || null, late: !!c?.late, note: c?.note || '' };
         }),
         hasPrev: n > 1, hasNext: !total || n < total,
+        files: (await db('dzFiles', { gid: g.id })).length,
       });
     }
     if (method === 'POST') {
@@ -363,7 +403,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
     const from = Math.max(1, done - 39);
     const checks = await db('dzChecks', { gid: g.id, from, to: Math.max(done, 1) });
     const sessions = [];
-    for (let n = from; n <= done; n++) sessions.push({ n, date: session(g, n).date });
+    for (let n = from; n <= done; n++) if (planned(g, n, ctx)) sessions.push({ n, date: session(g, n).date });
     const rowsOut = g.members.map((x) => {
       const cells = sessions.map((s) => {
         const c = checks.find((y) => y.uid === x.uid && y.n === s.n);
@@ -401,6 +441,42 @@ export async function handleDazi(request, env, db, url, now, lang) {
     }
   }
 
+  // 资料: PDFs and pictures the initiator puts in the group
+  if (action === 'files') {
+    if (method === 'GET' && !arg) return json({ ok: true, files: await db('dzFiles', { gid: g.id }) });
+    if (method === 'GET' && arg) {
+      const f = await db('dzFileGet', { gid: g.id, id: arg });
+      const r = f && (await db.get(`f:${f.id}`));
+      if (!r) return fail(t('找不到这个资料', 'File not found'), 404);
+      return new Response(r.body, { headers: {
+        'Content-Type': f.type, 'Content-Length': String(f.size), 'Cache-Control': 'private, max-age=86400',
+        'Content-Disposition': `${url.searchParams.get('dl') ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(f.name)}`,
+      } });
+    }
+    if (!isOwner && !admin) return fail(t('只有发起人可以放资料', 'Only the initiator can add files'), 403);
+    if (method === 'POST' && arg && sub === 'delete') {
+      await db('dzFileDel', { gid: g.id, id: arg });
+      return json({ ok: true });
+    }
+    if (method === 'POST' && !arg) {
+      const type = (request.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (!FILE_TYPES[type]) return fail(t('只能放 PDF 或图片', 'Only PDFs and pictures'));
+      const size = Number(request.headers.get('content-length') || 0);
+      if (size > FILE_MAX) return fail(t('文件太大了，最多 20MB', 'The file is too big (20 MB at most)'), 413);
+      if ((await db('dzFilesSize', { gid: g.id })).bytes + size > GROUP_FILES_MAX) return fail(t('这个搭子的资料已经放满了（200MB），先删掉一些', 'This group’s files are full (200 MB). Remove some first.'), 413);
+      if (!(await rateOk(db, request, 'dz-file', 60, now, user.id))) return fail(t('今天放的资料太多了', 'Too many files today'), 429);
+      const buf = await request.arrayBuffer();
+      if (!buf.byteLength || buf.byteLength > FILE_MAX) return fail(t('文件太大了，最多 20MB', 'The file is too big (20 MB at most)'), 413);
+      const name = (str(url.searchParams.get('name'), 120).replace(/[\\/<>:"|?*]/g, '') || `file.${FILE_TYPES[type]}`);
+      const id = randomId(10);
+      await db.put(`f:${id}`, buf);
+      await db('dzFileAdd', { id, gid: g.id, uid: user.id, name, type, size: buf.byteLength, now });
+      await addMsg(db, { scope: `g:${g.id}`, now,
+        title: { zh: `「${g.title}」有新资料`, en: `New file in "${g.title}"` }, body: { zh: name, en: name }, url: `/g/${g.id}?tab=files` });
+      return json({ ok: true, id });
+    }
+  }
+
   if (method !== 'POST') return fail('Not found', 404);
   const b = (await readBody(request, 20000)) || {};
 
@@ -417,6 +493,21 @@ export async function handleDazi(request, env, db, url, now, lang) {
   // the initiator's settings
   if (action === 'manage') {
     if (!isOwner && !admin) return fail(t('只有发起人可以改', 'Only the initiator can change this'), 403);
+    // 调整进度 / 接着读: from session `from` on, read `plan` (same kind)
+    if (b.action === 'progress') {
+      const open = firstOpen(g, now, ctx);
+      const from = Number(b.from);
+      if (!Number.isInteger(from) || from < open || from > open + 1000) return fail(t('只能改还没开始或正在进行的那几次', 'Only times that are not over yet can be changed'));
+      const plan = kindPlan(g.kind, b.plan, t, ctx);
+      if (typeof plan === 'string') return fail(plan);
+      await db('dzUpdate', { id: g.id, ...withLeg(g, from, plan) });
+      const when = session(g, from).date;
+      await addMsg(db, { scope: `g:${g.id}`, now,
+        title: { zh: `「${g.title}」调整了进度`, en: `"${g.title}": the reading plan changed` },
+        body: { zh: `从第 ${from} 次（${when}）起：${planWords(g.kind, plan, 'zh', ctx)}`, en: `From time ${from} (${when}): ${planWords(g.kind, plan, 'en', ctx)}` },
+        url: `/g/${g.id}` });
+      return json({ ok: true });
+    }
     if (b.action === 'close' || b.action === 'reopen') {
       await db('dzUpdate', { id: g.id, status: b.action === 'close' ? 'closed' : 'active' });
       return json({ ok: true });

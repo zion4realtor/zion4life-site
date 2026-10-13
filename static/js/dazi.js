@@ -310,6 +310,62 @@ ${table(g.kind, g.seats, g.max, false)}
     });
   }
 
+  // ---------- plan fields drawn from a kind (src/kinds.js), for the initiator's progress form ----------
+  let booksP = null;
+  const booksList = () => (booksP = booksP || fetch('/data/bible.json').then((r) => r.json()).catch(() => []));
+  function planFieldsHtml(k, plan) {
+    const kd = CFG.kinds[k];
+    if (!kd) return '';
+    const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
+    const one = (f) => {
+      const v = plan[f.name] != null ? plan[f.name] : f.value;
+      const label = `<span>${esc(f.label)}${f.optional ? `<em>${t('可以不写', 'optional')}</em>` : ''}</span>`;
+      let input = '';
+      if (f.type === 'check') return `<label class="check"><input type="checkbox" data-plan="${f.name}"${v ? ' checked' : ''}><span>${esc(f.label)}</span></label>`;
+      if (f.type === 'book') input = `<select data-plan="book" data-book-value="${esc(v)}"></select>`;
+      else if (f.type === 'chapter') input = `<select data-plan="${f.name}" data-chapters data-value="${esc(v)}"></select>`;
+      else if (f.type === 'select') input = `<select data-plan="${f.name}">${f.options.map((o) => opt(o[0], o[1], String(o[0]) === String(v))).join('')}</select>`;
+      else if (f.type === 'tag') input = `<select data-plan="${f.name}">${(CFG.tags || []).map((x) => opt(x[0], x[1], x[0] === v)).join('')}</select>`;
+      else if (f.type === 'lesson' || f.type === 'num') input = `<input data-plan="${f.name}" type="number" inputmode="numeric" min="${f.min || 1}" max="${f.type === 'lesson' ? CFG.feedCount || 1 : f.max || 999}" value="${esc(v)}">`;
+      else if (f.type === 'url') input = `<input data-plan="${f.name}" type="url" inputmode="url" maxlength="300" placeholder="https://" value="${esc(v || '')}">`;
+      else input = `<input data-plan="${f.name}" maxlength="${f.max || 60}" placeholder="${esc(f.placeholder || '')}" value="${esc(v || '')}">`;
+      return `<label class="field">${label}${input}</label>${f.hint ? `<p class="hint">${esc(f.hint)}</p>` : ''}`;
+    };
+    let h = '';
+    for (let i = 0; i < kd.fields.length; i++) {
+      const f = kd.fields[i];
+      if (f.pair && kd.fields[i + 1] && kd.fields[i + 1].pair && !f.hint) { h += `<div class="row2">${one(f)}${one(kd.fields[i + 1])}</div>`; i++; } else h += one(f);
+    }
+    return h || `<p class="hint">${esc(kd.note || '')}</p>`;
+  }
+  // fill book and chapter lists, keep chapters in step with the book
+  async function wirePlanFields(box) {
+    const books = await booksList();
+    $$('[data-plan="book"]', box).forEach((sel) => {
+      const want = Number(sel.getAttribute('data-book-value')) || 43;
+      sel.innerHTML = books.map((b) => `<option value="${b.n}"${b.n === want ? ' selected' : ''}>${esc(b[EN ? 'en' : 'zh'])}</option>`).join('');
+    });
+    const fillCh = (sel, keep) => {
+      const bookSel = $('[data-plan="book"]', box);
+      const b = books.find((x) => x.n === Number(bookSel && bookSel.value));
+      if (!b) return;
+      const cur = keep ? Number(sel.getAttribute('data-value')) || 1 : 1;
+      sel.innerHTML = Array.from({ length: b.ch }, (_, i) => `<option value="${i + 1}">${EN ? `Chapter ${i + 1}` : `第 ${i + 1} 章`}</option>`).join('');
+      sel.value = String(Math.min(cur, b.ch));
+    };
+    $$('[data-chapters]', box).forEach((sel) => fillCh(sel, true));
+    $$('[data-plan="book"]', box).forEach((b) => b.addEventListener('change', () => $$('[data-chapters]', box).forEach((sel) => fillCh(sel, false))));
+  }
+  const readPlan = (box) => {
+    const plan = {};
+    $$('[data-plan]', box).forEach((x) => {
+      const v = x.value.trim();
+      plan[x.getAttribute('data-plan')] = x.type === 'checkbox' ? x.checked : (x.type === 'number' || x.tagName === 'SELECT') && v !== '' && !Number.isNaN(Number(v)) ? Number(v) : v;
+    });
+    return plan;
+  };
+  const sizeText = (n) => (n < 1000000 ? `${Math.max(1, Math.round(n / 1000))} KB` : `${(n / 1000000).toFixed(1)} MB`);
+
   // ---------- the group page ----------
   function covenantSheet(g, invite) {
     return new Promise((resolve, reject) => {
@@ -347,7 +403,7 @@ ${table(g.kind, g.seats, g.max, false)}
     const invite = q.get('i') || '';
     let isNew = q.get('new') === '1';
     if (isNew) history.replaceState(null, '', location.pathname + (invite ? `?i=${invite}` : ''));
-    let tab = 'progress';
+    let tab = ['progress', 'files', 'board', 'people', 'cal', 'set', 'stats'].includes(q.get('tab')) ? q.get('tab') : 'progress';
     let data = null;
 
     const load = async () => {
@@ -381,7 +437,7 @@ ${g.intro ? `<p class="g-intro">${esc(g.intro)}</p>` : ''}</div>`;
       const venue = CFG.venues[g.venue.type] || {};
       h += `<section class="covenant"><h2>${t('搭子的约', 'The covenant')}</h2><dl class="terms">
 <dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}${g.first > Date.now() ? t(`，${esc(when(g.first))} 第一次`, `; first time ${esc(when(g.first))}`) : ''}</small></dd>
-<dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}</dd>
+<dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}${(g.later || []).map((l) => `<small>${t(`第 ${l.from} 次起：`, `From time ${l.from}: `)}${esc(l.text)}</small>`).join('')}</dd>
 <dt>${t('在哪里', 'Where')}</dt><dd><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${member && g.venue.info ? `<small class="venue-info">${esc(g.venue.info)}</small>` : ''}</dd>
 ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.total ? ` / ${g.total}` : ''} 次`, `${g.done}${g.total ? ` of ${g.total}` : ''} so far`)}</dd>` : ''}
 </dl></section>`;
@@ -410,7 +466,7 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
         h += '</section>';
         h += `<section class="more"><h2 class="sec-h">${t('搭子们', 'The buddies')}</h2>${membersHtml(g, false)}</section>`;
       } else {
-        const tabs = [['progress', t('进度', 'Progress')], ['board', t('留言板', 'Board')], ['people', t('搭子们', 'Buddies')], ['cal', t('日历', 'Calendar')], ['set', t('设置', 'Settings')]];
+        const tabs = [['progress', t('进度', 'Progress')], ['files', `${t('资料', 'Files')}${r.files && r.files.length ? ` ${r.files.length}` : ''}`], ['board', t('留言板', 'Board')], ['people', t('搭子们', 'Buddies')], ['cal', t('日历', 'Calendar')], ['set', t('设置', 'Settings')]];
         if (owner) tabs.splice(1, 0, ['stats', t('统计', 'Stats')]);
         h += `<div class="seg-tabs" role="tablist">${tabs.map(([key, label]) => `<button type="button" role="tab" data-tab="${key}" aria-selected="${tab === key}">${esc(label)}</button>`).join('')}</div><div data-tab-body></div>`;
       }
@@ -451,15 +507,37 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
       const r = data;
       if (tab === 'progress') {
         const done = new Map(r.myChecks.map((c) => [c.n, c]));
-        const items = [];
-        const last = r.checkMax;
-        const from = Math.max(1, last - 11);
-        for (let n = last; n >= from; n--) items.push(n);
         const statusOf = (n) => { const c = done.get(n); return c && c.done ? (c.late ? 'late' : 'on') : null; };
-        body.innerHTML = items.length ? `<ul class="prog">${items.map((n) => {
-          const st = statusOf(n);
-          return `<li><a href="${pre}/g/${g.id}/${n}"><span class="pn">${t(`第 ${n} 次`, `Time ${n}`)}</span><span class="ps ${st || 'miss'}">${st === 'on' ? `✓ ${t('打卡了', 'Done')}` : st === 'late' ? `✓ ${t('补卡', 'Made up')}` : t('还没打卡', 'Not yet')}</span></a></li>`;
+        const items = r.recent || [];
+        body.innerHTML = items.length ? `<ul class="prog">${items.map((x) => {
+          const st = statusOf(x.n);
+          return `<li><a href="${pre}/g/${g.id}/${x.n}"><span class="pn">${t(`第 ${x.n} 次`, `Time ${x.n}`)}<small>${esc(x.text)}</small></span><span class="ps ${st || 'miss'}">${st === 'on' ? `✓ ${t('打卡了', 'Done')}` : st === 'late' ? `✓ ${t('补卡', 'Made up')}` : t('还没打卡', 'Not yet')}</span></a></li>`;
         }).join('')}</ul><p class="hint">${t('当时没来得及的，点进去读完也可以补卡。', 'Missed one? Open it, read, and check in to make it up.')}</p>` : `<p class="muted">${t('第一次开始前两个小时，就可以在这里打开材料。', 'The reading opens here two hours before the first time.')}</p>`;
+      } else if (tab === 'files') {
+        const owner = !!r.progress;
+        const files = r.files || [];
+        const icon = (f) => (f.type === 'application/pdf' ? 'PDF' : '🖼');
+        body.innerHTML = `${owner ? `<form class="file-up" data-up><label class="btn btn-water btn-sm"><input type="file" accept="application/pdf,image/*" multiple hidden data-file>${t('放资料（PDF 或图片）', 'Add a PDF or picture')}</label><span class="hint">${t('每个文件最多 20MB。组里的人都能打开、下载。', 'Up to 20 MB each. Everyone in the group can open and download them.')}</span><p class="hint" data-up-msg></p></form>` : ''}
+${files.length ? `<ul class="files">${files.map((f) => `<li>${/^image\/(jpeg|png|webp|gif)$/.test(f.type) ? `<a class="file-thumb" href="/api/dazi/${g.id}/files/${f.id}" target="_blank" rel="noopener"><img src="/api/dazi/${g.id}/files/${f.id}" alt="" loading="lazy"></a>` : `<span class="file-ic">${icon(f)}</span>`}<span class="file-name"><a href="/api/dazi/${g.id}/files/${f.id}" target="_blank" rel="noopener">${esc(f.name)}</a><small>${esc(sizeText(f.size))} · ${esc(ago(f.created))}</small></span><a class="link-btn" href="/api/dazi/${g.id}/files/${f.id}?dl=1">${t('下载', 'Download')}</a>${owner ? `<button type="button" class="link-btn danger" data-del-file="${f.id}" data-name="${esc(f.name)}">${t('删除', 'Remove')}</button>` : ''}</li>`).join('')}</ul>` : `<p class="muted">${owner ? t('还没有资料。比如晨兴圣言的 PDF、讲义的照片，放在这里，组里每个人都收得到。', 'No files yet. Put the Morning Revival PDF or photos of handouts here and everyone in the group gets them.') : t('发起人还没有放资料。', 'The initiator has not added any files yet.')}</p>`}`;
+        const up = $('[data-file]', body);
+        if (up) {
+          up.addEventListener('change', async () => {
+            const msgEl = $('[data-up-msg]', body);
+            for (const file of up.files) {
+              if (file.size > 20000000) { toast(t(`${file.name} 太大了，最多 20MB`, `${file.name} is too big (20 MB at most)`)); continue; }
+              msgEl.textContent = t(`正在上传 ${file.name}……`, `Uploading ${file.name}…`);
+              const res = await fetch(`/api/dazi/${g.id}/files?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Lang': EN ? 'en' : 'zh' }, body: file }).then((x) => x.json()).catch(() => ({ ok: false, error: t('上传没有成功，再试一次', 'The upload failed. Try again.') }));
+              if (!res.ok) toast(res.error);
+            }
+            msgEl.textContent = '';
+            load();
+          });
+        }
+        $$('[data-del-file]', body).forEach((b) => b.addEventListener('click', async () => {
+          if (!confirm(t(`删除「${b.getAttribute('data-name')}」？`, `Remove "${b.getAttribute('data-name')}"?`))) return;
+          const x = await api(`/api/dazi/${g.id}/files/${b.getAttribute('data-del-file')}/delete`, { body: {} });
+          if (x.ok) load(); else toast(x.error);
+        }));
       } else if (tab === 'stats') {
         body.innerHTML = `<p class="muted">${t('正在载入……', 'Loading…')}</p>`;
         const s = await api(`/api/dazi/${g.id}/stats`);
@@ -508,12 +586,22 @@ ${r.declined && r.declined.length ? `<p class="hint">${t('婉拒了邀请：', '
       } else if (tab === 'set') {
         const owner = r.me.role === 'owner';
         body.innerHTML = `<label class="check"><input type="checkbox" data-notify${r.me.notify ? ' checked' : ''}><span>${t('每次开始时给我发邮件提醒', 'Email me when each time starts')}</span></label>
+${r.progress ? (() => {
+  const pg = r.progress;
+  const opt2 = pg.afterFrom && pg.afterFrom > pg.from;
+  return `<form class="form owner-form prog-form" data-progress novalidate><h3 class="sub-h3">${t('调整进度', 'Change the reading plan')}</h3>
+<p class="hint">${t('比如这次只读了一半，下次接着读同一章；或者这一卷读完了，接着读哪一卷。改了以后，提醒和每次的材料都会跟着变，组里的人也会收到消息。', 'For example, you only got through half a chapter, so next time reads it again; or this book is done and you choose the next. Reminders and each time’s reading follow the change, and everyone gets a message.')}</p>
+${pg.legs.length > 1 ? `<ul class="legs">${pg.legs.map((l) => `<li><b>${t(`第 ${l.from} 次起`, `From time ${l.from}`)}</b>${esc(l.text)}</li>`).join('')}</ul>` : ''}
+<div class="radios"><label class="check"><input type="radio" name="when" value="${pg.from}" checked><span>${t(`从第 ${pg.from} 次（下一次）起，改成读：`, `From time ${pg.from} (the next one), read:`)}</span></label>
+${opt2 ? `<label class="check"><input type="radio" name="when" value="${pg.afterFrom}" data-after><span>${t(`现在的读完以后（第 ${pg.afterFrom} 次起），接着读：`, `When the current plan is done (from time ${pg.afterFrom}), go on with:`)}</span></label>` : ''}</div>
+<div data-plan-box>${planFieldsHtml(g.kind, pg.plan)}</div>
+<p class="form-error" data-error hidden></p><button class="btn btn-water" type="submit">${t('保存进度', 'Save the plan')}</button></form>`;
+})() : ''}
 ${owner ? `<form class="form owner-form" data-edit novalidate><h3 class="sub-h3">${t('发起人可以改', 'Initiator settings')}</h3>
 <label class="field"><span>${t('名字', 'Name')}</span><input name="title" maxlength="40" value="${esc(g.title)}"></label>
 <label class="field"><span>${t('介绍', 'A few words')}</span><textarea name="intro" rows="2" maxlength="300">${esc(g.intro)}</textarea></label>
 <div class="field"><span>${t('在哪里见面', 'Where you meet')}</span><div class="venue-pick">${Object.entries(CFG.venues).map(([key, v]) => `<label class="venue-opt"><input type="radio" name="venue" value="${key}"${g.venue.type === key ? ' checked' : ''}><span>${v.icon}${esc(v.name)}</span></label>`).join('')}</div></div>
 <label class="field"><span>${t('号码、会议链接或微信号', 'Number, link or WeChat ID')}</span><input name="venueInfo" maxlength="300" value="${esc(g.venue.info || '')}"></label>
-${((CFG.kinds[g.kind] || {}).edit || []).map((f) => `<label class="field"><span>${esc(f.label)}</span><input data-edit-plan="${esc(f.name)}" type="url" inputmode="url" maxlength="300" placeholder="https://" value="${esc(g.plan[f.name] || '')}"></label>`).join('')}
 <div class="radios"><label class="check"><input type="radio" name="visibility" value="public"${g.visibility === 'public' ? ' checked' : ''}><span>${t('公开，放在广场上', 'Public, on the plaza')}</span></label><label class="check"><input type="radio" name="visibility" value="hidden"${g.visibility === 'hidden' ? ' checked' : ''}><span>${t('隐藏，只用邀请链接', 'Hidden, invite link only')}</span></label></div>
 <div class="radios sub"><label class="check"><input type="radio" name="join" value="open"${g.join === 'open' ? ' checked' : ''}><span>${t('会员可以直接加入', 'Members can join directly')}</span></label><label class="check"><input type="radio" name="join" value="invite"${g.join === 'invite' ? ' checked' : ''}><span>${t('只能用邀请链接', 'Invite link only')}</span></label></div>
 <label class="field"><span>${t('最多几个人', 'Up to')}</span><select name="max">${[2, 3, 4, 5, 6, 8, 10, 12].map((n) => `<option value="${n}"${n === g.max ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
@@ -524,11 +612,29 @@ ${((CFG.kinds[g.kind] || {}).edit || []).map((f) => `<label class="field"><span>
           const x = await api(`/api/dazi/${g.id}/notify`, { body: { on: e.target.checked } });
           toast(x.ok ? (e.target.checked ? t('提醒打开了', 'Reminders on') : t('提醒关掉了', 'Reminders off')) : x.error);
         });
+        const pf = $('[data-progress]', body);
+        if (pf) {
+          const box = $('[data-plan-box]', pf);
+          wirePlanFields(box);
+          // the "after" choice starts from a guess at what comes next (the next book …)
+          $$('input[name="when"]', pf).forEach((x) => x.addEventListener('change', () => {
+            box.innerHTML = planFieldsHtml(g.kind, x.hasAttribute('data-after') ? r.progress.afterPlan : r.progress.plan);
+            wirePlanFields(box);
+          }));
+          pf.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const er = $('[data-error]', pf);
+            er.hidden = true;
+            const from = Number($('input[name="when"]:checked', pf).value);
+            const x = await api(`/api/dazi/${g.id}/manage`, { body: { action: 'progress', from, plan: readPlan(box) } });
+            if (x.ok) { toast(t('进度改好了', 'The plan is updated')); load(); } else { er.textContent = x.error; er.hidden = false; }
+          });
+        }
         const f = $('[data-edit]', body);
         if (f) {
           f.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const x = await api(`/api/dazi/${g.id}/manage`, { body: { action: 'update', title: f.title.value, intro: f.intro.value, venue: { type: $('input[name="venue"]:checked', f).value, info: f.venueInfo.value }, visibility: $('input[name="visibility"]:checked', f).value, join: $('input[name="join"]:checked', f).value, max: Number(f.max.value), plan: Object.fromEntries($$('[data-edit-plan]', f).map((x) => [x.getAttribute('data-edit-plan'), x.value])) } });
+            const x = await api(`/api/dazi/${g.id}/manage`, { body: { action: 'update', title: f.title.value, intro: f.intro.value, venue: { type: $('input[name="venue"]:checked', f).value, info: f.venueInfo.value }, visibility: $('input[name="visibility"]:checked', f).value, join: $('input[name="join"]:checked', f).value, max: Number(f.max.value) } });
             if (x.ok) { toast(t('保存好了', 'Saved')); load(); } else { const er = $('[data-error]', f); er.textContent = x.error; er.hidden = false; }
           });
         }
@@ -571,13 +677,14 @@ ${((CFG.kinds[g.kind] || {}).edit || []).map((f) => `<label class="field"><span>
       const k = CFG.kinds[g.kind] || {};
       const venue = CFG.venues[g.venue.type] || {};
       const mine = s.mine || { done: null, note: '', marks: [] };
-      document.title = `${r.text}｜${g.title}`;
+      document.title = `${r.full || r.text}｜${g.title}`;
       root.innerHTML = `<a class="back" href="${pre}/g/${g.id}">← ${esc(g.title)}</a>
 <div class="sess-head" style="--tint:${tintOf(g.kind)}"><p class="sess-kind"><span class="ki">${k.icon || ''}</span>${esc(k.name || '')} · ${t(`第 ${ss.n} 次`, `Time ${ss.n}`)}${g.total ? ` / ${g.total}` : ''}</p>
-<h1 class="sess-title">${esc(r.text)}</h1>
+<h1 class="sess-title">${esc(r.full || r.text)}</h1>
 <p class="sess-when">${esc(when(ss.start))}</p>
 <p class="sess-venue"><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${g.venue.info ? ` · ${esc(g.venue.info)}` : ''}</p></div>
 <section class="reading-card" data-reading><p class="muted">${t('正在载入……', 'Loading…')}</p></section>
+${s.files ? `<p class="files-line"><a class="btn btn-line btn-sm" href="${pre}/g/${g.id}?tab=files">📎 ${t(`组里的资料（${s.files}）`, `Group files (${s.files})`)}</a></p>` : ''}
 <section class="my-note"><h2 class="sub-h3">${t('心得', 'My notes')}</h2>
 <textarea data-note rows="4" maxlength="3000" placeholder="${t('读的时候有什么感觉、有什么问题，写在这里。搭子们看得到。', 'What touched you, what you wonder about. Your buddies can read it.')}">${esc(mine.note || '')}</textarea>
 <p class="hint" data-saved></p></section>

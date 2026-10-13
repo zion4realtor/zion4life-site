@@ -1,6 +1,6 @@
 // Email through Resend. Settings (Cloudflare → Workers & Pages → zion4life → Settings →
 // Variables and Secrets): RESEND_API_KEY (Secret) and FROM_EMAIL_ADDRESS, a sender on a
-// domain verified in Resend, e.g. "有光 <hello@zion4life.faith>".
+// domain verified in Resend, "有光 <light@zion4life.faith>".
 // Without both, emails are skipped (logged) and everything else keeps working.
 import { esc } from './md.js';
 import { base64 } from './util.js';
@@ -47,7 +47,7 @@ ${footer ? `<p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:#5a6d
 // binding ASK_MAIL (send_email, destination = Zion's verified address) when it exists,
 // otherwise Resend if configured. Returns true when an email went out.
 export async function sendAsk(env, ask) {
-  const to = env.ASK_TO || 'zion.chen@hotmail.com';
+  const to = env.ASK_TO || 'light@zion4life.faith';
   const subject = `有光网站来信${ask.name ? `：${ask.name}` : ''}`;
   const text = [
     ask.message, '',
