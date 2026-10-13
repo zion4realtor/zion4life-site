@@ -36,10 +36,10 @@ const S = {
     shareArticle: '如果这篇对你有帮助，也发给你关心的人。', shareVideo: '把这段视频发给你关心的人。',
     shareBtn: '分享给朋友', shareWx: '在微信里，点右上角“···”，就能发送给朋友或分享到朋友圈。',
     more: '继续吃', play: '播放', soon: '视频即将上线', lineTip: '播放不了的话，换一条线路试试。',
-    huxi: '呼吸', huxiSub: '每天打开这个链接，都是当天的内容。', huxiShare: '把这个链接发给弟兄姊妹，他们每天打开，看到的都是当天的呼吸。',
+    huxi: '呼吸', huxiSub: '什么时候打开这个链接，都是最新的一篇。', huxiShare: '把这个链接发给弟兄姊妹，他们什么时候打开，看到的都是最新的呼吸。',
     huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', todayLink: '看今天的呼吸',
     listen: '读给我听', listenPlay: '播放', listenPause: '暂停', listenAbout: (m) => `约 ${m} 分钟`, speed: '语速',
-    subHuxi: '订阅每天的呼吸', subHuxiOn: '已订阅', subHuxiHint: '订阅以后，每天的呼吸上新，“我的”里会收到消息。',
+    subHuxi: '订阅每天的呼吸', subHuxiOn: '已订阅', subHuxiHint: '订阅以后，呼吸一上新，“我的”里马上会收到消息。',
     week: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'], weekShort: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
     md: (m, d) => `${m}月${d}日`, full: (y, m, d) => `${y}年${m}月${d}日`,
     me: '我的', meSub: '你的搭子、打卡和留言，都会在这里。', loading: '正在载入……',
@@ -64,10 +64,10 @@ const S = {
     shareArticle: 'If this helped you, send it to someone you care about.', shareVideo: 'Send this video to someone you care about.',
     shareBtn: 'Share', shareWx: 'In WeChat, tap "···" at the top right to send it to a friend or to Moments.',
     more: 'Keep eating', play: 'Play', soon: 'Video coming soon', lineTip: 'If it will not play, try another line.',
-    huxi: 'Breathe', huxiSub: 'Open this link any day and you see that day.', huxiShare: 'Send this link to brothers and sisters. Each day they open it, they see that day.',
+    huxi: 'Breathe', huxiSub: 'Open this link any time and you see the newest day.', huxiShare: 'Send this link to brothers and sisters. Whenever they open it, they see the newest Breathe.',
     huxiDayShare: 'Send this day to brothers and sisters.', past: 'Earlier days', todayLink: 'See today',
     listen: 'Read it to me', listenPlay: 'Play', listenPause: 'Pause', listenAbout: (m) => `about ${m} min`, speed: 'Speed',
-    subHuxi: 'Subscribe to Breathe', subHuxiOn: 'Subscribed', subHuxiHint: 'Subscribers get a message in “Me” each day a new Breathe comes.',
+    subHuxi: 'Subscribe to Breathe', subHuxiOn: 'Subscribed', subHuxiHint: 'Subscribers get a message in “Me” as soon as a new Breathe is up.',
     week: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], weekShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     md: (m, d) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${d}`,
     full: (y, m, d) => `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${d}, ${y}`,
@@ -109,11 +109,6 @@ function dateParts(iso, lang) {
   const L = S[lang];
   return { md: L.md(m, d), full: L.full(y, m, d), wd: L.week[wd], wdShort: L.weekShort[wd], d };
 }
-const TODAY = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
-const shiftDate = (iso, days) => {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-};
 const splitTags = (v) => (Array.isArray(v) ? v : String(v || '').split(/[,，\s]+/)).map((x) => x.trim()).filter(Boolean);
 
 // ---------- 呼吸 ----------
@@ -254,8 +249,8 @@ const huxi = loadPairs('huxi').map((p) => {
   day.speech = { zh: huxiSpeech(day, 'zh'), en: huxiSpeech(day, 'en') };
   return day;
 }).sort((a, b) => b.date.localeCompare(a.date));
-const todayHuxi = huxi.find((p) => p.date <= TODAY) || huxi[huxi.length - 1];
-const recentHuxi = huxi.filter((p) => p.date >= shiftDate(TODAY, -2));
+// /huxi/ shows the newest day to everyone, wherever they are, as soon as it is published
+const todayHuxi = huxi[0];
 
 // ---------- assets ----------
 fs.rmSync(DIST, { recursive: true, force: true });
@@ -382,13 +377,6 @@ function askBox(lang) {
 <button class="btn btn-water btn-block" type="submit">${esc(L.askSend)}</button>
 </form>`;
 }
-function huxiData(lang, list) {
-  return list.map((p) => {
-    const d = dateParts(p.date, lang);
-    return { date: p.date, md: d.md, full: d.full, d: String(d.d), wd: d.wd, title: p[lang].title, lede: p[lang].lede, excerpt: p[lang].excerpt, html: p[lang].html, sample: p.sample };
-  });
-}
-
 // ---------- pages ----------
 for (const lang of LANGS) {
   const L = S[lang];
@@ -424,7 +412,6 @@ for (const lang of LANGS) {
       tab: 'home',
       body: `<section class="hello"><h1>${esc(site[lang].hi)}</h1><p>${esc(site[lang].hiSub)}</p></section>
 <section class="grid">${html}</section>
-${json('huxi-data', huxiData(lang, recentHuxi).map(({ html: _h, ...r }) => r))}
 ${askBox(lang)}`,
     });
   }
@@ -535,7 +522,7 @@ ${listen(p)}
     };
     const archive = (current) => `<section class="more" id="archive"><h2 class="sec-h">${esc(L.past)}</h2><ul class="arch">${huxi.map((p) => {
       const d = dateParts(p.date, lang);
-      const hide = p.date > TODAY || p.date === current;
+      const hide = p.date === current;
       return `<li data-arch="${p.date}"${hide ? ' hidden' : ''}><a href="${U(lang, `/huxi/${p.date}/`)}"><time datetime="${p.date}">${esc(d.md)} ${esc(d.wdShort)}</time><span>${esc(p[lang].title)}</span></a></li>`;
     }).join('')}</ul></section>`;
     emit(lang, '/huxi/', {
@@ -548,7 +535,6 @@ ${listen(p)}
 ${day(todayHuxi, true)}
 ${shareBox(lang, L.huxiShare, U(lang, '/huxi/'), L.huxi)}
 ${archive(todayHuxi.date)}
-${json('huxi-data', huxiData(lang, recentHuxi))}
 </section>`,
     });
     for (const p of huxi) {
@@ -789,4 +775,4 @@ ${urls.map((u) => `<url><loc>${site.url}${u}</loc></url>`).join('\n')}
 `);
 fs.writeFileSync(path.join(DIST, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${site.url}/sitemap.xml\n`);
 
-console.log(`built ${urls.length} indexed pages: ${articles.length} articles, ${videos.length} videos, ${huxi.length} 呼吸 days, ${TAGS.length} tags, 2 languages (today ${TODAY}: ${todayHuxi?.date ?? 'none'})`);
+console.log(`built ${urls.length} indexed pages: ${articles.length} articles, ${videos.length} videos, ${huxi.length} 呼吸 days, ${TAGS.length} tags, 2 languages (newest 呼吸: ${todayHuxi?.date ?? 'none'})`);

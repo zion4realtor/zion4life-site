@@ -21,7 +21,8 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
   (粮仓 / 呼吸 / 搭子 / 我的; Zion approved this bar, keep it), logo in `static/logo.svg`
   (a beam of light on Mount Zion). The home grid must fill whole rows.
 - 呼吸 days follow the format in README.md; 读给我听 recordings are made by the cron with
-  Workers AI (`src/audio.js`), never by hand.
+  Workers AI (`src/audio.js`), never by hand. No time zones for 呼吸: the newest day shows to
+  everyone and goes to subscribers as soon as it is pushed.
 - Code that runs: `src/worker.js` routes `/api/*` to `src/api.js` (auth.js, content.js,
   dazi.js, inbox.js for 我的 → 消息 and subscriptions, audio.js) and renders `/g/<id>` and `/x/<id>`; state is in the SQLite-backed Durable Object
   (`src/store.js`). Never return an email address to any page (show `maskEmail` to its owner

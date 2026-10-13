@@ -45,9 +45,9 @@ export async function announce(env, db, url, now = Date.now()) {
     const r = await env.ASSETS.fetch(new Request(new URL('/data/huxi.json', url)));
     if (r.ok) days = await r.json();
   } catch { /* the site is being deployed */ }
-  const today = new Date(now + 8 * 3600000).toISOString().slice(0, 10); // 呼吸 days turn over in China
+  // a 呼吸 day goes out as soon as it is on the site, whatever its date and wherever people are
   const items = Object.values(data.item || {});
-  const keys = [...items.map((i) => `i:${i.key}`), ...days.filter((d) => d.date <= today).map((d) => `h:${d.date}`)];
+  const keys = [...items.map((i) => `i:${i.key}`), ...days.map((d) => `h:${d.date}`)];
   if (!keys.length) return { sent: 0 };
   const { fresh } = await db('announce', { keys, now });
   let sent = 0;
@@ -62,7 +62,10 @@ export async function announce(env, db, url, now = Date.now()) {
       }
     } else {
       const d = days.find((x) => `h:${x.date}` === k);
-      await addMsg(db, { scope: 'huxi', now, url: '/huxi/', title: { zh: '今天的呼吸', en: 'Today’s Breathe' }, body: { zh: d.zh.title, en: d.en.title } });
+      const [, m, day] = d.date.split('-').map(Number);
+      const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      await addMsg(db, { scope: 'huxi', now, url: `/huxi/${d.date}/`,
+        title: { zh: `新的呼吸：${m}月${day}日`, en: `New Breathe: ${MON[m - 1]} ${day}` }, body: { zh: d.zh.title, en: d.en.title } });
       sent++;
     }
   }

@@ -34,7 +34,11 @@ test('build output: both languages, tags, tiles fill whole rows', () => {
   }
   assert.match(dist('en/index.html'), /<html lang="en">/);
   assert.match(dist('en/a/rensheng-aomi/index.html'), /The Mystery of Life/);
-  assert.match(dist('huxi/index.html'), /id="huxi-data"/);
+  // /huxi/ shows the newest day for everyone, with no clock check in the page
+  const newest = JSON.parse(dist('data/huxi.json'))[0];
+  assert.match(dist('huxi/index.html'), new RegExp(`<article class="hx" data-huxi-today data-date="${newest.date}"`));
+  assert.match(dist('index.html'), new RegExp(`data-huxi-today data-date="${newest.date}"`));
+  assert.doesNotMatch(dist('huxi/index.html'), /id="huxi-data"/);
   // 留言 on tag, article and video pages; the post shell has its marker; the plaza has no title on top
   assert.match(dist('t/lgh/index.html'), /data-talk="tag:lgh"/);
   assert.match(dist('t/lgh/index.html'), /data-tag-tools="lgh" data-person/);

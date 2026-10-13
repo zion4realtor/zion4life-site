@@ -87,8 +87,10 @@ text.recoveryversion.bible or bibleread.online), never from memory.
   `—— 弗四16`), `## 今日负担` (the prayers, plain paragraphs), `## 职事的交通` with
   `### headings`; a paragraph that is only `（《书名》第X章　…）` (English: `(*Title*, …)`)
   shows as the source line, `---` separates, and a paragraph only in `*italics*` is a small
-  note (not read aloud). `/huxi/` shows the newest entry dated on or before the visitor's
-  own date, so days can be written ahead.
+  note (not read aloud). Time zones play no part: as soon as a day is pushed, `/huxi/`
+  (and the 今日呼吸 tile on the home page) shows it to everyone, wherever they are, and the
+  next cron run (within 5 minutes) sends it to the 呼吸 subscribers in 我的 → 消息 (once,
+  linked to `/huxi/<date>/`). So a day goes up when Zion sends it, not ahead of time.
 - **读给我听:** nothing to do by hand. build.mjs writes `/data/huxi/<date>.speech.json`
   (the day read aloud, references written out, in pieces); after the deploy the cron
   records the latest days with Workers AI (MeloTTS) a few pieces every 5 minutes (a day

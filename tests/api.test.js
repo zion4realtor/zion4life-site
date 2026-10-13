@@ -474,6 +474,18 @@ test('我的 消息: subscriptions, managers’ posts, Zion’s announcements, u
   const r = await runReminders(env, Date.now());
   assert.equal(r.announced, 0);
   assert.equal((await call('/api/inbox', { cookie: sam })).body.list.length, 2);
+  // a new 呼吸 day goes out on the next run after it is published, even one dated ahead of
+  // everyone's clock (no waiting for a time zone)
+  const days = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist/data/huxi.json'), 'utf8'));
+  env.ASSETS = { fetch: async (req) => (new URL(req.url).pathname === '/data/huxi.json'
+    ? new Response(JSON.stringify([{ date: '2099-01-01', zh: { title: '新的一天' }, en: { title: 'A new day' } }, ...days]), { headers: { 'Content-Type': 'application/json' } })
+    : assets.fetch(req)) };
+  assert.equal((await runReminders(env, Date.now())).announced, 1);
+  const hx = (await call('/api/inbox', { cookie: sam })).body.list.find((m) => m.url === '/huxi/2099-01-01/');
+  assert.equal(hx.title.zh, '新的呼吸：1月1日');
+  assert.equal(hx.body.zh, '新的一天');
+  assert.equal(hx.url, '/huxi/2099-01-01/');
+  assert.equal((await runReminders(env, Date.now())).announced, 0, 'only once');
 });
 
 test('读给我听: the cron records 呼吸 days piece by piece; pieces play with Range', async () => {

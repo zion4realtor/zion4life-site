@@ -84,35 +84,6 @@
     });
   });
 
-  // ---- today's 呼吸: the newest entry dated on or before the visitor's own date ----
-  var dataEl = document.getElementById('huxi-data');
-  var todayEls = document.querySelectorAll('[data-huxi-today]');
-  if (dataEl && todayEls.length) {
-    var d = new Date();
-    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
-    var today = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-    var list = [];
-    try { list = JSON.parse(dataEl.textContent); } catch (e) {}
-    var pick = null;
-    for (var i = 0; i < list.length; i++) { if (list[i].date <= today) { pick = list[i]; break; } }
-    var shown = todayEls[0].getAttribute('data-date');
-    if (pick && pick.date !== shown) {
-      todayEls.forEach(function (el) {
-        el.querySelectorAll('[data-f]').forEach(function (f) {
-          var k = f.getAttribute('data-f');
-          if (k === 'html') { if (pick.html) f.innerHTML = pick.html; }
-          else if (pick[k] != null) f.textContent = pick[k];
-        });
-        el.setAttribute('data-date', pick.date);
-      });
-      shown = pick.date;
-    }
-    document.querySelectorAll('[data-arch]').forEach(function (li) {
-      var date = li.getAttribute('data-arch');
-      li.hidden = date > today || date === shown;
-    });
-  }
-
   // ---- 有问题想问？ ----
   document.querySelectorAll('[data-ask]').forEach(function (form) {
     var err = form.querySelector('[data-error]');
