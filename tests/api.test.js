@@ -483,8 +483,12 @@ test('读给我听: the cron records 呼吸 days piece by piece; pieces play wit
   const date = days[0].date;
   const speech = JSON.parse(fs.readFileSync(path.join(ROOT, `dist/data/huxi/${date}.speech.json`), 'utf8'));
   assert.ok(speech.zh.chunks.length > 3 && speech.en.chunks.length > 3);
-  assert.match(speech.zh.chunks.map((c) => c.t).join(''), /以弗所书四章16节/, 'references are written out to be read');
-  assert.match(speech.en.chunks.map((c) => c.t).join(' '), /Ephesians 4:16/);
+  // references are written out to be read, whatever the newest day quotes ("弗四16" → "以弗所书四章16节")
+  const zhSay = speech.zh.chunks.map((c) => c.t).join('');
+  const enSay = speech.en.chunks.map((c) => c.t).join(' ');
+  assert.match(zhSay, /[一-鿿]{2,}[一二三四五六七八九十百]+章\d+节/, 'references are written out to be read');
+  assert.match(enSay, /\b(?:First |Second |Third )?[A-Z][a-z]+(?: of [A-Z][a-z]+)? \d+:\d+/);
+  assert.doesNotMatch(enSay, /\b(?:Gen|Exo|Psa|Isa|Matt|Rom|Cor|Eph|Phil|Col|Tim|Heb|Pet|Rev)\. \d/, 'no abbreviations read aloud');
   let m = (await call(`/api/audio/huxi/${date}/zh.json`)).body;
   assert.equal(m.ready, false);
   for (let i = 0; i < 40 && !m.ready; i++) {
