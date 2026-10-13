@@ -4,13 +4,14 @@
 // The cron records new or changed days with Workers AI (MeloTTS, binding AI), a few pieces
 // each run, into the Durable Object; only the latest 30 days are kept. Pages fetch
 //   /api/audio/huxi/<date>/<lang>.json              { ready, parts: [urls] }
-//   /api/audio/huxi/<date>/<lang>/<hash>/<i>.mp3    one piece (with Range support for Safari)
+//   /api/audio/huxi/<date>/<lang>/<hash>/<i>.wav    one piece (with Range support for Safari)
+// Workers AI gives 44.1 kHz WAV; the Durable Object keeps it as 16 kHz μ-law WAV (src/wav.js).
 // and play the pieces one after another.
 import { json, fail } from './util.js';
 
 const MODEL = '@cf/myshell-ai/melotts';
 const KEEP_DAYS = 30;
-const PER_RUN = 4; // pieces recorded per cron run (every 5 minutes)
+const PER_RUN = 8; // pieces recorded per cron run (every 5 minutes; each takes a few seconds)
 
 const keyOf = (date, lang) => `a:huxi/${date}/${lang}`;
 const chinaDate = (ms) => new Date(ms + 8 * 3600000).toISOString().slice(0, 10);
@@ -34,17 +35,18 @@ export async function handleAudio(request, env, db, url) {
     const h = a ? a.hash.slice(0, 10) : '';
     return json({
       ok: true, ready, done: a?.done || 0, total: a?.parts || 0,
-      parts: ready ? Array.from({ length: a.parts }, (_, i) => `/api/audio/huxi/${m[1]}/${m[2]}/${h}/${i}.mp3`) : [],
+      parts: ready ? Array.from({ length: a.parts }, (_, i) => `/api/audio/huxi/${m[1]}/${m[2]}/${h}/${i}.wav`) : [],
     }, 200, { 'Cache-Control': 'no-store' });
   }
-  if ((m = url.pathname.match(/^\/api\/audio\/huxi\/(\d{4}-\d{2}-\d{2})\/(zh|en)\/([0-9a-f]{10})\/(\d{1,3})\.mp3$/))) {
+  if ((m = url.pathname.match(/^\/api\/audio\/huxi\/(\d{4}-\d{2}-\d{2})\/(zh|en)\/([0-9a-f]{10})\/(\d{1,3})\.wav$/))) {
     const key = keyOf(m[1], m[2]);
     const a = await db('audioGet', { key });
     if (!a || a.hash.slice(0, 10) !== m[3]) return fail('Not found', 404);
     const r = await db.get(`${key}/${Number(m[4])}`);
     if (!r) return fail('Not found', 404);
     const buf = new Uint8Array(await r.arrayBuffer());
-    const head = { 'Content-Type': 'audio/mpeg', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=31536000, immutable' };
+    const type = buf[0] === 0x52 && buf[1] === 0x49 ? 'audio/wav' : 'audio/mpeg';
+    const head = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=31536000, immutable' };
     const range = (request.headers.get('range') || '').match(/^bytes=(\d*)-(\d*)$/);
     if (range && (range[1] || range[2])) {
       let start = range[1] ? Number(range[1]) : buf.length - Number(range[2]);
@@ -80,9 +82,9 @@ export async function makeAudio(env, db, url, now = Date.now()) {
       }
       while (a.done < a.parts && budget > 0 && a.tries < 6) {
         try {
-          const bytes = await speak(env, s.chunks[a.done].t, lang);
-          await db.put(`${key}/${a.done}`, bytes);
-          await db('audioPart', { key, done: a.done + 1, bytes: bytes.length, now });
+          const out = await speak(env, s.chunks[a.done].t, lang);
+          const saved = await db.put(`${key}/${a.done}`, out, typeof out === 'string' ? 'b64' : 'raw');
+          await db('audioPart', { key, done: a.done + 1, bytes: saved.bytes || 0, now });
           a.done++;
           made++;
         } catch (e) {
@@ -101,6 +103,7 @@ export async function makeAudio(env, db, url, now = Date.now()) {
   return { made };
 }
 
+// The recording as bytes, or as the base64 text Workers AI sends (the Durable Object decodes it).
 async function speak(env, text, lang) {
   const out = await env.AI.run(MODEL, { prompt: text, lang: lang === 'en' ? 'en' : 'zh' });
   if (out instanceof ReadableStream) return new Uint8Array(await new Response(out).arrayBuffer());
@@ -108,22 +111,5 @@ async function speak(env, text, lang) {
   if (out instanceof Uint8Array) return out;
   const b64 = typeof out === 'string' ? out : out?.audio;
   if (!b64 || typeof b64 !== 'string') throw new Error('no audio in the reply');
-  return fromBase64(b64);
-}
-
-// Base64 → bytes, with a lookup table (fast enough for a few hundred KB per piece).
-const B64 = new Uint8Array(128);
-'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('').forEach((c, i) => { B64[c.charCodeAt(0)] = i; });
-export function fromBase64(s) {
-  if (typeof Uint8Array.fromBase64 === 'function') return Uint8Array.fromBase64(s);
-  s = s.replace(/[^A-Za-z0-9+/]/g, '');
-  const out = new Uint8Array(Math.floor((s.length * 3) / 4));
-  let o = 0;
-  for (let i = 0; i < s.length; i += 4) {
-    const n = (B64[s.charCodeAt(i)] << 18) | (B64[s.charCodeAt(i + 1)] << 12) | (B64[s.charCodeAt(i + 2)] << 6) | B64[s.charCodeAt(i + 3)];
-    out[o++] = n >> 16;
-    if (i + 2 < s.length) out[o++] = (n >> 8) & 255;
-    if (i + 3 < s.length) out[o++] = n & 255;
-  }
-  return out.subarray(0, o);
+  return b64;
 }

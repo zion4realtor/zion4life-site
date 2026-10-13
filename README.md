@@ -92,7 +92,8 @@ text.recoveryversion.bible or bibleread.online), never from memory.
 - **读给我听:** nothing to do by hand. build.mjs writes `/data/huxi/<date>.speech.json`
   (the day read aloud, references written out, in pieces); after the deploy the cron
   records the latest days with Workers AI (MeloTTS) a few pieces every 5 minutes (a day
-  takes about half an hour per language) and keeps 30 days. Until a recording is ready the
+  takes about half an hour), kept as 16 kHz μ-law WAV, about 1 MB a minute (`src/wav.js`),
+  for 30 days. Until a recording is ready the
   page reads with the phone's own voice. Changing the text records it again.
 - **Video:** add an entry to `content/videos.json` with `slug`, `minutes`, `date`,
   `tags`, `zh` and `en` (`title`, `summary`) and `sources`, places to play it from:

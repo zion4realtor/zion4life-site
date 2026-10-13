@@ -508,6 +508,8 @@ export const OPS = {
   },
 };
 
+import { fromBase64, shrinkAudio } from './wav.js';
+
 // Zion's admin account is the platform's first account (made when there is none yet).
 export function seedAdmin(sql, env) {
   if (!env) return;
@@ -529,11 +531,14 @@ export class Store {
 
   async fetch(request) {
     const u = new URL(request.url);
-    // file bytes: PUT stores the body in pieces under 1 MB, GET returns them joined
+    // file bytes: PUT stores the body in pieces under 1 MB, GET returns them joined.
+    // ?audio=b64|raw: a recording from Workers AI, made small here (src/wav.js).
     if (u.pathname === '/blob') {
       const key = u.searchParams.get('key');
       if (request.method === 'PUT') {
-        const buf = new Uint8Array(await request.arrayBuffer());
+        const kind = u.searchParams.get('audio');
+        let buf = kind === 'b64' ? fromBase64(await request.text()) : new Uint8Array(await request.arrayBuffer());
+        if (kind) buf = shrinkAudio(buf);
         this.sql.exec('DELETE FROM blob WHERE key = ?', key);
         for (let i = 0, at = 0; at < buf.length; i++, at += MB) {
           const piece = buf.slice(at, at + MB);
@@ -560,7 +565,7 @@ export function store(env) {
     if (!r.ok) throw new Error(`store ${op} failed: ${r.status}`);
     return r.json();
   };
-  db.put = async (key, body) => (await stub.fetch(`https://store/blob?key=${encodeURIComponent(key)}`, { method: 'PUT', body })).json();
+  db.put = async (key, body, audio) => (await stub.fetch(`https://store/blob?key=${encodeURIComponent(key)}${audio ? `&audio=${audio}` : ''}`, { method: 'PUT', body })).json();
   db.get = async (key) => {
     const r = await stub.fetch(`https://store/blob?key=${encodeURIComponent(key)}`);
     return r.ok ? r : null;

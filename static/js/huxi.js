@@ -100,7 +100,12 @@
       if (idx + 1 < parts.length) { setPart(idx + 1); light(); audio.play(); }
       else { state(false); idx = 0; show(0); }
     });
-    audio.addEventListener('error', function () { if (playing) { state(false); say(t('录音没有放出来，稍后再试一次。', 'The recording did not play. Try again in a moment.')); } });
+    // a phone that cannot play the recording reads with its own voice instead
+    audio.addEventListener('error', function () {
+      if (!playing) return;
+      if ('speechSynthesis' in window) { mode = 'voice'; speakFrom(idx); light(); }
+      else { state(false); say(t('录音没有放出来，稍后再试一次。', 'The recording did not play. Try again in a moment.')); }
+    });
   }
 
   // ---- the phone's own voice (before the recording is ready) ----

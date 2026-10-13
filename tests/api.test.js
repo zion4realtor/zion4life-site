@@ -14,6 +14,7 @@ import { resetSiteData, parseVideo } from '../src/content.js';
 import { BOOKS, TOTAL_CHAPTERS, chapterLink, lifeStudyLink } from '../src/bible.js';
 import { zonedTime, session, startedCount, sessionState, totalSessions, readingFor, scheduleText, planText, sessionLabel, sessionsBetween, icsInvite, vtimezone } from '../src/schedule.js';
 import { KINDS, kindsForPage } from '../src/kinds.js';
+import { readWav, shrinkAudio } from '../src/wav.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 before(() => { execFileSync('node', ['build.mjs'], { cwd: ROOT }); });
@@ -531,4 +532,24 @@ test('starting the database again keeps everything stored (the old-table cleanup
   assert.deepEqual(OPS.subsOf(sql, { uid: 'u' }), ['huxi']);
   assert.equal(OPS.msgsAll(sql, {}).length, 1);
   assert.equal(OPS.dzFiles(sql, { gid: 'g' }).length, 1);
+});
+
+test('recordings are kept small: 44.1 kHz 16-bit WAV becomes 16 kHz μ-law WAV', () => {
+  const rate = 44100, n = rate;
+  const wav = new Uint8Array(44 + n * 2);
+  const dv = new DataView(wav.buffer);
+  const put = (at, x) => { for (let i = 0; i < 4; i++) wav[at + i] = x.charCodeAt(i); };
+  put(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); put(8, 'WAVE'); put(12, 'fmt '); dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  put(36, 'data'); dv.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.round(10000 * Math.sin(i / 10)), true);
+  assert.equal(readWav(wav).samples.length, n);
+  const out = shrinkAudio(wav);
+  const o = new DataView(out.buffer);
+  assert.equal(String.fromCharCode(...out.slice(0, 4)), 'RIFF');
+  assert.equal(o.getUint16(20, true), 7, 'μ-law');
+  assert.equal(o.getUint32(24, true), 16000);
+  assert.equal(o.getUint32(54, true), 16000, 'one second of 8-bit samples');
+  assert.ok(out.length < wav.length / 5);
+  assert.deepEqual(shrinkAudio(new Uint8Array([1, 2, 3])), new Uint8Array([1, 2, 3]), 'anything else is kept as it is');
 });
