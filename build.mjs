@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { BOOKS } from './src/bible.js';
 import { VENUES } from './src/schedule.js';
 import { KINDS as GROUP_KINDS, kindsForPage } from './src/kinds.js';
+import { VOICES } from './src/audio.js';
 import { esc, md, plain, readMinutes } from './src/md.js';
 import { IDENTITIES } from './src/auth.js';
 
@@ -567,6 +568,16 @@ ${archive(p.date)}
       });
     }
   }
+
+  // voices to choose from for 读给我听 (not linked from anywhere)
+  emit(lang, '/huxi/voices/', {
+    title: lang === 'en' ? 'Choose a voice' : '挑一个声音',
+    tab: 'huxi',
+    noindex: true,
+    body: `<section class="page"><h1 class="page-title">${lang === 'en' ? 'Choose a voice' : '挑一个英文声音'}</h1>
+<p class="page-lead">${lang === 'en' ? 'The same lines in each voice. The first play of each takes a few seconds.' : '同样几句英文，用不同的声音读。每个第一次点开要等几秒钟。'}</p>
+<ul class="voices">${VOICES.map((v) => `<li><b>${esc(v.label)}</b><audio controls preload="none" src="/api/audio/voices/${v.id}"></audio></li>`).join('')}</ul></section>`,
+  });
 
   // 我的
   emit(lang, '/me/', {
