@@ -192,7 +192,7 @@ function huxiSpeech(p, lang) {
     const sentences = b.t.match(lang === 'en' ? /[^.!?;]+[.!?;]+["”’)]*\s*|[^.!?;]+$/g : /[^。！？；]+[。！？；]+[”’）」]*|[^。！？；]+$/g) || [b.t];
     for (const st of sentences) push(st.trim(), b.s);
   }
-  const hash = crypto.createHash('sha1').update(`melotts-ulaw16k|${lang}|${chunks.map((c) => c.t).join('\n')}`).digest('hex');
+  const hash = crypto.createHash('sha1').update(`melotts-ulaw16k-loud|${lang}|${chunks.map((c) => c.t).join('\n')}`).digest('hex');
   return { hash, chars: chunks.reduce((n, c) => n + c.t.length, 0), chunks };
 }
 

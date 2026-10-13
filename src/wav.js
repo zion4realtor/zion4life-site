@@ -50,18 +50,24 @@ function mulaw(s) {
   return ~(sign | (e << 4) | ((s >> (e + 3)) & 0x0f)) & 0xff;
 }
 
-// 16-bit PCM at any rate → 8-bit μ-law WAV at `rate` (averaging the samples each output covers).
+// 16-bit PCM at any rate → 8-bit μ-law WAV at `rate` (averaging the samples each output
+// covers), brought up to a comfortable loudness for phone speakers (at most 3× louder).
 export function toMulawWav(pcm, rate = 16000) {
   const step = pcm.rate > rate ? pcm.rate / rate : 1;
   const outRate = pcm.rate > rate ? rate : pcm.rate;
   const n = Math.floor(pcm.samples.length / step);
-  const body = new Uint8Array(n);
+  const mid = new Float32Array(n);
+  let peak = 1;
   for (let i = 0; i < n; i++) {
     const a = Math.floor(i * step), b = Math.max(a + 1, Math.floor((i + 1) * step));
     let sum = 0;
     for (let j = a; j < b; j++) sum += pcm.samples[j];
-    body[i] = mulaw(Math.round(sum / (b - a)));
+    mid[i] = sum / (b - a);
+    if (Math.abs(mid[i]) > peak) peak = Math.abs(mid[i]);
   }
+  const gain = Math.min(3, 29000 / peak);
+  const body = new Uint8Array(n);
+  for (let i = 0; i < n; i++) body[i] = mulaw(Math.round(mid[i] * gain));
   const pad = n & 1;
   const out = new Uint8Array(58 + n + pad);
   const dv = new DataView(out.buffer);
