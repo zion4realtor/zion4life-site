@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { BOOKS } from './src/bible.js';
+import { TZ_LABELS, KINDS as GROUP_KINDS } from './src/schedule.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CONTENT = path.join(ROOT, 'content');
@@ -15,7 +17,7 @@ const NAV = [
   ['/read/', '文章'],
   ['/watch/', '视频'],
   ['/pray/', '祷告'],
-  ['/groups/', '读经'],
+  ['/square/', '广场'],
 ];
 const KINDS = { message: '福音信息', testimony: '见证' };
 const WEEK = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
@@ -158,11 +160,12 @@ const ver = (rel) => crypto.createHash('sha1').update(fs.readFileSync(path.join(
 const CSS = `/css/site.css?v=${ver('css/site.css')}`;
 const SERIF = `/css/serif.css?v=${ver('css/serif.css')}`;
 const JS = `/js/site.js?v=${ver('js/site.js')}`;
+const GROUPS_JS = `/js/groups.js?v=${ver('js/groups.js')}`;
 
 // ---------- layout ----------
 const MARK = `<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 20a9 9 0 0 1 18 0z" fill="var(--dawn)"/><rect x="3" y="22" width="26" height="2.4" rx="1.2" fill="currentColor"/></svg>`;
 
-function page({ title, desc = site.description, url, body, active = '', noindex = false, head = '' }) {
+function page({ title, desc = site.description, url, body, active = '', noindex = false, head = '', scripts = [] }) {
   const full = title ? `${title}｜${site.name}` : `${site.name}｜${site.nameZh}`;
   const canonical = site.url + url;
   const nav = NAV.map(([href, label]) =>
@@ -203,7 +206,7 @@ ${body}
 </div></footer>
 <div class="toast" role="status" aria-live="polite" hidden></div>
 <script src="${JS}" defer></script>
-</body>
+${scripts.map((s) => `<script src="${s}" defer></script>\n`).join('')}</body>
 </html>
 `;
 }
@@ -330,9 +333,10 @@ ${videoGroups(videos, true)}
 
 <section class="band">
 <div class="wrap">
-<div class="sec-head"><h2>读经小组</h2></div>
-<p class="lead-p">约上两三个人，定好时间，一起读一卷圣经。到了时间提醒你，读完还能打卡、写心得。</p>
-<a class="btn btn-line" href="/groups/">了解读经小组</a>
+<div class="sec-head"><h2>小组广场</h2><a href="/square/">进入</a></div>
+<p class="lead-p">约上两三个人，定好时间，一起读经、祷告。到了时间提醒你，读完还能打卡、写心得。</p>
+<div class="kind-row">${Object.entries(GROUP_KINDS).map(([k, l]) => `<a class="gtag gtag-${k}" href="/square/?kind=${k}">${l}</a>`).join('')}</div>
+<p class="btn-row"><a class="btn btn-life" href="/square/new/">发起一个小组</a><a class="btn btn-line" href="/square/">看看广场</a></p>
 </div>
 </section>
 </main>`;
@@ -442,22 +446,146 @@ ${others.length ? `<section class="more"><h2>更多${KINDS[v.kind]}</h2><div cla
   });
 }
 
-// Reading groups (phase 2; for now an explainer)
-emit('/groups/', {
-  title: '读经小组',
-  active: '/groups/',
-  body: `<main class="wrap page">
-<h1 class="page-title">读经小组</h1>
-<p class="page-lead">约上两三个人，定好时间，一起读一卷圣经。正在建造中，开放后会在这里通知。</p>
-<ol class="steps">
-<li><strong>发起</strong><span>选一卷圣经，定好每次读经的日子、时间和长度，生成一个邀请链接。</span></li>
-<li><strong>立约</strong><span>朋友打开链接，留下手机号或邮箱，答应一起坚持读下去。也可以加进手机日历。</span></li>
-<li><strong>提醒</strong><span>到了约定的时间，把当天要读的经文发到每个人的手机或邮箱。</span></li>
-<li><strong>打卡</strong><span>读完点一下“读完了”，可以写几句心得、提一个问题，或者录一段语音。</span></li>
-</ol>
-<p class="lead-p">还会有一个读经广场：大家发起的小组都在这里，你也可以申请加入。</p>
+// ---------- plaza and groups (the data comes from /api/*, rendered by static/js/groups.js) ----------
+const KIND_INFO = {
+  read: ['读经小组', '定好一卷圣经，按次往下读。'],
+  pray: ['祷告小组', '定好时间，一起为人为事祷告。'],
+  feed: ['喂养小组', '陪伴新朋友，一起追求、一起成长。'],
+};
+const WEEK_SHORT = ['日', '一', '二', '三', '四', '五', '六'];
+
+emit('/square/', {
+  title: '小组广场',
+  desc: '读经小组、祷告小组、喂养小组：约上几个人，定好时间，一起坚持。',
+  active: '/square/',
+  scripts: [GROUPS_JS],
+  body: `<main class="wrap page" data-page="square">
+<h1 class="page-title">小组广场</h1>
+<p class="page-lead">约上两三个人，定好时间，一起坚持。看到合适的小组可以申请加入，也可以自己发起一个。</p>
+<p class="btn-row"><a class="btn btn-life" href="/square/new/">发起一个小组</a></p>
+<section id="mine" class="mine" hidden><h2 class="sub-h">我的小组</h2><div class="glist" data-mine></div></section>
+<div class="tabs" role="tablist" aria-label="小组类型">
+<button type="button" role="tab" data-kind="" aria-selected="true">全部</button>
+${Object.entries(GROUP_KINDS).map(([k, l]) => `<button type="button" role="tab" data-kind="${k}" aria-selected="false">${l}</button>`).join('')}
+</div>
+<div class="glist" data-plaza aria-live="polite"><p class="muted">正在载入……</p></div>
 </main>`,
 });
+
+const bookOptions = BOOKS.map((b) => `<option value="${b.n}" data-ch="${b.chapters}"${b.n === 43 ? ' selected' : ''}>${b.name}</option>`).join('');
+const tzOptions = Object.entries(TZ_LABELS).map(([tz, label]) => `<option value="${tz}">${label}</option>`).join('');
+const chip = (name, value, label, checked = false, type = 'checkbox') =>
+  `<label class="chip"><input type="${type}" name="${name}" value="${value}"${checked ? ' checked' : ''}><span>${label}</span></label>`;
+
+emit('/square/new/', {
+  title: '发起一个小组',
+  active: '/square/',
+  noindex: true,
+  scripts: [GROUPS_JS],
+  body: `<main class="wrap page" data-page="new">
+<p class="back"><a href="/square/">回到广场</a></p>
+<h1 class="page-title">发起一个小组</h1>
+<p class="page-lead">填好下面几项，会生成一个邀请链接。朋友点开链接、留下称呼和联系方式，就算立约加入了。</p>
+<form class="form" data-new novalidate>
+<fieldset>
+<legend>小组类型</legend>
+<div class="kind-pick">
+${Object.entries(KIND_INFO).map(([k, [l, d]], i) => `<label class="kind-opt"><input type="radio" name="kind" value="${k}"${i ? '' : ' checked'}><span class="gtag gtag-${k}">${l}</span><small>${d}</small></label>`).join('')}
+</div>
+</fieldset>
+
+<fieldset>
+<legend>名称和介绍</legend>
+<label class="field"><span>小组名称</span><input name="title" maxlength="40" required placeholder="例如：一起读约翰福音"></label>
+<label class="field"><span>简单介绍<em>可以不写</em></span><textarea name="intro" maxlength="300" rows="3" placeholder="例如：每次读完分享一两句，不需要什么基础。"></textarea></label>
+</fieldset>
+
+<fieldset data-for="read">
+<legend>读什么</legend>
+<div class="row2">
+<label class="field"><span>书卷</span><select name="book">${bookOptions}</select></label>
+<label class="field"><span>从第几章开始</span><select name="chapter"></select></label>
+</div>
+<label class="field"><span>每次读几章</span><select name="per">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}">${n} 章</option>`).join('')}</select></label>
+<label class="check"><input type="checkbox" name="cont"><span>这一卷读完后，接着读下一卷</span></label>
+</fieldset>
+
+<fieldset data-for="pray feed" hidden>
+<legend>每次的内容</legend>
+<label class="field"><span>内容或材料<em>以后可以随时更新</em></span><textarea name="material" maxlength="300" rows="3" placeholder="例如：为家中还没有信主的亲人祷告"></textarea></label>
+<label class="field"><span>材料链接<em>可以不填</em></span><input name="link" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
+</fieldset>
+
+<fieldset>
+<legend>什么时候</legend>
+<div class="field"><span>每周哪几天</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => chip('days', d, `周${WEEK_SHORT[d]}`)).join('')}</div></div>
+<div class="row2">
+<label class="field"><span>几点开始</span><input name="time" type="time" value="20:00" required></label>
+<label class="field"><span>每次多长</span><select name="minutes">${[15, 20, 30, 45, 60, 90, 120].map((m) => `<option value="${m}"${m === 30 ? ' selected' : ''}>${m < 60 ? `${m} 分钟` : `${m / 60} 小时`.replace('1.5 小时', '1 小时 30 分钟')}</option>`).join('')}</select></label>
+</div>
+<div class="row2">
+<label class="field"><span>从哪天开始</span><input name="startDate" type="date" required></label>
+<label class="field"><span>按哪里的时间</span><select name="tz">${tzOptions}</select></label>
+</div>
+<p class="hint">组员在世界各地都没关系，每个人看到的都是自己手机上的时间。</p>
+</fieldset>
+
+<fieldset>
+<legend>谁能加入</legend>
+<div class="radios">
+<label class="check"><input type="radio" name="visibility" value="public" checked><span>放在广场上，别人可以看到、申请加入</span></label>
+<label class="check"><input type="radio" name="visibility" value="invite"><span>不公开，只有收到邀请链接的人能加入</span></label>
+</div>
+<div class="radios" data-for-public>
+<p class="field-label">广场上的人想加入时</p>
+<label class="check"><input type="radio" name="joinMode" value="approve" checked><span>要我同意</span></label>
+<label class="check"><input type="radio" name="joinMode" value="open"><span>直接加入</span></label>
+</div>
+<label class="field"><span>最多几个人</span><select name="max">${[3, 5, 8, 12, 20, 50].map((n) => `<option value="${n}"${n === 12 ? ' selected' : ''}>${n} 人</option>`).join('')}<option value="">不限</option></select></label>
+</fieldset>
+
+<fieldset>
+<legend>你的信息</legend>
+<label class="field"><span>你的称呼</span><input name="name" maxlength="20" required placeholder="例如：陈弟兄、小李" autocomplete="nickname"></label>
+<label class="field"><span>邮箱或手机号</span><input name="contact" maxlength="120" required placeholder="用来发提醒" autocomplete="email" inputmode="email"></label>
+<p class="hint">联系方式只用来发提醒，任何人都看不到。填邮箱可以收到提醒邮件；手机号的短信提醒以后开通，现在可以先把时间加进手机日历。</p>
+<input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+</fieldset>
+
+<section class="covenant-card" aria-live="polite">
+<h2>小组的约</h2>
+<p data-summary></p>
+<label class="check"><input type="checkbox" name="covenant"><span data-covenant-text>我愿意按上面的约定，坚定持续地和组员一起读经。</span></label>
+</section>
+<p class="form-error" data-error role="alert" hidden></p>
+<button class="btn btn-life btn-block" type="submit">发起小组</button>
+</form>
+</main>`,
+});
+
+write('/g/', page({
+  title: '小组',
+  url: '/g/',
+  active: '/square/',
+  noindex: true,
+  scripts: [GROUPS_JS],
+  body: `<main class="wrap page" data-page="group">
+<div data-group aria-live="polite"><p class="muted">正在载入小组……</p></div>
+</main>`,
+}));
+
+write('/admin/', page({
+  title: '管理',
+  url: '/admin/',
+  noindex: true,
+  scripts: [GROUPS_JS],
+  body: `<main class="wrap page" data-page="admin">
+<h1 class="page-title">管理小组</h1>
+<p class="page-lead">撤下不合适的小组：撤下后广场和小组页面都看不到。</p>
+<form class="form admin-key" data-admin-key><label class="field"><span>管理密码</span><input name="key" type="password" autocomplete="current-password"></label><button class="btn btn-life" type="submit">进入</button></form>
+<div class="glist" data-admin-list></div>
+</main>`,
+}));
 
 // 404
 write('/404', page({

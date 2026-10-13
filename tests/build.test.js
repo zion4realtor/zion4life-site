@@ -19,13 +19,13 @@ test('markdown: verse with source line, lists, Chinese line joins', () => {
 
 test('build output', () => {
   execFileSync('node', ['build.mjs'], { cwd: ROOT });
-  for (const p of ['index.html', 'read/index.html', 'pray/index.html', 'watch/index.html', 'groups/index.html', '404.html', 'sitemap.xml']) {
+  for (const p of ['index.html', 'read/index.html', 'pray/index.html', 'watch/index.html', 'square/index.html', 'square/new/index.html', 'g/index.html', 'admin/index.html', '404.html', 'sitemap.xml']) {
     assert.ok(fs.existsSync(path.join(ROOT, 'dist', p)), p);
   }
   const pray = dist('pray/index.html');
   assert.match(pray, /id="pray-data"/, 'today data for the daily link');
   // Nothing may load from Google or public CDNs: those are blocked or slow in mainland China.
-  for (const f of ['index.html', 'pray/index.html']) {
+  for (const f of ['index.html', 'pray/index.html', 'square/index.html', 'square/new/index.html', 'g/index.html']) {
     assert.doesNotMatch(dist(f), /googleapis|gstatic|jsdelivr|unpkg|cdnjs|google-analytics|googletagmanager/, f);
   }
 });

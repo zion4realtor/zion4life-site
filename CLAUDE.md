@@ -15,8 +15,10 @@ Zion Chen's outreach site (zion4life.faith). Read README.md first.
   first (WeChat-article style reading).
 - Keep the site low-key: life/light framing on the front door, no loud
   religious imagery in titles or the home page.
-- Phase 2 (reading groups: covenant link, phone/email reminders at the agreed
-  time, calendar invite, check-ins with notes/voice, a public 广场) will follow
-  the zion4realtor pattern: `src/worker.js` for `/api/*`, a SQLite-backed
-  Durable Object for state, a cron trigger for reminders, Resend for email.
+- Groups (读经 / 祷告 / 喂养, `/square/`, `/g/<id>`): `src/worker.js` routes
+  `/api/*` to `src/api.js`; state is in the SQLite-backed Durable Object
+  (`src/store.js`); the 5-minute cron sends email reminders via Resend. Never
+  return contacts (email / phone) to any page; check-in notes and member names
+  are for members only. Schedules are in the initiator's time zone and shown in
+  each viewer's own (`src/schedule.js`).
 - Before pushing: `node build.mjs && node --test`. Pushing to `main` deploys.
