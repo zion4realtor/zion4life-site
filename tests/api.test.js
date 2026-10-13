@@ -11,8 +11,9 @@ import worker from '../src/worker.js';
 import { Store } from '../src/store.js';
 import { runReminders } from '../src/api.js';
 import { resetSiteData, parseVideo } from '../src/content.js';
-import { BOOKS, TOTAL_CHAPTERS, chapterLink } from '../src/bible.js';
-import { zonedTime, session, startedCount, sessionState, totalSessions, readingFor, scheduleText, sessionsBetween, icsInvite, vtimezone } from '../src/schedule.js';
+import { BOOKS, TOTAL_CHAPTERS, chapterLink, lifeStudyLink } from '../src/bible.js';
+import { zonedTime, session, startedCount, sessionState, totalSessions, readingFor, scheduleText, planText, sessionLabel, sessionsBetween, icsInvite, vtimezone } from '../src/schedule.js';
+import { KINDS, kindsForPage } from '../src/kinds.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 before(() => { execFileSync('node', ['build.mjs'], { cwd: ROOT }); });
@@ -82,28 +83,45 @@ function groupBody(over = {}) {
   };
 }
 
-test('bible: 66 books, 1,189 chapters, Recovery Version links', () => {
+test('bible: 66 books, 1,189 chapters, Recovery Version and Life-study links', () => {
   assert.equal(BOOKS.length, 66);
   assert.equal(TOTAL_CHAPTERS, 1189);
-  assert.equal(chapterLink(43, 3, 'en'), 'https://text.recoveryversion.bible/43_John_3.htm');
-  assert.equal(chapterLink(22, 2, 'en'), 'https://text.recoveryversion.bible/22_SongofSongs_2.htm');
-  assert.equal(chapterLink(43, 3, 'zh'), null, 'Chinese link not set yet');
+  // the addresses Zion gave, for John 3 and Life-study of John message 3
+  assert.equal(chapterLink(43, 3, 'en'), 'https://bibleread.online/bible/the-gospel-according-to-john/3/');
+  assert.equal(chapterLink(43, 3, 'zh'), 'https://recoveryversion.com.tw/verse/43/3?verse=1');
+  assert.equal(lifeStudyLink(43, 3, 'en'), 'https://bibleread.online/life-study-of-the-bible/life-study-of-john/3/');
+  assert.equal(lifeStudyLink(43, 3, 'zh'), null, 'no Chinese Life-study address yet');
+  assert.equal(chapterLink(9, 1, 'en'), 'https://bibleread.online/bible/first-samuel/1/');
+  assert.equal(chapterLink(22, 2, 'en'), 'https://bibleread.online/bible/song-of-songs/2/');
+  assert.equal(chapterLink(57, 1, 'en'), 'https://bibleread.online/bible/the-epistle-of-paul-to-philemon/1/');
+  assert.equal(chapterLink(66, 22, 'en'), 'https://bibleread.online/bible/revelation/22/');
+  assert.equal(lifeStudyLink(46, 1, 'en'), 'https://bibleread.online/life-study-of-the-bible/life-study-of-1-corinthians/1/');
+  assert.equal(new Set(BOOKS.map((b) => b.slug)).size, 66);
 });
 
-test('schedule: sessions, time zones, the four kinds of reading', () => {
+test('schedule: sessions, time zones, the kinds of reading', () => {
   const g = { id: 'abcdefgh', kind: 'bible', lang: 'zh', days: [2, 4], time: '20:00', minutes: 30, tz: 'Asia/Shanghai', startDate: '2026-10-13', plan: { book: 43, chapter: 1, per: 1, cont: false } };
   assert.equal(new Date(zonedTime('2026-10-13', '20:00', 'Asia/Shanghai')).toISOString(), '2026-10-13T12:00:00.000Z');
   assert.equal(new Date(zonedTime('2026-11-02', '20:00', 'America/New_York')).toISOString(), '2026-11-03T01:00:00.000Z');
   assert.equal(session(g, 3).date, '2026-10-20');
   assert.equal(readingFor(g, 3).text, '约翰福音 第3章');
   assert.equal(readingFor({ ...g, lang: 'en' }, 3).text, 'John 3');
-  assert.equal(readingFor({ ...g, lang: 'en' }, 3).url, 'https://text.recoveryversion.bible/43_John_3.htm');
+  assert.equal(readingFor({ ...g, lang: 'en' }, 3).links[0].url, 'https://bibleread.online/bible/the-gospel-according-to-john/3/');
+  assert.equal(readingFor(g, 3).links[0].url, 'https://recoveryversion.com.tw/verse/43/3?verse=1');
   assert.equal(totalSessions(g), 21);
   assert.equal(startedCount(g, Date.parse('2026-10-21T00:00:00Z')), 3);
   assert.equal(sessionState(g, Date.parse('2026-10-13T12:10:00Z')).current.n, 1);
-  assert.equal(scheduleText(g, 'en'), 'Every Tue, Thu at 20:00 (Beijing time), 30 min each');
+  // shown in each reader's own time zone: 20:00 in Beijing is 08:00 the same day in New York
+  const at = Date.parse('2026-10-14T00:00:00Z');
+  assert.equal(scheduleText(g, 'en', 'Asia/Shanghai', at), 'Every Tue, Thu at 20:00, 30 min each (Beijing time)');
+  assert.equal(scheduleText(g, 'zh', 'America/New_York', at), '每周二、四 08:00，每次30分钟（美东时间）');
+  assert.equal(scheduleText({ ...g, time: '09:00', tz: 'America/New_York' }, 'zh', 'Asia/Shanghai', at), '每周二、四 21:00，每次30分钟（北京时间）');
+  assert.equal(scheduleText({ ...g, time: '21:00', tz: 'America/New_York' }, 'zh', 'Asia/Shanghai', at), '每周三、五 09:00，每次30分钟（北京时间）', 'the day moves too');
+  assert.equal(sessionLabel(g, session(g, 1), 'en', 'America/New_York'), 'Tue, Oct 13, 08:00 US Eastern');
+  assert.equal(planText(g, 'zh'), '从约翰福音第1章开始，每次1章，共21次读完');
+  assert.equal(planText(g, 'en'), 'John from chapter 1, 1 chapter each time, 21 times in all');
   const pray = { ...g, kind: 'pray', plan: {} };
-  assert.equal(readingFor(pray, 2).date, '2026-10-15');
+  assert.equal(readingFor(pray, 2).huxi, '2026-10-15');
   assert.equal(readingFor(pray, 2).text, '10月15日的呼吸');
   assert.equal(totalSessions(pray), null);
   const feed = { ...g, kind: 'feed', plan: { lesson: 2 } };
@@ -111,7 +129,29 @@ test('schedule: sessions, time zones, the four kinds of reading', () => {
   assert.equal(readingFor(feed, 1, { feed: { 2: { zh: '第二课', en: 'Two' } } }).text, '第2课：第二课');
   const life = { ...g, kind: 'life', lang: 'en', plan: { book: 43, msg: 5, per: 2, link: 'https://example.org/ls/{n}' } };
   assert.equal(readingFor(life, 2).text, 'Life-study of John, messages 7–8');
-  assert.equal(readingFor(life, 2).url, 'https://example.org/ls/7');
+  assert.deepEqual(readingFor(life, 2).links.map((l) => l.url), ['https://example.org/ls/7', 'https://example.org/ls/8']);
+  const lifeAuto = { ...life, plan: { ...life.plan, link: '' } };
+  assert.equal(readingFor(lifeAuto, 1).links[0].url, 'https://bibleread.online/life-study-of-the-bible/life-study-of-john/5/');
+  assert.equal(readingFor({ ...lifeAuto, lang: 'zh' }, 1).links[0].url, null);
+  // 晨兴: weeks of six days
+  const morning = { ...g, kind: 'morning', plan: { set: '2026年秋季训练', weeks: 12, week: 1, day: 1, per: 1, link: '' } };
+  assert.equal(totalSessions(morning), 72);
+  assert.equal(readingFor(morning, 1).text, '第1周 周一');
+  assert.equal(readingFor(morning, 7).text, '第2周 周一');
+  assert.equal(readingFor({ ...morning, lang: 'en' }, 72).text, 'Week 12, Day 6');
+  const m3 = { ...morning, plan: { ...morning.plan, day: 5, per: 3 } };
+  assert.equal(readingFor(m3, 1).text, '第1周周五至第2周周一');
+  assert.equal(readingFor({ ...m3, lang: 'en' }, 2).text, 'Week 2, Days 2–4');
+  assert.equal(planText(morning, 'zh'), '《2026年秋季训练》，从第1周周一开始，每次1天，共72次读完');
+  assert.equal(planText({ ...morning, plan: { ...morning.plan, set: '' } }, 'en'), 'From week 1, Day 1; 1 day each time, 72 times in all');
+  assert.equal(readingFor({ ...morning, plan: { ...morning.plan, link: 'https://example.org/mr/{w}/{d}' } }, 8).links[0].url, 'https://example.org/mr/2/2');
+  // every kind is complete: names, form fields, a summary, the functions
+  for (const [key, k] of Object.entries(KINDS)) {
+    for (const x of ['zh', 'en', 'tint', 'icon']) assert.ok(k[x], `${key}.${x}`);
+    for (const x of ['what', 'verb', 'about', 'summary']) assert.ok(k[x].zh && k[x].en, `${key}.${x}`);
+    for (const x of ['plan', 'total', 'reading']) assert.equal(typeof k[x], 'function', `${key}.${x}`);
+  }
+  assert.ok(kindsForPage('zh').morning.fields.length >= 5);
   assert.deepEqual(sessionsBetween(g, Date.parse('2026-10-13T00:00:00Z'), Date.parse('2026-10-16T00:00:00Z')).map((s) => s.n), [1, 2]);
 });
 
@@ -263,6 +303,7 @@ test('搭子: create, plaza, open join with a signature, invite-only, hidden, de
   // the group page shell carries the name for link previews
   const shell = await call(`/g/${id}`);
   assert.match(shell.body, /<title>一起读约翰福音｜老陈邀请你加入饭搭子<\/title>/);
+  assert.match(shell.body, /<meta name="description" content="从约翰福音第1章开始，每次1章，共21次读完 · 每次30分钟">/, 'no clock times in the preview');
   const enShell = await call(`/en/g/${id}`);
   assert.match(enShell.body, /Meal buddies/);
   // my groups
@@ -281,8 +322,10 @@ test('搭子: check-ins, make-ups, notes, bookmarks, the initiator’s table, th
   assert.equal(s1.body.open, true);
   const late = await call(`/api/dazi/${id}/s/1`, { body: { done: true, note: '第一课的心得', marks: ['b0', 'b2'] }, cookie: sam });
   assert.equal(late.body.late, true, 'checked in days later: a make-up');
-  const now = startedCount({ ...(await call(`/api/dazi/${id}`, { cookie: sam })).body.group }, Date.now());
-  assert.ok(now >= 3);
+  const page = (await call(`/api/dazi/${id}`, { cookie: sam })).body;
+  assert.ok(page.checkMax >= 3);
+  assert.equal(page.group.week.length, 3, 'start times for the page to show in local time (a week, or what is left of a 3-lesson plan)');
+  assert.equal(page.group.tz, undefined, 'pages get instants, not the initiator’s zone');
   const back = await call(`/api/dazi/${id}/s/1`, { cookie: sam });
   assert.deepEqual(back.body.mine.marks, ['b0', 'b2']);
   assert.equal(back.body.others.find((o) => o.me).note, '第一课的心得');
@@ -330,6 +373,9 @@ test('validation', async () => {
   await bad({ plan: { book: 43, chapter: 30, per: 1 } }, '约翰福音一共21章');
   await bad({ venue: { type: 'fax' } }, '请选在哪里见面');
   await bad({ kind: 'feed', plan: { lesson: 9 } }, '一共3课');
+  await bad({ kind: 'morning', plan: { weeks: 6, week: 7, day: 1, per: 1 } }, '这一本一共6周');
+  await bad({ kind: 'morning', plan: { weeks: 12, week: 1, day: 1, per: 1, link: 'http://x' } }, '网址要以 https:// 开头');
+  await bad({ kind: 'nope' }, '请选一种搭子');
   assert.equal((await call('/api/dazi', { body: groupBody() })).status, 401);
   const en = await call('/api/dazi', { body: groupBody({ days: [] }), cookie: owner, lang: 'en' });
   assert.equal(en.body.error, 'Pick the days of the week');

@@ -4,6 +4,7 @@
 import { json, fail, str, isEmail, randomId, randomToken, randomDigits, hash, readBody, rateOk, tr } from './util.js';
 import { sendMail, mailReady, layout } from './mail.js';
 import { publicUser } from './store.js';
+import { validTimeZone } from './schedule.js';
 
 const COOKIE = 'yg_s';
 const YEAR = 365 * 86400000;
@@ -11,6 +12,8 @@ export const IDENTITIES = {
   seeker: ['慕道朋友', 'Seeker'], newfriend: ['新朋友', 'New friend'], student: ['学生', 'Student'], working: ['上班族', 'Working'],
   parent: ['家长', 'Parent'], brother: ['弟兄', 'Brother'], sister: ['姊妹', 'Sister'], serving: ['服事者', 'Serving'], teacher: ['教师', 'Teacher'],
 };
+// The phone's time zone, as the page reports it ('' when missing or unknown).
+const cleanTz = (v) => { const tz = str(v, 64); return tz && validTimeZone(tz) ? tz : ''; };
 const cleanIds = (v) => (Array.isArray(v) ? [...new Set(v.filter((x) => Object.hasOwn(IDENTITIES, x)))] : []);
 export const cleanName = (v) => str(v, 20).replace(/[<>]/g, '');
 
@@ -44,7 +47,7 @@ export async function meView(env, db, user) {
   const tags = await db('mgrTags', { uid: user.id });
   const claims = await db('claimMine', { uid: user.id });
   return {
-    user: { ...publicUser(user), ids: user.ids, idsPublic: user.idsPublic, lang: user.lang, email: maskEmail(user.email), cal: user.cal },
+    user: { ...publicUser(user), ids: user.ids, idsPublic: user.idsPublic, lang: user.lang, email: maskEmail(user.email), cal: user.cal, tz: user.tz },
     admin: isAdmin(env, user),
     manages: tags,
     claims,
@@ -112,7 +115,9 @@ export async function handleAuth(request, env, db, url, now, lang) {
       }[r.reason]);
     }
     if (!user) {
-      user = await db('userCreate', { id: randomId(10), email, name, ids: cleanIds(b.ids), idsPublic: !!b.idsPublic, lang, cal: randomToken(18), now });
+      user = await db('userCreate', { id: randomId(10), email, name, ids: cleanIds(b.ids), idsPublic: !!b.idsPublic, lang, cal: randomToken(18), tz: cleanTz(b.tz), now });
+    } else if (cleanTz(b.tz) && cleanTz(b.tz) !== user.tz) {
+      user = await db('userUpdate', { id: user.id, tz: cleanTz(b.tz) });
     }
     const token = randomToken();
     await db('sessionPut', { token: await hash(token), uid: user.id, expires: now + YEAR, now });
@@ -125,7 +130,7 @@ export async function handleAuth(request, env, db, url, now, lang) {
     return json({ ok: true }, 200, { 'Set-Cookie': setCookie(url, 'x'.repeat(20), 0) });
   }
 
-  // Profile: nickname, identity tags and whether others see them, email language.
+  // Profile: nickname, identity tags and whether others see them, email language, time zone.
   if (p === '/api/me') {
     const user = await currentUser(db, request);
     if (!user) return fail(t('请先登录', 'Please sign in first'), 401);
@@ -138,6 +143,7 @@ export async function handleAuth(request, env, db, url, now, lang) {
     if (b.ids !== undefined) upd.ids = cleanIds(b.ids);
     if (b.idsPublic !== undefined) upd.idsPublic = !!b.idsPublic;
     if (b.lang === 'zh' || b.lang === 'en') upd.lang = b.lang;
+    if (cleanTz(b.tz)) upd.tz = cleanTz(b.tz);
     const u = await db('userUpdate', upd);
     return json({ ok: true, ...(await meView(env, db, u)) });
   }

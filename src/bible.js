@@ -1,40 +1,51 @@
-// The 66 books: Chinese name, short name, English name, Recovery Version URL name, chapter count.
-// 1,189 chapters in all. Shared by the Worker, build.mjs and (through /data/bible.json) the pages.
+// The 66 books: Chinese name, short name, English name, chapter count, and the book's name in
+// bibleread.online's Bible addresses. 1,189 chapters in all. Shared by the Worker, build.mjs
+// and (through /data/bible.json) the pages.
+const NT = (s) => `the-${s}`;
 export const BOOKS = [
-  ['创世记', '创', 'Genesis', 'Genesis', 50], ['出埃及记', '出', 'Exodus', 'Exodus', 40], ['利未记', '利', 'Leviticus', 'Leviticus', 27],
-  ['民数记', '民', 'Numbers', 'Numbers', 36], ['申命记', '申', 'Deuteronomy', 'Deuteronomy', 34], ['约书亚记', '书', 'Joshua', 'Joshua', 24],
-  ['士师记', '士', 'Judges', 'Judges', 21], ['路得记', '得', 'Ruth', 'Ruth', 4], ['撒母耳记上', '撒上', '1 Samuel', '1Samuel', 31],
-  ['撒母耳记下', '撒下', '2 Samuel', '2Samuel', 24], ['列王纪上', '王上', '1 Kings', '1Kings', 22], ['列王纪下', '王下', '2 Kings', '2Kings', 25],
-  ['历代志上', '代上', '1 Chronicles', '1Chronicles', 29], ['历代志下', '代下', '2 Chronicles', '2Chronicles', 36], ['以斯拉记', '拉', 'Ezra', 'Ezra', 10],
-  ['尼希米记', '尼', 'Nehemiah', 'Nehemiah', 13], ['以斯帖记', '斯', 'Esther', 'Esther', 10], ['约伯记', '伯', 'Job', 'Job', 42],
-  ['诗篇', '诗', 'Psalms', 'Psalms', 150], ['箴言', '箴', 'Proverbs', 'Proverbs', 31], ['传道书', '传', 'Ecclesiastes', 'Ecclesiastes', 12],
-  ['雅歌', '歌', 'Song of Songs', 'SongofSongs', 8], ['以赛亚书', '赛', 'Isaiah', 'Isaiah', 66], ['耶利米书', '耶', 'Jeremiah', 'Jeremiah', 52],
-  ['耶利米哀歌', '哀', 'Lamentations', 'Lamentations', 5], ['以西结书', '结', 'Ezekiel', 'Ezekiel', 48], ['但以理书', '但', 'Daniel', 'Daniel', 12],
-  ['何西阿书', '何', 'Hosea', 'Hosea', 14], ['约珥书', '珥', 'Joel', 'Joel', 3], ['阿摩司书', '摩', 'Amos', 'Amos', 9],
-  ['俄巴底亚书', '俄', 'Obadiah', 'Obadiah', 1], ['约拿书', '拿', 'Jonah', 'Jonah', 4], ['弥迦书', '弥', 'Micah', 'Micah', 7],
-  ['那鸿书', '鸿', 'Nahum', 'Nahum', 3], ['哈巴谷书', '哈', 'Habakkuk', 'Habakkuk', 3], ['西番雅书', '番', 'Zephaniah', 'Zephaniah', 3],
-  ['哈该书', '该', 'Haggai', 'Haggai', 2], ['撒迦利亚书', '亚', 'Zechariah', 'Zechariah', 14], ['玛拉基书', '玛', 'Malachi', 'Malachi', 4],
-  ['马太福音', '太', 'Matthew', 'Matthew', 28], ['马可福音', '可', 'Mark', 'Mark', 16], ['路加福音', '路', 'Luke', 'Luke', 24],
-  ['约翰福音', '约', 'John', 'John', 21], ['使徒行传', '徒', 'Acts', 'Acts', 28], ['罗马书', '罗', 'Romans', 'Romans', 16],
-  ['哥林多前书', '林前', '1 Corinthians', '1Corinthians', 16], ['哥林多后书', '林后', '2 Corinthians', '2Corinthians', 13],
-  ['加拉太书', '加', 'Galatians', 'Galatians', 6], ['以弗所书', '弗', 'Ephesians', 'Ephesians', 6], ['腓立比书', '腓', 'Philippians', 'Philippians', 4],
-  ['歌罗西书', '西', 'Colossians', 'Colossians', 4], ['帖撒罗尼迦前书', '帖前', '1 Thessalonians', '1Thessalonians', 5],
-  ['帖撒罗尼迦后书', '帖后', '2 Thessalonians', '2Thessalonians', 3], ['提摩太前书', '提前', '1 Timothy', '1Timothy', 6],
-  ['提摩太后书', '提后', '2 Timothy', '2Timothy', 4], ['提多书', '多', 'Titus', 'Titus', 3], ['腓利门书', '门', 'Philemon', 'Philemon', 1],
-  ['希伯来书', '来', 'Hebrews', 'Hebrews', 13], ['雅各书', '雅', 'James', 'James', 5], ['彼得前书', '彼前', '1 Peter', '1Peter', 5],
-  ['彼得后书', '彼后', '2 Peter', '2Peter', 3], ['约翰一书', '约壹', '1 John', '1John', 5], ['约翰二书', '约贰', '2 John', '2John', 1],
-  ['约翰三书', '约叁', '3 John', '3John', 1], ['犹大书', '犹', 'Jude', 'Jude', 1], ['启示录', '启', 'Revelation', 'Revelation', 22],
-].map(([zh, short, en, rcv, chapters], i) => ({ n: i + 1, zh, short, en, rcv, chapters, name: zh }));
+  ['创世记', '创', 'Genesis', 50, 'genesis'], ['出埃及记', '出', 'Exodus', 40, 'exodus'], ['利未记', '利', 'Leviticus', 27, 'leviticus'],
+  ['民数记', '民', 'Numbers', 36, 'numbers'], ['申命记', '申', 'Deuteronomy', 34, 'deuteronomy'], ['约书亚记', '书', 'Joshua', 24, 'joshua'],
+  ['士师记', '士', 'Judges', 21, 'judges'], ['路得记', '得', 'Ruth', 4, 'ruth'], ['撒母耳记上', '撒上', '1 Samuel', 31, 'first-samuel'],
+  ['撒母耳记下', '撒下', '2 Samuel', 24, 'second-samuel'], ['列王纪上', '王上', '1 Kings', 22, 'first-kings'], ['列王纪下', '王下', '2 Kings', 25, 'second-kings'],
+  ['历代志上', '代上', '1 Chronicles', 29, 'first-chronicles'], ['历代志下', '代下', '2 Chronicles', 36, 'second-chronicles'], ['以斯拉记', '拉', 'Ezra', 10, 'ezra'],
+  ['尼希米记', '尼', 'Nehemiah', 13, 'nehemiah'], ['以斯帖记', '斯', 'Esther', 10, 'esther'], ['约伯记', '伯', 'Job', 42, 'job'],
+  ['诗篇', '诗', 'Psalms', 150, 'psalms'], ['箴言', '箴', 'Proverbs', 31, 'proverbs'], ['传道书', '传', 'Ecclesiastes', 12, 'ecclesiastes'],
+  ['雅歌', '歌', 'Song of Songs', 8, 'song-of-songs'], ['以赛亚书', '赛', 'Isaiah', 66, 'isaiah'], ['耶利米书', '耶', 'Jeremiah', 52, 'jeremiah'],
+  ['耶利米哀歌', '哀', 'Lamentations', 5, 'lamentations'], ['以西结书', '结', 'Ezekiel', 48, 'ezekiel'], ['但以理书', '但', 'Daniel', 12, 'daniel'],
+  ['何西阿书', '何', 'Hosea', 14, 'hosea'], ['约珥书', '珥', 'Joel', 3, 'joel'], ['阿摩司书', '摩', 'Amos', 9, 'amos'],
+  ['俄巴底亚书', '俄', 'Obadiah', 1, 'obadiah'], ['约拿书', '拿', 'Jonah', 4, 'jonah'], ['弥迦书', '弥', 'Micah', 7, 'micah'],
+  ['那鸿书', '鸿', 'Nahum', 3, 'nahum'], ['哈巴谷书', '哈', 'Habakkuk', 3, 'habakkuk'], ['西番雅书', '番', 'Zephaniah', 3, 'zephaniah'],
+  ['哈该书', '该', 'Haggai', 2, 'haggai'], ['撒迦利亚书', '亚', 'Zechariah', 14, 'zechariah'], ['玛拉基书', '玛', 'Malachi', 4, 'malachi'],
+  ['马太福音', '太', 'Matthew', 28, NT('gospel-according-to-matthew')], ['马可福音', '可', 'Mark', 16, NT('gospel-according-to-mark')],
+  ['路加福音', '路', 'Luke', 24, NT('gospel-according-to-luke')], ['约翰福音', '约', 'John', 21, NT('gospel-according-to-john')],
+  ['使徒行传', '徒', 'Acts', 28, NT('acts-of-the-apostles')], ['罗马书', '罗', 'Romans', 16, NT('epistle-of-paul-to-the-romans')],
+  ['哥林多前书', '林前', '1 Corinthians', 16, NT('first-epistle-of-paul-to-the-corinthians')],
+  ['哥林多后书', '林后', '2 Corinthians', 13, NT('second-epistle-of-paul-to-the-corinthians')],
+  ['加拉太书', '加', 'Galatians', 6, NT('epistle-of-paul-to-the-galatians')], ['以弗所书', '弗', 'Ephesians', 6, NT('epistle-of-paul-to-the-ephesians')],
+  ['腓立比书', '腓', 'Philippians', 4, NT('epistle-of-paul-to-the-philippians')], ['歌罗西书', '西', 'Colossians', 4, NT('epistle-of-paul-to-the-colossians')],
+  ['帖撒罗尼迦前书', '帖前', '1 Thessalonians', 5, NT('first-epistle-of-paul-to-the-thessalonians')],
+  ['帖撒罗尼迦后书', '帖后', '2 Thessalonians', 3, NT('second-epistle-of-paul-to-the-thessalonians')],
+  ['提摩太前书', '提前', '1 Timothy', 6, NT('first-epistle-of-paul-to-timothy')], ['提摩太后书', '提后', '2 Timothy', 4, NT('second-epistle-of-paul-to-timothy')],
+  ['提多书', '多', 'Titus', 3, NT('epistle-of-paul-to-titus')], ['腓利门书', '门', 'Philemon', 1, NT('epistle-of-paul-to-philemon')],
+  ['希伯来书', '来', 'Hebrews', 13, NT('epistle-to-the-hebrews')], ['雅各书', '雅', 'James', 5, NT('epistle-of-james')],
+  ['彼得前书', '彼前', '1 Peter', 5, NT('first-epistle-of-peter')], ['彼得后书', '彼后', '2 Peter', 3, NT('second-epistle-of-peter')],
+  ['约翰一书', '约壹', '1 John', 5, NT('first-epistle-of-john')], ['约翰二书', '约贰', '2 John', 1, NT('second-epistle-of-john')],
+  ['约翰三书', '约叁', '3 John', 1, NT('third-epistle-of-john')], ['犹大书', '犹', 'Jude', 1, NT('epistle-of-jude')], ['启示录', '启', 'Revelation', 22, 'revelation'],
+].map(([zh, short, en, chapters, slug], i) => ({ n: i + 1, zh, short, en, chapters, slug, ls: en.toLowerCase().replace(/ /g, '-'), name: zh }));
 
 export const TOTAL_CHAPTERS = BOOKS.reduce((s, b) => s + b.chapters, 0);
 
-// Where each chapter is read online, by language. The Recovery Version is copyrighted
-// (Living Stream Ministry), so the site links to it and never hosts the text.
-// English: Living Stream Ministry's own online Recovery Version.
-// Chinese: set when Zion sends the address he uses. Placeholders: {n} book number (1–66),
-// {nn} two-digit book number, {rcv} English URL name, {c} chapter.
+// Where the Recovery Version is read online, by language. The Recovery Version and the
+// Life-studies are copyrighted (Living Stream Ministry), so the site links to them and never
+// hosts the text. Placeholders: {n} book number (1–66), {slug} bibleread.online's Bible name
+// for the book, {ls} its Life-study name, {c} chapter, {m} Life-study message.
 export const BIBLE_LINKS = {
-  en: 'https://text.recoveryversion.bible/{nn}_{rcv}_{c}.htm',
+  en: 'https://bibleread.online/bible/{slug}/{c}/',
+  zh: 'https://recoveryversion.com.tw/verse/{n}/{c}?verse=1',
+};
+// Chinese Life-study: none yet (the initiator can paste one). Set it when Zion sends one.
+export const LIFE_STUDY_LINKS = {
+  en: 'https://bibleread.online/life-study-of-the-bible/life-study-of-{ls}/{m}/',
   zh: '',
 };
 
@@ -50,11 +61,16 @@ export function chapterAt(index) {
   while (START[b] > index) b--;
   return { book: b + 1, chapter: index - START[b] + 1 };
 }
-export function chapterLink(book, chapter, lang = 'zh') {
-  const tpl = BIBLE_LINKS[lang];
-  if (!tpl) return null;
+const fill = (tpl, book, extra) => {
   const b = BOOKS[book - 1];
-  return tpl.replace('{nn}', String(book).padStart(2, '0')).replace('{n}', String(book)).replace('{rcv}', b.rcv).replace('{c}', String(chapter));
+  return Object.entries({ n: book, slug: b.slug, ls: b.ls, ...extra }).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, String(v)), tpl);
+};
+export function chapterLink(book, chapter, lang = 'zh') {
+  return BIBLE_LINKS[lang] ? fill(BIBLE_LINKS[lang], book, { c: chapter }) : null;
+}
+// A Life-study message online, or null when there is no address for this language.
+export function lifeStudyLink(book, message, lang = 'zh') {
+  return LIFE_STUDY_LINKS[lang] ? fill(LIFE_STUDY_LINKS[lang], book, { m: message }) : null;
 }
 export const bookName = (book, lang) => (lang === 'en' ? BOOKS[book - 1].en : BOOKS[book - 1].zh);
 // "约翰福音 第3章", "约翰福音 第3–4章", "约翰福音 第21章、使徒行传 第1章" / "John 3", "John 3–4", "John 21; Acts 1"

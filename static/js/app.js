@@ -54,7 +54,10 @@
     else fallback();
   }
   const fmtDate = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { month: 'short', day: 'numeric' });
-  const fmtClock = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const fmtClock = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  // this phone's time zone: the site shows every time in it, and emails use it too
+  let phoneTz = '';
+  try { phoneTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* ignore */ }
   const dayKey = (ms) => new Date(ms).toDateString();
   function ago(ms) {
     const s = (Date.now() - ms) / 1000;
@@ -72,7 +75,11 @@
   // ---------- who is signed in ----------
   let mePromise = null;
   function me(fresh) {
-    if (!mePromise || fresh) mePromise = api('/api/me');
+    if (!mePromise || fresh) {
+      mePromise = api('/api/me');
+      // keep the account's time zone in step with the phone (people travel)
+      mePromise.then((m) => { if (m.user && phoneTz && m.user.tz !== phoneTz) api('/api/me', { body: { tz: phoneTz } }); });
+    }
     return mePromise;
   }
 
@@ -161,7 +168,7 @@
         const r = await api('/api/auth/verify', {
           body: {
             email, code: fCode.code.value, name: fCode.name.value,
-            ids: $$('[data-id][aria-pressed="true"]', fCode).map((b) => b.getAttribute('data-id')), idsPublic: fCode.idsPublic.checked,
+            ids: $$('[data-id][aria-pressed="true"]', fCode).map((b) => b.getAttribute('data-id')), idsPublic: fCode.idsPublic.checked, tz: phoneTz,
           },
         });
         btn.disabled = false;

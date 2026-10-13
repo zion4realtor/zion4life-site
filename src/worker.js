@@ -7,7 +7,7 @@
 import { handleApi, runReminders } from './api.js';
 import { store } from './store.js';
 import { siteData } from './content.js';
-import { scheduleText, sessionState, KINDS } from './schedule.js';
+import { planText, minutesText, sessionState, KINDS } from './schedule.js';
 import { esc, md, plain } from './md.js';
 
 export { Store } from './store.js';
@@ -72,7 +72,10 @@ async function groupPage(request, env, url, lang, id, n) {
       const owner = g.members.find((x) => x.role === 'owner')?.name || '';
       const kind = KINDS[g.kind][lang];
       const title = lang === 'en' ? `${g.title} · ${owner ? `${owner} invites you: ` : ''}${kind}` : `${g.title}｜${owner ? `${owner}邀请你加入` : ''}${kind}`;
-      html = fill(html, { title, desc: scheduleText(g, lang), canonical: `https://zion4life.faith${pre}/g/${id}` });
+      // no clock times here: the preview cannot know the reader's time zone; the page shows them
+      const data = await siteData(env, url);
+      const desc = `${planText(g, lang, data)} · ${lang === 'en' ? `${minutesText(g.minutes, 'en')} each time` : `每次${minutesText(g.minutes, 'zh')}`}`;
+      html = fill(html, { title, desc, canonical: `https://zion4life.faith${pre}/g/${id}` });
     }
   } catch (e) {
     console.error('[group page]', e?.stack || e);

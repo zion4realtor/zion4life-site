@@ -5,7 +5,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { BOOKS } from './src/bible.js';
-import { TZ_LABELS, KINDS as GROUP_KINDS, VENUES } from './src/schedule.js';
+import { VENUES } from './src/schedule.js';
+import { KINDS as GROUP_KINDS, kindsForPage } from './src/kinds.js';
 import { esc, md, plain, readMinutes } from './src/md.js';
 import { IDENTITIES } from './src/auth.js';
 
@@ -489,16 +490,11 @@ for (const p of huxi) writeData(`huxi/${p.date}.json`, { date: p.date, sample: p
 const DZ = {
   zh: {
     plazaH: '搭子广场', count: '此刻，广场上有 {n} 组搭子', all: '全部', mine: '我的搭子', fab: '发起一个搭子',
-    kinds: { bible: '按章读圣经（恢复本）', pray: '每次一起读当天的呼吸', feed: '陪新朋友，一课一课往下走', life: '一篇一篇细读生命读经' },
     newLead: '填好下面几项，签个名，就会得到一个邀请链接。',
     s1: '一起读什么', s2: '材料用哪种语言', s3: '从哪里开始', s4: '名字和介绍', s5: '什么时候', s6: '在哪里见面', s7: '谁能加入', s8: '立约',
-    book: '书卷', chapter: '从第几章开始', per: '每次读几章', cont: '这一卷读完后，接着读下一卷',
-    lesson: '从第几课开始', lsBook: '哪一卷的生命读经', msg: '从第几篇开始', perMsg: '每次读几篇',
-    lsLink: '生命读经的网址', lsLinkHint: '打开你常用的生命读经网站，进到这一卷，把地址栏的链接贴在这里。每次的篇数会写在提醒里。',
-    prayNote: '每次见面，系统会推送当天的呼吸，大家一起读、一起呼吸。', feedNote: '每次一课，读完可以做书签、写心得、打卡。',
     name: '搭子名字', namePh: '例如：周二晚上一起读约翰福音', intro: '简单介绍', introPh: '例如：每次读完说一两句，不需要什么基础。', optional: '可以不写',
-    days: '每周哪几天', time: '几点开始', minutes: '每次多长', start: '从哪天开始', tz: '按哪里的时间',
-    tzHint: '搭子在世界各地都没关系，每个人看到的都是自己手机上的时间。',
+    days: '每周哪几天', time: '几点开始', minutes: '每次多长', start: '从哪天开始',
+    tzHint: '按你手机上的时间填。搭子在世界各地都没关系：别人打开邀请链接，看到的会自动换成他自己手机上的时间。',
     venueInfo: '号码、会议链接或微信号', venueHint: '只有立约的组员能看到。到时间了大家自己打电话、开会，网站把要读的材料送到每个人手机上。',
     vis: { public: '公开：放在广场上，大家都能看到', hidden: '隐藏：广场上看不到，只能用邀请链接加入' },
     join: { open: '注册过的会员可以直接加入', invite: '只能用我发的邀请链接加入' },
@@ -509,16 +505,11 @@ const DZ = {
   },
   en: {
     plazaH: 'Buddies plaza', count: '{n} buddy groups on the plaza right now', all: 'All', mine: 'My buddy groups', fab: 'Start a buddy group',
-    kinds: { bible: 'Read the Bible chapter by chapter (Recovery Version)', pray: 'Read the day’s Breathe together each time', feed: 'Walk with new friends, one lesson at a time', life: 'Read the Life-study slowly, message by message' },
     newLead: 'Fill in the few things below, sign, and you get an invite link.',
     s1: 'What to read together', s2: 'Language of the reading', s3: 'Where to start', s4: 'Name and a few words', s5: 'When', s6: 'Where you meet', s7: 'Who can join', s8: 'Covenant',
-    book: 'Book', chapter: 'Start at chapter', per: 'Chapters each time', cont: 'When this book is done, go on to the next',
-    lesson: 'Start at lesson', lsBook: 'Life-study of which book', msg: 'Start at message', perMsg: 'Messages each time',
-    lsLink: 'Life-study link', lsLinkHint: 'Open the Life-study site you use, go to this book and paste the address here. Each reminder says which messages to read.',
-    prayNote: 'Each time you meet, the site sends the day’s Breathe, and you read and breathe together.', feedNote: 'One lesson each time. Bookmark, write notes and check in when you finish.',
     name: 'Group name', namePh: 'e.g. Reading John on Tuesday nights', intro: 'A few words', introPh: 'e.g. A sentence or two after each reading. No background needed.', optional: 'optional',
-    days: 'Days of the week', time: 'Start time', minutes: 'How long', start: 'Start date', tz: 'Time zone',
-    tzHint: 'Buddies can be anywhere in the world. Everyone sees times in their own phone’s time zone.',
+    days: 'Days of the week', time: 'Start time', minutes: 'How long', start: 'Start date',
+    tzHint: 'Use the time on your phone. Buddies can be anywhere: whoever opens the invite link sees the times in their own phone’s time zone.',
     venueInfo: 'Number, meeting link or WeChat ID', venueHint: 'Only members who joined can see it. You call or meet as usual; the site sends the reading to everyone’s phone.',
     vis: { public: 'Public: on the plaza for everyone to see', hidden: 'Hidden: not on the plaza, invite link only' },
     join: { open: 'Signed-up members can join directly', invite: 'Only people I send the invite link to' },
@@ -528,12 +519,6 @@ const DZ = {
     groupT: 'Buddies', sessionT: 'This time',
   },
 };
-const KIND_ICON = {
-  bible: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 12h17a8.5 7.5 0 0 1-17 0z"/><path d="M15 3.5l-3 7M19 4.5l-5 6" stroke-linecap="round"/></svg>',
-  pray: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/></svg>',
-  feed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.7a4.3 4.3 0 0 1 7.5 2.6c0 5.6-7.5 10.2-7.5 10.2z"/></svg>',
-  life: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5c-2-1.6-5-2-8-1.5v13c3-.5 6-.1 8 1.5 2-1.6 5-2 8-1.5V5c-3-.5-6-.1-8 1.5z"/><path d="M12 6.5v13"/></svg>',
-};
 const VENUE_ICON = {
   phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6.5 3.5h3l1.5 4-2 1.5a10 10 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z"/></svg>',
   wechat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9.5 4.5c-3.9 0-7 2.6-7 5.8 0 1.8 1 3.4 2.6 4.5l-.6 2 2.4-1.2c.8.2 1.7.4 2.6.4"/><path d="M15 9.5c3.6 0 6.5 2.3 6.5 5.2 0 1.6-.9 3-2.3 4l.5 1.8-2.1-1c-.8.2-1.7.4-2.6.4-3.6 0-6.5-2.3-6.5-5.2s2.9-5.2 6.5-5.2z"/></svg>',
@@ -541,13 +526,38 @@ const VENUE_ICON = {
   whatsapp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .9a5 5 0 0 1-2.8-2.8l.9-1-1-2z"/></svg>',
   teams: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="6.5" width="11" height="11" rx="2"/><path d="M7 10h4M9 10v5"/><circle cx="18" cy="7.5" r="2"/><path d="M16 11.5h4.5v4a2.5 2.5 0 0 1-4.5 1.5"/></svg>',
 };
+// The "where to start" part of the form for one kind, drawn from its fields in src/kinds.js.
+function planFields(key, k, lang, D, hidden) {
+  const opt = (v, label, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
+  const one = (f) => {
+    const id = `p-${key}-${f.name}`;
+    const label = `<span>${esc(f.label[lang])}${f.optional ? `<em>${esc(D.optional)}</em>` : ''}</span>`;
+    let input;
+    if (f.type === 'book') input = `<select name="${id}" data-plan="book">${BOOKS.map((b) => opt(b.n, lang === 'en' ? b.en : b.zh, b.n === f.value)).join('')}</select>`;
+    else if (f.type === 'chapter') input = `<select name="${id}" data-plan="${f.name}" data-chapters></select>`;
+    else if (f.type === 'select') input = `<select name="${id}" data-plan="${f.name}">${f.options.map((o) => (Array.isArray(o) ? opt(o[0], o[1][lang], o[0] === f.value) : opt(o, String(o), o === f.value))).join('')}</select>`;
+    else if (f.type === 'lesson') input = `<select name="${id}" data-plan="${f.name}">${feed.map((p) => opt(p.n, `${p.n}. ${p[lang].title}`, p.n === (f.value || 1))).join('')}</select>`;
+    else if (f.type === 'num') input = `<input name="${id}" data-plan="${f.name}" type="number" min="${f.min}" max="${f.max}" value="${f.value}" inputmode="numeric">`;
+    else if (f.type === 'url') input = `<input name="${id}" data-plan="${f.name}" type="url" inputmode="url" maxlength="300" placeholder="https://">`;
+    else if (f.type === 'text') input = `<input name="${id}" data-plan="${f.name}" maxlength="${f.max || 60}"${f.placeholder ? ` placeholder="${esc(f.placeholder[lang])}"` : ''}>`;
+    if (f.type === 'check') return `<label class="check"><input type="checkbox" name="${id}" data-plan="${f.name}"${f.value ? ' checked' : ''}><span>${esc(f.label[lang])}</span></label>`;
+    return `<label class="field">${label}${input}</label>${f.hint ? `<p class="hint">${esc(f.hint[lang])}</p>` : ''}`;
+  };
+  let h = '';
+  for (let i = 0; i < k.fields.length; i++) {
+    const f = k.fields[i];
+    if (f.pair && k.fields[i + 1]?.pair && !f.hint) { h += `<div class="row2">${one(f)}${one(k.fields[i + 1])}</div>`; i++; } else h += one(f);
+  }
+  if (k.note) h += `<p class="hint">${esc(k.note[lang])}</p>`;
+  return `<fieldset data-for="${key}"${hidden ? ' hidden' : ''}><legend>${esc(D.s3)}</legend>${h}</fieldset>`;
+}
+
 for (const lang of LANGS) {
   const L = S[lang];
   const D = DZ[lang];
   const config = json('dazi-config', {
-    kinds: Object.fromEntries(Object.entries(GROUP_KINDS).map(([k, v]) => [k, { name: v[lang], what: v.what[lang], verb: v.verb[lang], about: D.kinds[k], icon: KIND_ICON[k] }])),
+    kinds: kindsForPage(lang),
     venues: Object.fromEntries(Object.entries(VENUES).map(([k, v]) => [k, { name: v[lang], icon: VENUE_ICON[k] }])),
-    tz: Object.entries(TZ_LABELS).map(([tz, l]) => [tz, l[lang === 'en' ? 1 : 0]]),
     feedCount: feed.length,
     ids: Object.fromEntries(Object.entries(IDENTITIES).map(([k, v]) => [k, v[lang === 'en' ? 1 : 0]])),
   });
@@ -561,7 +571,7 @@ for (const lang of LANGS) {
     body: `<section class="plaza-page" data-page="plaza">
 <h1 class="vh">${esc(D.plazaH)}</h1>
 <div class="plaza-top"><p class="plaza-count" data-count>${esc(L.loading)}</p>
-<div class="kinds" role="group" data-kinds><button type="button" data-kind="" aria-pressed="true">${esc(D.all)}</button>${Object.entries(GROUP_KINDS).map(([k, v]) => `<button type="button" data-kind="${k}" aria-pressed="false"><span class="ki">${KIND_ICON[k]}</span>${esc(v[lang])}</button>`).join('')}</div></div>
+<div class="kinds" role="group" data-kinds><button type="button" data-kind="" aria-pressed="true">${esc(D.all)}</button>${Object.entries(GROUP_KINDS).map(([k, v]) => `<button type="button" data-kind="${k}" aria-pressed="false"><span class="ki">${v.icon}</span>${esc(v[lang])}</button>`).join('')}</div></div>
 <div class="mine-strip" data-mine hidden><h2>${esc(D.mine)}</h2><div class="mine-row" data-mine-row></div></div>
 <div class="plaza" data-plaza aria-live="polite"></div>
 <a class="fab" href="${U(lang, '/dazi/new/')}"><span aria-hidden="true">＋</span>${esc(D.fab)}</a>
@@ -571,7 +581,6 @@ ${config}
 
   // start a group
   const opt = (v, label, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
-  const books = (sel) => BOOKS.map((b) => opt(b.n, lang === 'en' ? b.en : b.zh, b.n === sel)).join('');
   emit(lang, '/dazi/new/', {
     title: L.newT,
     tab: 'dazi',
@@ -583,25 +592,12 @@ ${config}
 <p class="page-lead">${esc(D.newLead)}</p>
 <form class="form" data-new novalidate>
 <fieldset><legend>${esc(D.s1)}</legend><div class="kind-pick">
-${Object.entries(GROUP_KINDS).map(([k, v], i) => `<label class="kind-opt kind-${k}"><input type="radio" name="kind" value="${k}"${i ? '' : ' checked'}><span class="ki">${KIND_ICON[k]}</span><span><b>${esc(v[lang])}</b><small>${esc(D.kinds[k])}</small></span></label>`).join('')}
+${Object.entries(GROUP_KINDS).map(([k, v], i) => `<label class="kind-opt" style="--tint:var(--t-${v.tint})"><input type="radio" name="kind" value="${k}"${i ? '' : ' checked'}><span class="ki">${v.icon}</span><span><b>${esc(v[lang])}</b><small>${esc(v.about[lang])}</small></span></label>`).join('')}
 </div></fieldset>
 <fieldset><legend>${esc(D.s2)}</legend><div class="seg">
 <label><input type="radio" name="lang" value="zh"${lang === 'zh' ? ' checked' : ''}><span>中文</span></label><label><input type="radio" name="lang" value="en"${lang === 'en' ? ' checked' : ''}><span>English</span></label>
 </div></fieldset>
-<fieldset data-for="bible"><legend>${esc(D.s3)}</legend>
-<div class="row2"><label class="field"><span>${esc(D.book)}</span><select name="book">${books(43)}</select></label><label class="field"><span>${esc(D.chapter)}</span><select name="chapter"></select></label></div>
-<label class="field"><span>${esc(D.per)}</span><select name="per">${[1, 2, 3, 4, 5].map((n) => opt(n, String(n), n === 1)).join('')}</select></label>
-<label class="check"><input type="checkbox" name="cont"><span>${esc(D.cont)}</span></label>
-</fieldset>
-<fieldset data-for="pray" hidden><legend>${esc(D.s3)}</legend><p class="hint">${esc(D.prayNote)}</p></fieldset>
-<fieldset data-for="feed" hidden><legend>${esc(D.s3)}</legend>
-<label class="field"><span>${esc(D.lesson)}</span><select name="lesson">${feed.map((p) => opt(p.n, `${p.n}. ${p[lang].title}`, p.n === 1)).join('')}</select></label>
-<p class="hint">${esc(D.feedNote)}</p></fieldset>
-<fieldset data-for="life" hidden><legend>${esc(D.s3)}</legend>
-<label class="field"><span>${esc(D.lsBook)}</span><select name="lsBook">${books(43)}</select></label>
-<div class="row2"><label class="field"><span>${esc(D.msg)}</span><input name="msg" type="number" min="1" max="999" value="1" inputmode="numeric"></label><label class="field"><span>${esc(D.perMsg)}</span><select name="perMsg">${[1, 2, 3].map((n) => opt(n, String(n), n === 1)).join('')}</select></label></div>
-<label class="field"><span>${esc(D.lsLink)}<em>${esc(D.optional)}</em></span><input name="lsLink" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
-<p class="hint">${esc(D.lsLinkHint)}</p></fieldset>
+${Object.entries(GROUP_KINDS).map(([k, v], i) => planFields(k, v, lang, D, i > 0)).join('\n')}
 <fieldset><legend>${esc(D.s4)}</legend>
 <label class="field"><span>${esc(D.name)}</span><input name="title" maxlength="40" required placeholder="${esc(D.namePh)}"></label>
 <label class="field"><span>${esc(D.intro)}<em>${esc(D.optional)}</em></span><textarea name="intro" maxlength="300" rows="3" placeholder="${esc(D.introPh)}"></textarea></label>
@@ -610,7 +606,8 @@ ${Object.entries(GROUP_KINDS).map(([k, v], i) => `<label class="kind-opt kind-${
 <div class="field"><span>${esc(D.days)}</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" name="days" value="${d}"><span>${esc(D.week[d])}</span></label>`).join('')}</div></div>
 <div class="row2"><label class="field"><span>${esc(D.time)}</span><input name="time" type="time" value="20:00" required></label>
 <label class="field"><span>${esc(D.minutes)}</span><select name="minutes">${D.minOpts.map(([v, l]) => opt(v, l, v === 30)).join('')}</select></label></div>
-<div class="row2"><label class="field"><span>${esc(D.start)}</span><input name="startDate" type="date" required></label><label class="field"><span>${esc(D.tz)}</span><select name="tz">${Object.entries(TZ_LABELS).map(([tz, l]) => opt(tz, l[lang === 'en' ? 1 : 0])).join('')}</select></label></div>
+<label class="field"><span>${esc(D.start)}</span><input name="startDate" type="date" required></label>
+<input type="hidden" name="tz">
 <p class="hint">${esc(D.tzHint)}</p>
 </fieldset>
 <fieldset><legend>${esc(D.s6)}</legend>

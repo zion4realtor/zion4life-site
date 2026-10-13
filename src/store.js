@@ -1,5 +1,6 @@
 // All stored state, in one SQLite-backed Durable Object (binding STORE, instance "main").
-//   user        accounts: email (never shown to anyone), nickname, identity tags, calendar key
+//   user        accounts: email (never shown to anyone), nickname, identity tags, calendar key,
+//               the phone's time zone (for the times in emails)
 //   session     sign-in sessions (hashed tokens from the yg_s cookie)
 //   code        6-digit sign-in codes waiting to be typed in (hashed)
 //   mgr         who manages which tag (标签管理员)
@@ -52,8 +53,14 @@ const SCHEMA = [
     lang TEXT NOT NULL, page TEXT NOT NULL, mailed INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)`,
 ];
 
+// Columns added after the tables first went live.
+const ADDED = [['user', 'tz', "TEXT NOT NULL DEFAULT ''"]];
+
 export function migrate(sql) {
   for (const q of SCHEMA) sql.exec(q);
+  for (const [table, col, type] of ADDED) {
+    if (!sql.exec(`PRAGMA table_info(${table})`).toArray().some((r) => r.name === col)) sql.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+  }
 }
 
 const rows = (sql, q, ...b) => sql.exec(q, ...b).toArray();
@@ -63,7 +70,7 @@ const parse = (s, d) => {
 };
 
 // Account row → what the server code uses (email included; never send it to a page as is).
-const userOf = (r) => r && { id: r.id, email: r.email, name: r.name, ids: parse(r.ids, []), idsPublic: !!r.ids_public, lang: r.lang, cal: r.cal, created: r.created };
+const userOf = (r) => r && { id: r.id, email: r.email, name: r.name, ids: parse(r.ids, []), idsPublic: !!r.ids_public, lang: r.lang, cal: r.cal, tz: r.tz || '', created: r.created };
 // What other people may see of an account.
 export const publicUser = (u) => u && { id: u.id, name: u.name, ids: u.idsPublic ? u.ids : [] };
 
@@ -110,12 +117,13 @@ export const OPS = {
   userByCal(sql, { cal }) {
     return userOf(first(sql, 'SELECT * FROM user WHERE cal = ?', cal));
   },
-  userCreate(sql, { id, email, name, ids, idsPublic, lang, cal, now = Date.now() }) {
-    sql.exec('INSERT INTO user (id, email, name, ids, ids_public, lang, cal, created, seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, email, name, JSON.stringify(ids || []), idsPublic ? 1 : 0, lang, cal, now, now);
+  userCreate(sql, { id, email, name, ids, idsPublic, lang, cal, tz = '', now = Date.now() }) {
+    sql.exec('INSERT INTO user (id, email, name, ids, ids_public, lang, cal, tz, created, seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, email, name, JSON.stringify(ids || []), idsPublic ? 1 : 0, lang, cal, tz, now, now);
     return userOf(first(sql, 'SELECT * FROM user WHERE id = ?', id));
   },
-  userUpdate(sql, { id, name, ids, idsPublic, lang }) {
+  userUpdate(sql, { id, name, ids, idsPublic, lang, tz }) {
+    if (tz != null) sql.exec('UPDATE user SET tz = ? WHERE id = ?', tz, id);
     if (name != null) sql.exec('UPDATE user SET name = ? WHERE id = ?', name, id);
     if (ids != null) sql.exec('UPDATE user SET ids = ? WHERE id = ?', JSON.stringify(ids), id);
     if (idsPublic != null) sql.exec('UPDATE user SET ids_public = ? WHERE id = ?', idsPublic ? 1 : 0, id);
@@ -338,7 +346,7 @@ export const OPS = {
   },
   // Members to email for a group: active, reminders on, with their account language.
   dzMailList(sql, { gid }) {
-    return rows(sql, `SELECT u.id, u.email, u.name, u.lang FROM dz_member m JOIN user u ON u.id = m.uid
+    return rows(sql, `SELECT u.id, u.email, u.name, u.lang, u.tz FROM dz_member m JOIN user u ON u.id = m.uid
       WHERE m.gid = ? AND m.status = 'active' AND m.notify = 1`, gid);
   },
   dzSentClaim(sql, { gid, n, now = Date.now() }) {

@@ -1,22 +1,15 @@
-// 搭子 schedules: when each session happens and what it reads. Pure functions (the current
-// time is always passed in), shared by the Worker and the tests.
+// 搭子 schedules: when each session happens. Pure functions (the current time is always
+// passed in), shared by the Worker and the tests.
 //
 // A group meets on some weekdays (`days`, 0 = Sunday) at `time` (HH:MM) for `minutes`,
-// starting on `startDate`, all in the initiator's time zone `tz`. Session n (1, 2, 3 …) is
-// the n-th meeting day on or after startDate. What a session reads depends on the kind:
-//   bible  饭搭子    `per` chapters a session from (book, chapter); `cont` carries on into the next book
-//   pray   呼吸搭子  the 呼吸 (daily prayer burden) of the session's date
-//   feed   投喂搭子  one lesson a session from `lesson`
-//   life   细嚼搭子  `per` Life-study messages a session from (book, msg), read through `link`
-import { BOOKS, TOTAL_CHAPTERS, chapterIndex, chapterAt, chaptersText, chapterLink, bookName } from './bible.js';
+// starting on `startDate`, all in the initiator's time zone `tz` (taken from the initiator's
+// phone). Everyone else sees the times converted to their own phone's time zone.
+// Session n (1, 2, 3 …) is the n-th meeting day on or after startDate. What a session reads
+// depends on the kind (src/kinds.js).
+import { KINDS, kindTotal, kindReading, kindPlanText } from './kinds.js';
 
+export { KINDS };
 const DAY = 86400000;
-export const KINDS = {
-  bible: { zh: '饭搭子', en: 'Meal buddies', what: { zh: '圣经', en: 'the Bible' }, verb: { zh: '吃饭', en: 'eat' } },
-  pray: { zh: '呼吸搭子', en: 'Breath buddies', what: { zh: '当日呼吸', en: 'the day’s Breathe' }, verb: { zh: '呼吸', en: 'breathe' } },
-  feed: { zh: '投喂搭子', en: 'Feeding buddies', what: { zh: '新朋友课程', en: 'lessons for new friends' }, verb: { zh: '追求', en: 'grow' } },
-  life: { zh: '细嚼搭子', en: 'Chew buddies', what: { zh: '生命读经', en: 'Life-study' }, verb: { zh: '细嚼', en: 'chew' } },
-};
 export const VENUES = {
   phone: { zh: '电话', en: 'Phone' },
   wechat: { zh: '微信', en: 'WeChat' },
@@ -32,9 +25,10 @@ export const TZ_LABELS = {
   'America/Denver': ['美国山地时间', 'US Mountain'], 'America/Los_Angeles': ['美西时间', 'US Pacific'], 'America/Toronto': ['多伦多时间', 'Toronto time'],
   'America/Vancouver': ['温哥华时间', 'Vancouver time'], 'Pacific/Auckland': ['奥克兰时间', 'Auckland time'],
 };
-export const tzLabel = (tz, lang = 'zh') => (TZ_LABELS[tz] ? TZ_LABELS[tz][lang === 'en' ? 1 : 0] : tz);
 const WEEK = { zh: ['日', '一', '二', '三', '四', '五', '六'], en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// A zone's everyday name when there is one, else its id ("America/Phoenix" → "America/Phoenix").
+export const tzName = (tz, lang = 'zh') => (TZ_LABELS[tz] ? TZ_LABELS[tz][lang === 'en' ? 1 : 0] : String(tz).replace(/_/g, ' '));
 
 // ---------- time zones ----------
 export function validTimeZone(tz) {
@@ -86,14 +80,7 @@ function firstWeek(g) {
 // How many sessions the plan has, or null when the group meets with no end.
 // ctx.feedCount: number of 投喂 lessons on the site.
 export function totalSessions(g, ctx = {}) {
-  if (g.kind === 'bible') {
-    const { book, chapter, per, cont } = g.plan;
-    const start = chapterIndex(book, chapter);
-    const end = cont ? TOTAL_CHAPTERS : chapterIndex(book, BOOKS[book - 1].chapters) + 1;
-    return Math.max(1, Math.ceil((end - start) / per));
-  }
-  if (g.kind === 'feed' && ctx.feedCount) return Math.max(1, ctx.feedCount - (g.plan.lesson || 1) + 1);
-  return null;
+  return kindTotal(g, ctx);
 }
 export function sessionDate(g, n) {
   const week = firstWeek(g);
@@ -144,37 +131,22 @@ export function sessionsBetween(g, from, to, ctx = {}) {
 export const lateAfter = (s) => s.end + 3 * 3600000;
 
 // ---------- what each session reads ----------
-// ctx.feed: { [lesson]: { zh, en } } lesson titles; ctx.site: site URL for links to the site's own pages.
+// ctx.feed: { [lesson]: { zh, en } } lesson titles.
 export function readingFor(g, n, ctx = {}) {
-  const lang = g.lang === 'en' ? 'en' : 'zh';
-  const p = g.plan;
-  if (g.kind === 'bible') {
-    const start = chapterIndex(p.book, p.chapter) + (n - 1) * p.per;
-    const end = p.cont ? TOTAL_CHAPTERS : chapterIndex(p.book, BOOKS[p.book - 1].chapters) + 1;
-    const chapters = [];
-    for (let i = start; i < Math.min(start + p.per, end); i++) {
-      const c = chapterAt(i);
-      chapters.push({ ...c, url: chapterLink(c.book, c.chapter, lang), label: chaptersText([c], lang) });
-    }
-    return { kind: 'bible', text: chaptersText(chapters, lang), chapters, url: chapters[0]?.url || null };
-  }
-  if (g.kind === 'pray') {
-    const date = sessionDate(g, n);
-    const [, m, d] = date.split('-').map(Number);
-    return { kind: 'pray', date, text: lang === 'en' ? `Breathe for ${MONTHS[m - 1]} ${d}` : `${m}月${d}日的呼吸`, url: null };
-  }
-  if (g.kind === 'feed') {
-    const lesson = (p.lesson || 1) + n - 1;
-    const t = ctx.feed?.[lesson]?.[lang];
-    return { kind: 'feed', lesson, text: lang === 'en' ? `Lesson ${lesson}${t ? `: ${t}` : ''}` : `第${lesson}课${t ? `：${t}` : ''}`, url: null };
-  }
-  // life
-  const from = (p.msg || 1) + (n - 1) * (p.per || 1);
-  const to = from + (p.per || 1) - 1;
-  const range = from === to ? `${from}` : `${from}–${to}`;
-  const text = lang === 'en' ? `Life-study of ${bookName(p.book, 'en')}, ${from === to ? 'message' : 'messages'} ${range}` : `${bookName(p.book, 'zh')}生命读经 第${range}篇`;
-  const url = p.link ? p.link.replace(/\{n\}/g, String(from)) : null;
-  return { kind: 'life', from, to, text, url };
+  return kindReading(g, n, sessionDate(g, n), ctx);
+}
+
+// The starts of one week of sessions: from the one on now (or the next), else the first week.
+// The pages turn these into "每周三、五 09:00" in the viewer's own time zone.
+export function weekStarts(g, ms, ctx = {}) {
+  const k = g.days.length;
+  const total = totalSessions(g, ctx);
+  const c = startedCount(g, ms, ctx);
+  let n = c === 0 ? 1 : session(g, c).end <= ms ? c + 1 : c;
+  if (total && n + k - 1 > total) n = Math.max(1, total - k + 1);
+  const out = [];
+  for (let i = n; i < n + k && (!total || i <= total); i++) out.push(session(g, i).start);
+  return out;
 }
 
 // ---------- words ----------
@@ -182,6 +154,7 @@ export function daysText(days, lang = 'zh') {
   const d = [...days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
   if (d.length === 7) return lang === 'en' ? 'Every day' : '每天';
   if (d.length === 5 && [1, 2, 3, 4, 5].every((x) => d.includes(x))) return lang === 'en' ? 'Weekdays' : '每周一到周五';
+  if (d.length === 6 && [1, 2, 3, 4, 5, 6].every((x) => d.includes(x))) return lang === 'en' ? 'Mon to Sat' : '每周一到周六';
   return lang === 'en' ? `Every ${d.map((x) => WEEK.en[x]).join(', ')}` : `每周${d.map((x) => WEEK.zh[x]).join('、')}`;
 }
 export function minutesText(min, lang = 'zh') {
@@ -189,34 +162,32 @@ export function minutesText(min, lang = 'zh') {
   if (min < 60) return `${min}分钟`;
   return min % 60 ? `${Math.floor(min / 60)}小时${min % 60}分钟` : `${min / 60}小时`;
 }
-export const scheduleText = (g, lang = 'zh') =>
-  lang === 'en'
-    ? `${daysText(g.days, 'en')} at ${g.time} (${tzLabel(g.tz, 'en')}), ${minutesText(g.minutes, 'en')} each`
-    : `${daysText(g.days, 'zh')} ${g.time}（${tzLabel(g.tz, 'zh')}），每次${minutesText(g.minutes, 'zh')}`;
+// "每周二、四 20:00，每次30分钟（北京时间）" in time zone tz (the person's own, when known).
+export function scheduleText(g, lang = 'zh', tz = g.tz, ms = Date.now(), ctx = {}) {
+  const local = weekStarts(g, ms, ctx).map((t) => {
+    const d = new Date(t + tzOffset(tz, t) * 60000);
+    return { wd: d.getUTCDay(), clock: d.toISOString().slice(11, 16) };
+  });
+  const seen = new Set();
+  const list = local.filter((x) => !seen.has(x.wd) && seen.add(x.wd)).sort((a, b) => ((a.wd + 6) % 7) - ((b.wd + 6) % 7));
+  const clocks = new Set(list.map((x) => x.clock));
+  const en = lang === 'en';
+  const when = clocks.size <= 1
+    ? `${daysText(list.map((x) => x.wd), lang)}${en ? ' at ' : ' '}${list[0]?.clock || g.time}`
+    : en ? `Every ${list.map((x) => `${WEEK.en[x.wd]} ${x.clock}`).join(', ')}` : `每周${list.map((x) => `${WEEK.zh[x.wd]} ${x.clock}`).join('、')}`;
+  return en ? `${when}, ${minutesText(g.minutes, 'en')} each (${tzName(tz, 'en')})` : `${when}，每次${minutesText(g.minutes, 'zh')}（${tzName(tz, 'zh')}）`;
+}
 // The plan in words, in the viewer's language.
 export function planText(g, lang = 'zh', ctx = {}) {
-  const p = g.plan;
-  const en = lang === 'en';
-  if (g.kind === 'bible') {
-    const b = bookName(p.book, lang);
-    const total = totalSessions(g, ctx);
-    return en
-      ? `${b} from chapter ${p.chapter}, ${p.per} ${p.per > 1 ? 'chapters' : 'chapter'} each time${p.cont ? ', then on to the next book' : `, ${total} ${total > 1 ? 'times' : 'time'} in all`}`
-      : `从${b}第${p.chapter}章开始，每次${p.per}章${p.cont ? '，读完接着读下一卷' : `，共${total}次读完`}`;
-  }
-  if (g.kind === 'pray') return en ? 'The day’s Breathe each time' : '每次一起读当天的呼吸';
-  if (g.kind === 'feed') return en ? `One lesson each time, from lesson ${p.lesson || 1}` : `从第${p.lesson || 1}课开始，每次一课`;
-  return en
-    ? `Life-study of ${bookName(p.book, 'en')} from message ${p.msg || 1}, ${p.per || 1} each time`
-    : `${bookName(p.book, 'zh')}生命读经，从第${p.msg || 1}篇开始，每次${p.per || 1}篇`;
+  return kindPlanText(g, lang, ctx);
 }
-// "10月14日（周二）20:00 北京时间" / "Tue, Oct 14, 20:00 Beijing time"
-export function sessionLabel(g, s, lang = 'zh') {
-  const [, m, d] = s.date.split('-').map(Number);
-  const wd = weekday(s.date);
+// "10月14日（周二）20:00 北京时间" / "Tue, Oct 14, 20:00 Beijing time", in time zone tz.
+export function sessionLabel(g, s, lang = 'zh', tz = g.tz) {
+  const d = new Date(s.start + tzOffset(tz, s.start) * 60000);
+  const m = d.getUTCMonth() + 1, day = d.getUTCDate(), wd = d.getUTCDay(), clock = d.toISOString().slice(11, 16);
   return lang === 'en'
-    ? `${WEEK.en[wd]}, ${MONTHS[m - 1]} ${d}, ${g.time} ${tzLabel(g.tz, 'en')}`
-    : `${m}月${d}日（周${WEEK.zh[wd]}）${g.time} ${tzLabel(g.tz, 'zh')}`;
+    ? `${WEEK.en[wd]}, ${MONTHS[m - 1]} ${day}, ${clock} ${tzName(tz, 'en')}`
+    : `${m}月${day}日（周${WEEK.zh[wd]}）${clock} ${tzName(tz, 'zh')}`;
 }
 
 // ---------- calendar files ----------

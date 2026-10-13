@@ -1,5 +1,6 @@
-// 搭子: groups that read, breathe, feed or chew together at set times.
-//   饭搭子 (bible) · 呼吸搭子 (pray) · 投喂搭子 (feed) · 细嚼搭子 (life)
+// 搭子: groups that read together at set times. The kinds (饭搭子, 呼吸搭子, 投喂搭子, 细嚼搭子,
+// 晨兴搭子 …) are in src/kinds.js. Times are kept in the initiator's time zone and shown to
+// everyone in their own: pages get the instants, emails use the reader's saved time zone.
 // Everyone has an account. Joining is a covenant (立约): you read the terms and draw your
 // signature. Public groups are on the plaza; strangers may join them directly when the
 // initiator allows it, otherwise only through the invite link. Hidden groups are invite-only.
@@ -7,11 +8,11 @@ import { json, fail, str, randomId, readBody, rateOk, tr, pre, SITE } from './ut
 import { currentUser, isAdmin, sameOrigin } from './auth.js';
 import { siteData } from './content.js';
 import { sendMail, layout } from './mail.js';
-import { BOOKS } from './bible.js';
 import {
   KINDS, VENUES, validTimeZone, localDate, addDays, sessionState, session, startedCount, totalSessions, readingFor,
-  scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText,
+  scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText, weekStarts,
 } from './schedule.js';
+import { kindPlan, kindEdit } from './kinds.js';
 
 const HOUR = 3600000;
 const groupUrl = (g, lang, n) => `${SITE}${pre(lang)}/g/${g.id}${n ? `/${n}` : ''}`;
@@ -34,39 +35,15 @@ export function validateGroup(b, now, lang, ctx = {}) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return t('请填几点开始', 'Fill in the start time');
   const minutes = Number(b.minutes);
   if (!Number.isInteger(minutes) || minutes < 10 || minutes > 180) return t('请选每次多长时间', 'Pick how long each time is');
-  const tz = str(b.tz, 64);
-  if (!validTimeZone(tz)) return t('请选时区', 'Pick a time zone');
+  // the initiator's phone sends its own time zone; there is nothing to pick
+  const tzIn = str(b.tz, 64);
+  const tz = tzIn && validTimeZone(tzIn) ? tzIn : 'Asia/Shanghai';
   const startDate = str(b.startDate, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || Number.isNaN(Date.parse(startDate))) return t('请填从哪天开始', 'Fill in the start date');
   const today = localDate(tz, now);
   if (startDate < addDays(today, -7) || startDate > addDays(today, 366)) return t('开始日期要在一年之内', 'The start date must be within a year');
-  const pl = b.plan || {};
-  let plan;
-  if (kind === 'bible' || kind === 'life') {
-    const book = Number(pl.book);
-    if (!Number.isInteger(book) || book < 1 || book > 66) return t('请选哪一卷', 'Pick a book');
-    const bk = BOOKS[book - 1];
-    if (kind === 'bible') {
-      const chapter = Number(pl.chapter || 1), per = Number(pl.per || 1);
-      if (!Number.isInteger(chapter) || chapter < 1 || chapter > bk.chapters) return t(`${bk.zh}一共${bk.chapters}章`, `${bk.en} has ${bk.chapters} chapters`);
-      if (!Number.isInteger(per) || per < 1 || per > 10) return t('请选每次读几章', 'Pick how many chapters each time');
-      plan = { book, chapter, per, cont: !!pl.cont };
-    } else {
-      const msg = Number(pl.msg || 1), per = Number(pl.per || 1);
-      if (!Number.isInteger(msg) || msg < 1 || msg > 999) return t('请填从第几篇开始', 'Fill in the message to start from');
-      if (!Number.isInteger(per) || per < 1 || per > 5) return t('请选每次读几篇', 'Pick how many messages each time');
-      const link = str(pl.link, 300);
-      if (link && !/^https:\/\/\S+$/.test(link)) return t('生命读经的链接要以 https:// 开头', 'The Life-study link must start with https://');
-      plan = { book, msg, per, link };
-    }
-  } else if (kind === 'feed') {
-    const lesson = Number(pl.lesson || 1);
-    if (!ctx.feedCount) return t('投喂课程还没上架', 'The lessons are not on the site yet');
-    if (!Number.isInteger(lesson) || lesson < 1 || lesson > ctx.feedCount) return t(`一共${ctx.feedCount}课`, `There are ${ctx.feedCount} lessons`);
-    plan = { lesson };
-  } else {
-    plan = {};
-  }
+  const plan = kindPlan(kind, b.plan, t, ctx);
+  if (typeof plan === 'string') return plan;
   const v = b.venue || {};
   if (!VENUES[v.type]) return t('请选在哪里见面', 'Pick where you meet');
   const venue = { type: v.type, info: str(v.info, 300) };
@@ -89,9 +66,9 @@ function groupView(g, lang, ctx, viewer) {
   const member = viewer?.member;
   return {
     id: g.id, kind: g.kind, lang: g.lang, title: g.title, intro: g.intro, status: g.status, visibility: g.visibility, join: g.join,
-    tz: g.tz, days: g.days, time: g.time, minutes: g.minutes, startDate: g.startDate, plan: g.plan, max: g.max,
+    minutes: g.minutes, startDate: g.startDate, first: session(g, 1).start, week: weekStarts(g, ctx.now, ctx), plan: g.plan, max: g.max,
     owner: g.members.find((m) => m.role === 'owner')?.name || '',
-    scheduleText: scheduleText(g, lang), planText: planText(g, lang, ctx),
+    planText: planText(g, lang, ctx),
     venue: { type: g.venue.type, info: member ? g.venue.info : undefined },
     members: g.members.map((m) => ({ key: viewer?.owner ? m.uid : undefined, name: m.name, ids: m.ids, role: m.role, c: colorOf(m.uid), me: !!viewer?.uid && m.uid === viewer.uid, signed: member ? m.signed : undefined, sig: member ? m.sig : undefined })),
     total: st.total, done: st.done, finished: st.finished,
@@ -104,7 +81,7 @@ function cardView(g, lang, ctx, uid) {
   const nx = st.current || st.next;
   return {
     id: g.id, kind: g.kind, lang: g.lang, title: g.title, join: g.join, visibility: g.visibility, status: g.status, max: g.max,
-    tz: g.tz, days: g.days, time: g.time, minutes: g.minutes, planText: planText(g, lang, ctx),
+    minutes: g.minutes, planText: planText(g, lang, ctx),
     seats: g.members.map((m) => ({ i: [...m.name][0] || '·', c: colorOf(m.uid), me: !!uid && m.uid === uid })),
     next: nx ? { n: nx.n, start: nx.start, live: !!st.current, reading: readingFor(g, nx.n, ctx).text } : null,
     finished: st.finished, mine: !!uid && g.members.some((m) => m.uid === uid), myRole: g.myRole,
@@ -112,10 +89,10 @@ function cardView(g, lang, ctx, uid) {
 }
 
 // ---------- emails ----------
-function covenantLines(g, L, ctx) {
+function covenantLines(g, L, ctx, tz) {
   const t = tr(L);
   return [
-    t(`时间：${scheduleText(g, 'zh')}`, `When: ${scheduleText(g, 'en')}`),
+    t(`时间：${scheduleText(g, 'zh', tz, ctx.now, ctx)}`, `When: ${scheduleText(g, 'en', tz, ctx.now, ctx)}`),
     t(`读什么：${planText(g, 'zh', ctx)}`, `What: ${planText(g, 'en', ctx)}`),
     t(`在哪里见面：${VENUES[g.venue.type].zh}${g.venue.info ? `（${g.venue.info}）` : ''}`, `Where: ${VENUES[g.venue.type].en}${g.venue.info ? ` (${g.venue.info})` : ''}`),
   ];
@@ -145,7 +122,7 @@ async function mailCovenant(env, g, user, owner, ctx, now) {
     lines: [
       owner ? t('把邀请链接发给朋友，他们打开、签名，就立约加入了：', 'Send the invite link to friends. They open it, sign, and they are in:') : '',
       owner ? inviteUrl(g, L) : '',
-      ...covenantLines(g, L, ctx),
+      ...covenantLines(g, L, { ...ctx, now }, user.tz || g.tz),
       t('附件是日历邀请，点“加入日历”，每次开始时手机会提醒你，点开提醒就能看到这次要读的材料。', 'The attachment is a calendar invitation. Add it, and your phone will remind you each time, with a link to that time’s reading.'),
     ],
     button: { label: t('打开搭子', 'Open the group'), url: groupUrl(g, L) },
@@ -179,7 +156,7 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
           lang: L,
           title: t(`${g.title}：现在开始`, `${g.title}: starting now`),
           lines: [
-            t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh')}，${minutesText(g.minutes, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en')}, ${minutesText(g.minutes, 'en')}.`),
+            t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh', u.tz || g.tz)}，${minutesText(g.minutes, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en', u.tz || g.tz)}, ${minutesText(g.minutes, 'en')}.`),
             t(`这次读：${r.text}`, `This time: ${r.text}`),
             t(`在哪里见面：${VENUES[g.venue.type].zh}`, `Where: ${VENUES[g.venue.type].en}`),
             t('读完回来点“打卡”，也可以写几句心得。', 'When you finish, come back to check in and jot a few notes.'),
@@ -353,8 +330,8 @@ export async function handleDazi(request, env, db, url, now, lang) {
       const names = Object.fromEntries(g.members.map((x) => [x.uid, x]));
       return json({
         ok: true,
-        group: { id: g.id, kind: g.kind, lang: g.lang, title: g.title, venue: g.venue, total, owner: isOwner, tz: g.tz },
-        session: sessionView(g, s, ctx), open: s.start <= now + 2 * HOUR, label: sessionLabel(g, s, lang),
+        group: { id: g.id, kind: g.kind, lang: g.lang, title: g.title, venue: g.venue, total, owner: isOwner },
+        session: sessionView(g, s, ctx), open: s.start <= now + 2 * HOUR,
         mine: checks.find((c) => c.uid === user.id) || null,
         others: g.members.map((x) => {
           const c = checks.find((y) => y.uid === x.uid);
@@ -470,10 +447,10 @@ export async function handleDazi(request, env, db, url, now, lang) {
         upd.visibility = b.visibility === 'hidden' ? 'hidden' : 'public';
         upd.join = upd.visibility === 'hidden' || b.join === 'invite' ? 'invite' : 'open';
       }
-      if (b.link !== undefined && g.kind === 'life') {
-        const link = str(b.link, 300);
-        if (link && !/^https:\/\/\S+$/.test(link)) return fail(t('链接要以 https:// 开头', 'The link must start with https://'));
-        upd.plan = { ...g.plan, link };
+      if (b.plan && typeof b.plan === 'object') {
+        const plan = kindEdit(g, b.plan, t);
+        if (typeof plan === 'string') return fail(plan);
+        upd.plan = plan;
       }
       await db('dzUpdate', upd);
       return json({ ok: true });

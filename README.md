@@ -18,6 +18,7 @@ link previews:
 | Groups | 搭子 | Buddies | `/dazi/`, `/g/<id>` |
 | Reading the Bible | 吃饭 | Eat | |
 | Bible reading group / prayer group / new-believer care | 饭搭子 / 呼吸搭子 / 投喂搭子 | Meal / Breath / Feeding buddies | |
+| Life-study group / morning revival group | 细嚼搭子 / 晨兴搭子 | Chew / Morning revival buddies | |
 
 Chinese pages live at the root, English pages under `/en/` with the same path.
 
@@ -36,7 +37,8 @@ Chinese pages live at the root, English pages under `/en/` with the same path.
 | 留言, 认领 (claims), tag managers' posts (`/x/<id>`), the editor `/write/` | `src/content.js`; pages in `static/js/app.js` |
 | 搭子: plaza `/dazi/`, `/dazi/new/`, group `/g/<id>`, session `/g/<id>/<n>` | `src/dazi.js`; pages in `static/js/dazi.js` |
 | Zion's page `/admin/` (claims, managers, questions, groups, 留言, posts, accounts) | `src/api.js`; page in `static/js/app.js` |
-| Schedules, readings, time zones, calendar files and invitations | `src/schedule.js`, `src/bible.js` |
+| The kinds of 搭子 (names, form fields, what each session reads) | `src/kinds.js` |
+| Schedules, time zones, calendar files and invitations; Bible books and links | `src/schedule.js`, `src/bible.js` |
 | 投喂 lessons (feeding new friends), `01.zh.md`, `01.en.md` … numbered without gaps | `content/feed/` |
 | Stored data (accounts, 留言, posts, groups, check-ins, signatures) | `src/store.js` (SQLite-backed Durable Object) |
 | Email | `src/mail.js` |
@@ -54,7 +56,7 @@ pieces, Bible books, 呼吸 days, 投喂 lessons) for the pages and the Worker. 
 
 Zion sends content in one language; Claude translates it into the other. Bible verses
 in either language are quoted from the Recovery Version as published (English:
-text.recoveryversion.bible), never from memory.
+text.recoveryversion.bible or bibleread.online), never from memory.
 
 - **New article or single page:** add `content/articles/<slug>.zh.md` and
   `<slug>.en.md`. Shared fields go in either file's front matter:
@@ -111,10 +113,17 @@ variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
 
 ## 搭子 (groups)
 
-- Four kinds: 饭搭子 (Bible chapters, Recovery Version links), 呼吸搭子 (the day's 呼吸),
-  投喂搭子 (the 投喂 lessons), 细嚼搭子 (Life-study messages through a link the initiator
-  pastes; `{n}` in it becomes the message number). Each group reads in Chinese or English.
-- The initiator sets the days, time, length, start date and time zone, where they meet
+- Five kinds, each one entry in `src/kinds.js` (add a kind there; the form, the covenant
+  preview and the pages follow): 饭搭子 (Bible chapters, Recovery Version links), 呼吸搭子
+  (the day's 呼吸), 投喂搭子 (the 投喂 lessons), 细嚼搭子 (Life-study messages), 晨兴搭子
+  (晨兴圣言: weeks of six days, from a chosen week and day, 1/2/3/6 days a time; an
+  optional link where `{w}` and `{d}` become the week and day). Each group reads in Chinese
+  or English.
+- Time zones: the initiator never picks one. The form sends the initiator's phone time zone;
+  every page shows times converted to the viewer's own phone (a New York 9:00 is 21:00 in
+  Beijing), link previews show no clock times, and emails use the time zone saved on the
+  reader's account (updated from their phone when they sign in or open the site).
+- The initiator sets the days, time, length and start date, where they meet
   (phone, WeChat, Zoom, WhatsApp, Teams, with details only members see), public (on the
   plaza) or hidden (invite link only), whether plaza visitors may join directly, and the
   size (2–12). Joining is a covenant: read the terms, draw a signature.
@@ -126,16 +135,21 @@ variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
   session's reading. Joining emails a calendar invitation (weekly repeat in the group's time
   zone). Each account has a calendar subscription `/api/cal/<key>.ics` covering all their
   groups, and each group offers a downloadable `.ics`.
-- Bible links: `BIBLE_LINKS` in `src/bible.js` (English: text.recoveryversion.bible; Chinese:
-  set when Zion sends the address).
+- Links (in `src/bible.js`): Bible chapters, English
+  `bibleread.online/bible/<book>/<chapter>/`, Chinese
+  `recoveryversion.com.tw/verse/<book number>/<chapter>?verse=1`; Life-study messages,
+  English `bibleread.online/life-study-of-the-bible/life-study-of-<book>/<message>/`, Chinese
+  not set yet (an initiator can paste one; `{n}` in it becomes the message number).
 
 ## Settings
 
 Cloudflare → Workers & Pages → zion4life → Settings → Variables and Secrets (`keep_vars`
 keeps them across deploys):
 
-- `RESEND_API_KEY` (Secret) and `FROM_EMAIL_ADDRESS` (e.g. `有光 <hello@zion4life.faith>`):
-  sign-in codes, reminders, invitations. Without them sign-in is closed and says so.
+- `RESEND_API_KEY` (Secret, from Resend → API keys; zion4life.faith is verified there):
+  sign-in codes, reminders, invitations. Without it sign-in is closed and says so.
+  `FROM_EMAIL_ADDRESS` (`有光 <hello@zion4life.faith>`) is set in `wrangler.jsonc`.
+- hello@zion4life.faith: Cloudflare Email Routing forwards it to Zion's Hotmail.
 - `ADMIN_EMAILS`: admin accounts (default zion.chen@hotmail.com).
 - Optional for the question box: `ASK_MAIL` (send_email binding), `ASK_FROM`, `ASK_TO`.
 - Local testing only: `DEV_SHOW_CODE=1` returns the sign-in code to the page instead of

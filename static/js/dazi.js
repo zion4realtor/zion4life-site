@@ -9,8 +9,9 @@
   const page = $('[data-page]');
   if (!page) return;
   const cfgEl = $('#dazi-config');
-  const CFG = cfgEl ? JSON.parse(cfgEl.textContent) : { kinds: {}, venues: {}, tz: [] };
-  const KIND_TINT = { bible: 'var(--t-mint)', pray: 'var(--t-sun)', feed: 'var(--t-peach)', life: 'var(--t-lilac)' };
+  const CFG = cfgEl ? JSON.parse(cfgEl.textContent) : { kinds: {}, venues: {} };
+  // the kinds of 搭子 come from src/kinds.js through the page's config
+  const tintOf = (k) => (CFG.kinds[k] ? `var(--t-${CFG.kinds[k].tint})` : 'var(--t-aqua)');
   const fmtWeek = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { weekday: 'short' });
   const dayKey = (ms) => new Date(ms).toDateString();
   // "今天 20:00", "明天 20:00", "周二 10月14日 20:00" in the viewer's own time zone
@@ -25,13 +26,48 @@
   let viewerTz = '';
   try { viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* ignore */ }
 
+  // ---------- times, always in this phone's own time zone ----------
+  const WK = EN ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['日', '一', '二', '三', '四', '五', '六'];
+  const monFirst = (a, b) => ((a + 6) % 7) - ((b + 6) % 7);
+  function daysWords(days) {
+    const d = [...new Set(days)].sort(monFirst);
+    if (!d.length) return t('（还没选哪几天）', '(no days picked yet)');
+    if (d.length === 7) return t('每天', 'Every day');
+    if (d.length === 5 && [1, 2, 3, 4, 5].every((x) => d.includes(x))) return t('每周一到周五', 'Weekdays');
+    if (d.length === 6 && [1, 2, 3, 4, 5, 6].every((x) => d.includes(x))) return t('每周一到周六', 'Mon to Sat');
+    return EN ? `Every ${d.map((x) => WK[x]).join(', ')}` : `每周${d.map((x) => WK[x]).join('、')}`;
+  }
+  function minutesWords(min) {
+    if (EN) return min < 60 ? `${min} min` : min % 60 ? `${Math.floor(min / 60)} hr ${min % 60} min` : `${min / 60} hr`;
+    return min < 60 ? `${min}分钟` : min % 60 ? `${Math.floor(min / 60)}小时${min % 60}分钟` : `${min / 60}小时`;
+  }
+  // "每周三、五 09:00，每次30分钟" from one week of session starts (g.week)
+  function schedText(g) {
+    const seen = new Set();
+    const list = (g.week || []).map((ms) => { const d = new Date(ms); return { wd: d.getDay(), clock: fmtClock.format(d) }; })
+      .filter((x) => !seen.has(x.wd) && seen.add(x.wd)).sort((a, b) => monFirst(a.wd, b.wd));
+    if (!list.length) return minutesWords(g.minutes);
+    const when = new Set(list.map((x) => x.clock)).size === 1
+      ? `${daysWords(list.map((x) => x.wd))}${EN ? ' at ' : ' '}${list[0].clock}`
+      : EN ? `Every ${list.map((x) => `${WK[x.wd]} ${x.clock}`).join(', ')}` : `每周${list.map((x) => `${WK[x.wd]} ${x.clock}`).join('、')}`;
+    return EN ? `${when}, ${minutesWords(g.minutes)} each` : `${when}，每次${minutesWords(g.minutes)}`;
+  }
+  // the plan in words, from a kind's summary template (same rules as fillSummary in src/kinds.js)
+  function fillSummary(tpl, show, on) {
+    const one = (x) => x.replace(/\{(\w+)(?:#([^#{}]*)#([^{}]*))?\}/g, (_, k, a, b) => {
+      const v = show(k);
+      return a !== undefined && EN ? `${v} ${Number(v) === 1 ? a : b}` : v;
+    });
+    return tpl.replace(/\{(\w+)\?((?:[^{}]|\{[^{}]*\})*)\}|\{\w+(?:#[^#{}]*#[^{}]*)?\}/g, (m, k, inner) => (k !== undefined ? (on(k) ? one(inner) : '') : one(m)));
+  }
+
   // ---------- a table with seats (plaza, group page) ----------
   function table(kind, seats, max, big) {
     const n = Math.max(2, Math.min(max || 6, 8));
     const R = big ? 86 : 50;
     const size = big ? 252 : 152;
     const c = size / 2;
-    let h = `<span class="table${big ? ' big' : ''}" style="--tint:${KIND_TINT[kind]};width:${size}px;height:${size}px">`;
+    let h = `<span class="table${big ? ' big' : ''}" style="--tint:${tintOf(kind)};width:${size}px;height:${size}px">`;
     h += `<span class="table-top">${CFG.kinds[kind] ? CFG.kinds[kind].icon : ''}</span>`;
     for (let i = 0; i < n; i++) {
       const a = (-90 + (360 / n) * i) * Math.PI / 180;
@@ -61,7 +97,7 @@
     const badges = [g.lang === 'en' ? 'EN' : '中文'];
     if (g.join === 'invite') badges.push(`🔒 ${t('邀请制', 'Invite only')}`);
     if (g.seats.length >= g.max) badges.push(t('满了', 'Full'));
-    return `<a class="spot${nx && nx.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" style="--tint:${KIND_TINT[g.kind]}">
+    return `<a class="spot${nx && nx.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" style="--tint:${tintOf(g.kind)}">
 ${table(g.kind, g.seats, g.max, false)}
 <span class="spot-kind">${esc(k.name || '')}</span>
 <span class="spot-title">${esc(g.title)}</span>
@@ -80,7 +116,7 @@ ${table(g.kind, g.seats, g.max, false)}
       const gs = r.groups;
       count.textContent = gs.length ? t(`此刻，广场上有 ${gs.length} 组搭子`, `${gs.length} buddy ${gs.length > 1 ? 'groups' : 'group'} on the plaza right now`) : t('广场上还空着，第一桌由你来摆', 'The plaza is empty. Set out the first table');
       const parts = [];
-      const list = gs.length ? gs.map(spot) : [0, 1, 2].map((i) => `<a class="spot is-empty" href="${pre}/dazi/new/${kind ? `?kind=${kind}` : ''}" style="--tint:${KIND_TINT[kind || ['bible', 'pray', 'feed'][i]]}">${table(kind || ['bible', 'pray', 'feed'][i], [], [4, 3, 5][i], false)}<span class="spot-title">${t('空着的桌子', 'An empty table')}</span><span class="spot-meta">${t('点这里发起一个搭子', 'Tap to start a group here')}</span></a>`);
+      const list = gs.length ? gs.map(spot) : [0, 1, 2].map((i) => `<a class="spot is-empty" href="${pre}/dazi/new/${kind ? `?kind=${kind}` : ''}" style="--tint:${tintOf(kind || ['bible', 'pray', 'feed'][i])}">${table(kind || ['bible', 'pray', 'feed'][i], [], [4, 3, 5][i], false)}<span class="spot-title">${t('空着的桌子', 'An empty table')}</span><span class="spot-meta">${t('点这里发起一个搭子', 'Tap to start a group here')}</span></a>`);
       list.forEach((html, i) => {
         parts.push(html);
         if (i % 3 === 1) parts.push(`<span class="deco" aria-hidden="true">${DECOS[(i * 2 + 1) % DECOS.length]}</span>`);
@@ -98,7 +134,7 @@ ${table(g.kind, g.seats, g.max, false)}
       const r = await api('/api/dazi/mine');
       if (!r.ok || !r.groups.length) return;
       $('[data-mine]').hidden = false;
-      $('[data-mine-row]').innerHTML = r.groups.map((g) => `<a class="mine-chip" href="${pre}/g/${g.id}" style="--tint:${KIND_TINT[g.kind]}"><b>${esc(g.title)}</b><span>${g.next ? (g.next.live ? t('正在进行', 'On now') : esc(when(g.next.start))) : ''}</span></a>`).join('');
+      $('[data-mine-row]').innerHTML = r.groups.map((g) => `<a class="mine-chip" href="${pre}/g/${g.id}" style="--tint:${tintOf(g.kind)}"><b>${esc(g.title)}</b><span>${g.next ? (g.next.live ? t('正在进行', 'On now') : esc(when(g.next.start))) : ''}</span></a>`).join('');
     };
     mine();
     document.addEventListener('yg:login', mine);
@@ -163,42 +199,80 @@ ${table(g.kind, g.seats, g.max, false)}
     const pad = sigPad($('[data-sigpad]', form));
     const now = new Date();
     const pad2 = (n) => String(n).padStart(2, '0');
+    const dayBoxes = $$('input[name="days"]', form);
     form.startDate.value = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-    $$('input[name="days"]', form).forEach((c) => { if (Number(c.value) === now.getDay()) c.checked = true; });
-    if (viewerTz) {
-      if (![...form.tz.options].some((o) => o.value === viewerTz)) form.tz.insertBefore(new Option(viewerTz, viewerTz), form.tz.firstChild);
-      form.tz.value = viewerTz;
-    }
+    dayBoxes.forEach((c) => { if (Number(c.value) === now.getDay()) c.checked = true; });
+    form.tz.value = viewerTz; // the initiator's own phone decides the time zone
     const q = new URLSearchParams(location.search);
     if (CFG.kinds[q.get('kind')]) $$('input[name="kind"]', form).forEach((r) => { r.checked = r.value === q.get('kind'); });
-    let books = [];
-    fetch('/data/bible.json').then((r) => r.json()).then((b) => { books = b; fillChapters(); sync(); });
-    function fillChapters() {
-      const b = books.find((x) => x.n === Number(form.book.value));
-      if (!b) return;
-      const cur = Number(form.chapter.value) || 1;
-      form.chapter.innerHTML = Array.from({ length: b.ch }, (_, i) => `<option value="${i + 1}">${EN ? `Chapter ${i + 1}` : `第 ${i + 1} 章`}</option>`).join('');
-      form.chapter.value = String(Math.min(cur, b.ch));
-    }
     const kind = () => ($('input[name="kind"]:checked', form) || {}).value || 'bible';
+    const box = (k) => $(`fieldset[data-for="${k}"]`, form);
+
+    // some kinds have their own usual time (晨兴: mornings, Monday to Saturday) until the person picks one
+    const base = { time: form.time.value, days: dayBoxes.filter((c) => c.checked).map((c) => Number(c.value)) };
+    let touchedTime = false, touchedDays = false;
+    form.time.addEventListener('input', () => { touchedTime = true; });
+    dayBoxes.forEach((c) => c.addEventListener('change', () => { touchedDays = true; }));
+    function applyDefaults() {
+      const d = (CFG.kinds[kind()] || {}).defaults || base;
+      if (!touchedTime) form.time.value = d.time;
+      if (!touchedDays) dayBoxes.forEach((c) => { c.checked = d.days.includes(Number(c.value)); });
+    }
+    $$('input[name="kind"]', form).forEach((r) => r.addEventListener('change', applyDefaults));
+    applyDefaults();
+
+    let books = [];
+    fetch('/data/bible.json').then((r) => r.json()).then((b) => { books = b; $$('[data-chapters]', form).forEach(fillChapters); sync(); });
+    // a chapter list follows the book picked in the same part of the form
+    function fillChapters(sel) {
+      const bookSel = $('[data-plan="book"]', sel.closest('fieldset'));
+      const b = books.find((x) => x.n === Number(bookSel && bookSel.value));
+      if (!b) return;
+      const cur = Number(sel.value) || 1;
+      sel.innerHTML = Array.from({ length: b.ch }, (_, i) => `<option value="${i + 1}">${EN ? `Chapter ${i + 1}` : `第 ${i + 1} 章`}</option>`).join('');
+      sel.value = String(Math.min(cur, b.ch));
+    }
+    $$('[data-plan="book"]', form).forEach((b) => b.addEventListener('change', () => {
+      const ch = $('[data-chapters]', b.closest('fieldset'));
+      if (ch) { ch.value = '1'; fillChapters(ch); }
+    }));
+    const bookName = (n) => { const b = books.find((x) => x.n === Number(n)); return b ? b[EN ? 'en' : 'zh'] : ''; };
+    // the plan as the server wants it: numbers as numbers, ticks as true/false
+    function planOf(k) {
+      const plan = {};
+      const fs = box(k);
+      if (!fs) return plan;
+      $$('[data-plan]', fs).forEach((x) => {
+        const v = x.value.trim();
+        plan[x.getAttribute('data-plan')] = x.type === 'checkbox' ? x.checked : (x.type === 'number' || x.tagName === 'SELECT') && v !== '' && !Number.isNaN(Number(v)) ? Number(v) : v;
+      });
+      return plan;
+    }
+    function planWords(k) {
+      const kd = CFG.kinds[k];
+      if (!kd) return '';
+      const plan = planOf(k);
+      const fields = Object.fromEntries(kd.fields.map((f) => [f.name, f]));
+      const show = (n) => {
+        const f = fields[n];
+        const v = plan[n];
+        if (!f) return '';
+        if (f.type === 'book') return bookName(v);
+        if (f.options) { const o = f.options.find((x) => String(x[0]) === String(v)); return o ? o[1] : String(v); }
+        return v == null ? '' : String(v);
+      };
+      const out = fillSummary(kd.summary, show, (n) => !!plan[n]);
+      return EN ? out.charAt(0).toUpperCase() + out.slice(1) : out;
+    }
     function terms() {
       const k = kind();
-      const days = $$('input[name="days"]:checked', form).map((c) => Number(c.value)).sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
-      const wk = EN ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['日', '一', '二', '三', '四', '五', '六'];
-      const dayText = !days.length ? t('（还没选哪几天）', '(no days picked yet)') : days.length === 7 ? t('每天', 'Every day') : EN ? `Every ${days.map((d) => wk[d]).join(', ')}` : `每周${days.map((d) => wk[d]).join('、')}`;
-      const tzText = form.tz.options[form.tz.selectedIndex] ? form.tz.options[form.tz.selectedIndex].textContent : '';
+      const days = dayBoxes.filter((c) => c.checked).map((c) => Number(c.value));
       const mins = form.minutes.options[form.minutes.selectedIndex].textContent;
-      const bk = (n) => { const b = books.find((x) => x.n === Number(n)); return b ? b[EN ? 'en' : 'zh'] : ''; };
-      let what;
-      if (k === 'bible') what = EN ? `${bk(form.book.value)} from chapter ${form.chapter.value}, ${form.per.value} each time${form.cont.checked ? ', then on to the next book' : ''}` : `从${bk(form.book.value)}第${form.chapter.value}章开始，每次${form.per.value}章${form.cont.checked ? '，读完接着读下一卷' : ''}`;
-      else if (k === 'pray') what = t('每次一起读当天的呼吸', 'The day’s Breathe each time');
-      else if (k === 'feed') what = EN ? `One lesson each time, from lesson ${form.lesson.value}` : `从第${form.lesson.value}课开始，每次一课`;
-      else what = EN ? `Life-study of ${bk(form.lsBook.value)} from message ${form.msg.value}, ${form.perMsg.value} each time` : `${bk(form.lsBook.value)}生命读经，从第${form.msg.value}篇开始，每次${form.perMsg.value}篇`;
       const venue = $('input[name="venue"]:checked', form).value;
       const verb = CFG.kinds[k] ? CFG.kinds[k].verb : '';
       return `<dl class="terms">
-<dt>${t('时间', 'When')}</dt><dd>${esc(dayText)} ${esc(form.time.value || '--:--')}（${esc(tzText)}），${esc(mins)}${EN ? '' : ''}<small>${t('从', 'from ')}${esc(form.startDate.value)}${t(' 开始', '')}</small></dd>
-<dt>${t('读什么', 'What')}</dt><dd>${esc(what)}${form.lang.value === 'en' ? ' · English' : ' · 中文'}</dd>
+<dt>${t('时间', 'When')}</dt><dd>${esc(daysWords(days))} ${esc(form.time.value || '--:--')}${EN ? ', ' : '，'}${esc(mins)}<small>${t('从', 'from ')}${esc(form.startDate.value)}${t(' 开始', '')}</small></dd>
+<dt>${t('读什么', 'What')}</dt><dd>${esc(planWords(k))}${form.lang.value === 'en' ? ' · English' : ' · 中文'}</dd>
 <dt>${t('在哪里', 'Where')}</dt><dd>${esc(CFG.venues[venue].name)}</dd>
 </dl><p class="cov-line">${EN ? `I will keep this time and ${esc(verb)} with my buddies faithfully, week after week.` : `我愿意按约定的时间，坚定持续地和搭子们一起${esc(verb)}。`}</p>`;
     }
@@ -208,7 +282,6 @@ ${table(g.kind, g.seats, g.max, false)}
       $('[data-for-public]', form).hidden = $('input[name="visibility"]:checked', form).value !== 'public';
       $('[data-summary]', form).innerHTML = terms();
     }
-    form.book.addEventListener('change', () => { form.chapter.value = '1'; fillChapters(); });
     form.addEventListener('input', sync);
     form.addEventListener('change', sync);
     sync();
@@ -222,11 +295,8 @@ ${table(g.kind, g.seats, g.max, false)}
       const k = kind();
       const body = {
         kind: k, lang: form.lang.value, title: form.title.value, intro: form.intro.value,
-        days: $$('input[name="days"]:checked', form).map((c) => Number(c.value)), time: form.time.value, minutes: Number(form.minutes.value),
-        startDate: form.startDate.value, tz: form.tz.value,
-        plan: k === 'bible' ? { book: Number(form.book.value), chapter: Number(form.chapter.value), per: Number(form.per.value), cont: form.cont.checked }
-          : k === 'feed' ? { lesson: Number(form.lesson.value) }
-            : k === 'life' ? { book: Number(form.lsBook.value), msg: Number(form.msg.value), per: Number(form.perMsg.value), link: form.lsLink.value } : {},
+        days: dayBoxes.filter((c) => c.checked).map((c) => Number(c.value)), time: form.time.value, minutes: Number(form.minutes.value),
+        startDate: form.startDate.value, tz: form.tz.value || viewerTz, plan: planOf(k),
         venue: { type: $('input[name="venue"]:checked', form).value, info: form.venueInfo.value },
         visibility: $('input[name="visibility"]:checked', form).value, join: $('input[name="join"]:checked', form).value, max: Number(form.max.value),
         sig: pad.png(), website: form.website.value,
@@ -247,7 +317,7 @@ ${table(g.kind, g.seats, g.max, false)}
       const box = el(`<div class="sheet-wrap" role="dialog" aria-modal="true"><div class="sheet cov-sheet">
 <button type="button" class="sheet-x" aria-label="${t('关闭', 'Close')}">×</button>
 <h2>${t('立约', 'Make the covenant')}</h2>
-<div class="covenant"><dl class="terms"><dt>${t('搭子', 'Group')}</dt><dd>${esc(g.title)}</dd><dt>${t('时间', 'When')}</dt><dd>${esc(g.scheduleText)}</dd><dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}</dd><dt>${t('在哪里', 'Where')}</dt><dd>${esc(CFG.venues[g.venue.type] ? CFG.venues[g.venue.type].name : '')}</dd></dl>
+<div class="covenant"><dl class="terms"><dt>${t('搭子', 'Group')}</dt><dd>${esc(g.title)}</dd><dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}</small></dd><dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}</dd><dt>${t('在哪里', 'Where')}</dt><dd>${esc(CFG.venues[g.venue.type] ? CFG.venues[g.venue.type].name : '')}</dd></dl>
 <p class="cov-line">${EN ? `I will keep this time and ${esc(k.verb || '')} with my buddies faithfully, week after week.` : `我愿意按约定的时间，坚定持续地和搭子们一起${esc(k.verb || '')}。`}</p>
 <p class="cov-sign-label">${t('在下面签个名', 'Sign below')}</p><div class="sigpad" data-sigpad><canvas></canvas><button type="button" class="link-btn" data-sig-clear>${t('重写', 'Clear')}</button></div></div>
 <p class="form-error" data-error hidden></p>
@@ -288,7 +358,7 @@ ${table(g.kind, g.seats, g.max, false)}
       const r = data;
       if (!r.ok) { root.innerHTML = `<div class="empty"><p>${esc(r.error)}</p><p><a class="btn btn-water" href="${pre}/dazi/">${t('去搭子广场', 'Go to the plaza')}</a></p></div>`; return; }
       if (r.needInvite) {
-        root.innerHTML = `<div class="g-hero" style="--tint:${KIND_TINT[r.group.kind]}"><h1 class="g-title">${esc(r.group.title)}</h1><p class="muted">${t(`这个搭子不公开，需要用${r.group.owner ? ` ${esc(r.group.owner)} ` : ''}发给你的邀请链接打开。`, `This group is not public. Open it with the invite link${r.group.owner ? ` from ${esc(r.group.owner)}` : ''}.`)}</p></div>`;
+        root.innerHTML = `<div class="g-hero" style="--tint:${tintOf(r.group.kind)}"><h1 class="g-title">${esc(r.group.title)}</h1><p class="muted">${t(`这个搭子不公开，需要用${r.group.owner ? ` ${esc(r.group.owner)} ` : ''}发给你的邀请链接打开。`, `This group is not public. Open it with the invite link${r.group.owner ? ` from ${esc(r.group.owner)}` : ''}.`)}</p></div>`;
         return;
       }
       const g = r.group;
@@ -302,7 +372,7 @@ ${table(g.kind, g.seats, g.max, false)}
         h += `<div class="notice"><b>${t('搭子建好了。', 'Your group is ready.')}</b> ${t('把邀请链接发给朋友，他们打开、签名，就立约加入了。', 'Send the invite link to friends. They open it, sign, and they are in.')}<p class="btn-row"><button class="btn btn-dawn btn-sm" type="button" data-copy-invite>${t('复制邀请链接', 'Copy invite link')}</button></p></div>`;
         isNew = false;
       }
-      h += `<div class="g-hero" style="--tint:${KIND_TINT[g.kind]}">${table(g.kind, seatsOf(g.members), g.max, true)}
+      h += `<div class="g-hero" style="--tint:${tintOf(g.kind)}">${table(g.kind, seatsOf(g.members), g.max, true)}
 <p class="g-kind"><span class="ki">${k.icon || ''}</span>${esc(k.name || '')}<span class="pill">${g.lang === 'en' ? 'English' : '中文'}</span>${g.join === 'invite' ? `<span class="pill">🔒 ${t('邀请制', 'Invite only')}</span>` : ''}${g.status === 'closed' ? `<span class="pill">${t('已结束', 'Ended')}</span>` : ''}</p>
 <h1 class="g-title">${esc(g.title)}</h1>
 <p class="g-by">${esc(g.owner)} ${t('发起', 'started this')} · ${g.members.length}/${g.max} ${t('人', 'people')}</p>
@@ -310,7 +380,7 @@ ${g.intro ? `<p class="g-intro">${esc(g.intro)}</p>` : ''}</div>`;
       // the covenant
       const venue = CFG.venues[g.venue.type] || {};
       h += `<section class="covenant"><h2>${t('搭子的约', 'The covenant')}</h2><dl class="terms">
-<dt>${t('时间', 'When')}</dt><dd>${esc(g.scheduleText)}${nx && g.tz !== viewerTz ? `<small>${t('按你手机的时间，', 'On your phone: ')}${g.current ? t('正在进行', 'on now') : `${t('下次', 'next ')} ${esc(when(nx.start))}`}</small>` : ''}</dd>
+<dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}${g.first > Date.now() ? t(`，${esc(when(g.first))} 第一次`, `; first time ${esc(when(g.first))}`) : ''}</small></dd>
 <dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}</dd>
 <dt>${t('在哪里', 'Where')}</dt><dd><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${member && g.venue.info ? `<small class="venue-info">${esc(g.venue.info)}</small>` : ''}</dd>
 ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.total ? ` / ${g.total}` : ''} 次`, `${g.done}${g.total ? ` of ${g.total}` : ''} so far`)}</dd>` : ''}
@@ -443,7 +513,7 @@ ${owner ? `<form class="form owner-form" data-edit novalidate><h3 class="sub-h3"
 <label class="field"><span>${t('介绍', 'A few words')}</span><textarea name="intro" rows="2" maxlength="300">${esc(g.intro)}</textarea></label>
 <div class="field"><span>${t('在哪里见面', 'Where you meet')}</span><div class="venue-pick">${Object.entries(CFG.venues).map(([key, v]) => `<label class="venue-opt"><input type="radio" name="venue" value="${key}"${g.venue.type === key ? ' checked' : ''}><span>${v.icon}${esc(v.name)}</span></label>`).join('')}</div></div>
 <label class="field"><span>${t('号码、会议链接或微信号', 'Number, link or WeChat ID')}</span><input name="venueInfo" maxlength="300" value="${esc(g.venue.info || '')}"></label>
-${g.kind === 'life' ? `<label class="field"><span>${t('生命读经的网址', 'Life-study link')}</span><input name="link" type="url" maxlength="300" value="${esc(g.plan.link || '')}"></label>` : ''}
+${((CFG.kinds[g.kind] || {}).edit || []).map((f) => `<label class="field"><span>${esc(f.label)}</span><input data-edit-plan="${esc(f.name)}" type="url" inputmode="url" maxlength="300" placeholder="https://" value="${esc(g.plan[f.name] || '')}"></label>`).join('')}
 <div class="radios"><label class="check"><input type="radio" name="visibility" value="public"${g.visibility === 'public' ? ' checked' : ''}><span>${t('公开，放在广场上', 'Public, on the plaza')}</span></label><label class="check"><input type="radio" name="visibility" value="hidden"${g.visibility === 'hidden' ? ' checked' : ''}><span>${t('隐藏，只用邀请链接', 'Hidden, invite link only')}</span></label></div>
 <div class="radios sub"><label class="check"><input type="radio" name="join" value="open"${g.join === 'open' ? ' checked' : ''}><span>${t('会员可以直接加入', 'Members can join directly')}</span></label><label class="check"><input type="radio" name="join" value="invite"${g.join === 'invite' ? ' checked' : ''}><span>${t('只能用邀请链接', 'Invite link only')}</span></label></div>
 <label class="field"><span>${t('最多几个人', 'Up to')}</span><select name="max">${[2, 3, 4, 5, 6, 8, 10, 12].map((n) => `<option value="${n}"${n === g.max ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
@@ -458,7 +528,7 @@ ${g.kind === 'life' ? `<label class="field"><span>${t('生命读经的网址', '
         if (f) {
           f.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const x = await api(`/api/dazi/${g.id}/manage`, { body: { action: 'update', title: f.title.value, intro: f.intro.value, venue: { type: $('input[name="venue"]:checked', f).value, info: f.venueInfo.value }, visibility: $('input[name="visibility"]:checked', f).value, join: $('input[name="join"]:checked', f).value, max: Number(f.max.value), link: f.link ? f.link.value : undefined } });
+            const x = await api(`/api/dazi/${g.id}/manage`, { body: { action: 'update', title: f.title.value, intro: f.intro.value, venue: { type: $('input[name="venue"]:checked', f).value, info: f.venueInfo.value }, visibility: $('input[name="visibility"]:checked', f).value, join: $('input[name="join"]:checked', f).value, max: Number(f.max.value), plan: Object.fromEntries($$('[data-edit-plan]', f).map((x) => [x.getAttribute('data-edit-plan'), x.value])) } });
             if (x.ok) { toast(t('保存好了', 'Saved')); load(); } else { const er = $('[data-error]', f); er.textContent = x.error; er.hidden = false; }
           });
         }
@@ -503,9 +573,9 @@ ${g.kind === 'life' ? `<label class="field"><span>${t('生命读经的网址', '
       const mine = s.mine || { done: null, note: '', marks: [] };
       document.title = `${r.text}｜${g.title}`;
       root.innerHTML = `<a class="back" href="${pre}/g/${g.id}">← ${esc(g.title)}</a>
-<div class="sess-head" style="--tint:${KIND_TINT[g.kind]}"><p class="sess-kind"><span class="ki">${k.icon || ''}</span>${esc(k.name || '')} · ${t(`第 ${ss.n} 次`, `Time ${ss.n}`)}${g.total ? ` / ${g.total}` : ''}</p>
+<div class="sess-head" style="--tint:${tintOf(g.kind)}"><p class="sess-kind"><span class="ki">${k.icon || ''}</span>${esc(k.name || '')} · ${t(`第 ${ss.n} 次`, `Time ${ss.n}`)}${g.total ? ` / ${g.total}` : ''}</p>
 <h1 class="sess-title">${esc(r.text)}</h1>
-<p class="sess-when">${esc(when(ss.start))}${s.label && g.tz !== viewerTz ? ` <small>${EN ? '(' : '（'}${esc(s.label)}${EN ? ')' : '）'}</small>` : ''}</p>
+<p class="sess-when">${esc(when(ss.start))}</p>
 <p class="sess-venue"><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${g.venue.info ? ` · ${esc(g.venue.info)}` : ''}</p></div>
 <section class="reading-card" data-reading><p class="muted">${t('正在载入……', 'Loading…')}</p></section>
 <section class="my-note"><h2 class="sub-h3">${t('心得', 'My notes')}</h2>
@@ -536,20 +606,19 @@ ${g.kind === 'life' ? `<label class="field"><span>${t('生命读经的网址', '
       const undo = $('[data-undo]', root);
       if (undo) undo.addEventListener('click', async () => { const x = await api(`/api/dazi/${g.id}/s/${ss.n}`, { body: { done: false } }); if (x.ok) load(); else toast(x.error); });
     }
-    // the reading itself: links for the Bible and the Life-study, the site's own text for 呼吸 and lessons
+    // the reading itself: links for what is read elsewhere, the site's own text for 呼吸 and lessons
     async function reading(g, ss, marks) {
       const box = $('[data-reading]', root);
       const r = ss.reading;
       const L = g.lang === 'en' ? 'en' : 'zh';
       const saveMarks = (m) => api(`/api/dazi/${g.id}/s/${ss.n}`, { body: { marks: m } });
-      if (r.kind === 'bible' || r.kind === 'life') {
-        const links = r.kind === 'bible'
-          ? r.chapters.map((c) => (c.url ? `<a class="btn btn-water read-link" href="${esc(c.url)}" target="_blank" rel="noopener">${t('打开', 'Open')} ${esc(c.label)}</a>` : `<span class="read-nolink">${esc(c.label)}</span>`)).join('')
-          : (r.url ? `<a class="btn btn-water read-link" href="${esc(r.url)}" target="_blank" rel="noopener">${t('打开生命读经', 'Open the Life-study')}</a>` : '');
-        const missing = r.kind === 'bible' ? r.chapters.some((c) => !c.url) : !r.url;
+      // kinds read elsewhere (the Bible, Life-study, Morning Revival …): links, and a bookmark box
+      if (!r.huxi && !r.lesson) {
+        const links = (r.links || []).map((c) => (c.url ? `<a class="btn btn-water read-link" href="${esc(c.url)}" target="_blank" rel="noopener">${t('打开', 'Open')} ${esc(c.label)}</a>` : `<span class="read-nolink">${esc(c.label)}</span>`)).join('');
+        const missing = !(r.links || []).length || r.links.some((c) => !c.url);
         box.innerHTML = `<p class="read-what">${r.kind === 'bible' ? t('这次读（恢复本）', 'This time (Recovery Version)') : t('这次读', 'This time')}</p>
-<div class="read-links">${links}</div>
-${missing ? `<p class="hint">${r.kind === 'bible' ? t('中文恢复本的网址还在设置中，先用你手边的恢复本读这几章。', 'The online link is not set yet; read these chapters in your own Recovery Version.') : t('发起人还没填生命读经的网址，先用你手边的书读这几篇。', 'The initiator has not added a Life-study link; read these messages in your own copy.')}</p>` : ''}
+<div class="read-links">${links || `<span class="read-nolink">${esc(r.text)}</span>`}</div>
+${missing ? `<p class="hint">${t('这一次没有网上的链接，翻开你手边的书读这一段就好。', 'There is no online link for this one; read it in your own copy.')}</p>` : ''}
 <label class="field bm"><span>🔖 ${t('书签：读到哪里了', 'Bookmark: where you stopped')}</span><input data-bm maxlength="40" value="${esc(marks[0] || '')}" placeholder="${r.kind === 'bible' ? t('例如：第 16 节', 'e.g. verse 16') : t('例如：第 3 段', 'e.g. section 3')}"></label>`;
         const bm = $('[data-bm]', box);
         bm.addEventListener('change', () => saveMarks(bm.value.trim() ? [bm.value.trim()] : []));
@@ -557,9 +626,9 @@ ${missing ? `<p class="hint">${r.kind === 'bible' ? t('中文恢复本的网址�
       }
       let doc = null;
       try {
-        if (r.kind === 'pray') {
+        if (r.huxi) {
           const idx = await fetch('/data/huxi.json').then((x) => x.json());
-          const day = idx.find((x) => x.date <= r.date) || idx[idx.length - 1];
+          const day = idx.find((x) => x.date <= r.huxi) || idx[idx.length - 1];
           if (day) doc = await fetch(`/data/huxi/${day.date}.json`).then((x) => x.json());
         } else {
           doc = await fetch(`/data/feed/${r.lesson}.json`).then((x) => (x.ok ? x.json() : null));

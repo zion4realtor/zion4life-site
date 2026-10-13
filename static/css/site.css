@@ -297,7 +297,7 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .seg input:checked + span { background: var(--water); color: #fff; }
 .kind-pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .kind-opt { position: relative; display: grid; gap: 6px; align-content: start; padding: 14px 14px 13px; border-radius: 20px; background: linear-gradient(165deg, color-mix(in srgb, var(--tint) 12%, var(--paper)), color-mix(in srgb, var(--tint) 30%, var(--paper))); box-shadow: inset 0 0 0 1.5px transparent; cursor: pointer; }
-.kind-bible { --tint: var(--t-mint); } .kind-pray { --tint: var(--t-sun); } .kind-feed { --tint: var(--t-peach); } .kind-life { --tint: var(--t-lilac); }
+.kind-opt:last-child:nth-child(odd) { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 14px; }
 .kind-opt .ki { width: 36px; height: 36px; border-radius: 12px; background: var(--paper); }
 .kind-opt .ki svg { width: 22px; height: 22px; }
 .kind-opt b { display: block; font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: 0.04em; }
