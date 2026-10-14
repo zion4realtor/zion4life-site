@@ -337,11 +337,11 @@ test('搭子: create, plaza, open join with a signature, invite-only, hidden, de
   const inside = await call(`/api/dazi/${id}`, { cookie: sam });
   assert.equal(inside.body.group.venue.info, '微信号 abc123');
   assert.ok(inside.body.group.members.every((m) => m.sig));
-  assert.match(inside.body.invite, /\/g\/[a-z0-9]{8}\?i=[a-z0-9]{6}$/);
+  assert.match(inside.body.invite, /\/g\/[a-z0-9]{8}\?i=[a-z0-9]{6}&pv=20261014$/);
   // invite-only: strangers cannot join; the invite link works
   await call(`/api/dazi/${id}/manage`, { body: { action: 'update', visibility: 'public', join: 'invite' }, cookie: owner });
   assert.equal((await call(`/api/dazi/${id}/join`, { body: { sig: SIG }, cookie: amy })).status, 403);
-  const code = inside.body.invite.split('?i=')[1];
+  const code = new URL(inside.body.invite).searchParams.get('i');
   assert.equal((await call(`/api/dazi/${id}?i=${code}`, { cookie: amy })).body.inviteOk, true);
   assert.equal((await call(`/api/dazi/${id}/decline`, { body: { invite: code }, cookie: amy })).body.ok, true);
   assert.ok(mails.some((m) => m.subject.includes('婉拒')));
