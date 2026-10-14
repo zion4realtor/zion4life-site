@@ -34,7 +34,7 @@ export async function handleHit(request, env, ctx, url) {
   const done = () => new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
   if (request.method !== 'POST') return done();
   const id = env.GA_MEASUREMENT_ID;
-  const secret = env.GA_API_SECRET;
+  const secret = String(env.GA_API_SECRET || '').trim(); // a pasted secret can carry a stray newline
   if (!id || !secret) return done();
   const origin = request.headers.get('origin');
   if (origin && origin !== url.origin) return done();
