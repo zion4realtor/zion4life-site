@@ -375,7 +375,7 @@ const HOME_SCREEN = {
   zh: `<details class="a2hs" data-a2hs>
 <summary>${PHONE_ICON}<span>放到手机桌面，像 APP 一样一点就开</span></summary>
 <div class="a2hs-in">
-<p class="a2hs-lead">桌面上会多一个「呼吸」图标。以后一点开它，就直接是最新的活力排祷告负担。</p>
+<p class="a2hs-lead">桌面上会多一个「有光」图标。以后一点开它，就直接是最新的活力排祷告负担。</p>
 <p class="a2hs-go" data-a2hs-go hidden><button class="btn btn-water btn-sm" type="button" data-a2hs-btn>一键放到桌面</button></p>
 <div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>在微信里打开的</b><p>微信里没法直接放到桌面。先点右上角「···」，选「在浏览器打开」（苹果手机是「在 Safari 中打开」），再按下面的步骤做。</p></div>
 <div class="a2hs-step" data-os="ios"><b>苹果手机（iPhone）</b><ol>
@@ -392,7 +392,7 @@ const HOME_SCREEN = {
   en: `<details class="a2hs" data-a2hs>
 <summary>${PHONE_ICON}<span>Put it on your home screen, like an app</span></summary>
 <div class="a2hs-in">
-<p class="a2hs-lead">A “Breathe” icon appears on your home screen. Tap it any time to open the newest Vital Groups Prayer Burden.</p>
+<p class="a2hs-lead">A “Light” icon appears on your home screen. Tap it any time to open the newest Vital Groups Prayer Burden.</p>
 <p class="a2hs-go" data-a2hs-go hidden><button class="btn btn-water btn-sm" type="button" data-a2hs-btn>Add to home screen</button></p>
 <div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>Opened in WeChat?</b><p>WeChat cannot do this itself. Tap “···” at the top right, choose “Open in Browser” (on iPhone, “Open in Safari”), then follow the steps below.</p></div>
 <div class="a2hs-step" data-os="ios"><b>iPhone</b><ol>
@@ -572,7 +572,7 @@ ${listen(p)}
     const appHead = `<link rel="manifest" href="${U(lang, '/huxi/app.webmanifest')}">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="${esc(L.huxi)}">
+<meta name="apple-mobile-web-app-title" content="${esc(site[lang].name)}">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">`;
     const homeScreen = HOME_SCREEN[lang];
     const archive = (current) => `<section class="more" id="archive"><h2 class="sec-h">${esc(L.past)}</h2><ul class="arch">${huxi.map((p) => {
@@ -652,7 +652,7 @@ for (const p of feed) writeData(`feed/${p.n}.json`, { n: p.n, sample: p.sample, 
 // the 呼吸 app on the home screen: opens at /huxi/ (the newest day), the whole site in the app
 for (const lang of LANGS) {
   const manifest = {
-    name: lang === 'en' ? 'Breathe · Light' : '呼吸 · 有光', short_name: S[lang].huxi, lang: lang === 'en' ? 'en' : 'zh-CN',
+    name: site[lang].name, short_name: site[lang].name, lang: lang === 'en' ? 'en' : 'zh-CN',
     start_url: U(lang, '/huxi/'), scope: '/', display: 'standalone', background_color: '#eaf6ff', theme_color: '#eaf6ff',
     icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }],
   };
