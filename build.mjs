@@ -37,7 +37,7 @@ const S = {
     shareBtn: '分享给朋友', shareWx: '在微信里，点右上角“···”，就能发送给朋友或分享到朋友圈。',
     more: '继续吃', play: '播放', soon: '视频即将上线', lineTip: '播放不了的话，换一条线路试试。',
     huxi: '呼吸', huxiSub: '什么时候打开这个链接，都是最新的一篇。', huxiShare: '把这个链接发给弟兄姊妹，他们什么时候打开，看到的都是最新的呼吸。',
-    huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', todayLink: '看今天的呼吸',
+    huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', todayLink: '看今天的呼吸', huxiBurden: '活力排祷告负担',
     listen: '读给我听', listenPlay: '播放', listenPause: '暂停', listenAbout: (m) => `约 ${m} 分钟`, speed: '语速',
     subHuxi: '订阅每天的呼吸', subHuxiOn: '已订阅', subHuxiHint: '订阅以后，呼吸一上新，“我的”里马上会收到消息。',
     week: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'], weekShort: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
@@ -65,7 +65,7 @@ const S = {
     shareBtn: 'Share', shareWx: 'In WeChat, tap "···" at the top right to send it to a friend or to Moments.',
     more: 'Keep eating', play: 'Play', soon: 'Video coming soon', lineTip: 'If it will not play, try another line.',
     huxi: 'Breathe', huxiSub: 'Open this link any time and you see the newest day.', huxiShare: 'Send this link to brothers and sisters. Whenever they open it, they see the newest Breathe.',
-    huxiDayShare: 'Send this day to brothers and sisters.', past: 'Earlier days', todayLink: 'See today',
+    huxiDayShare: 'Send this day to brothers and sisters.', past: 'Earlier days', todayLink: 'See today', huxiBurden: 'Vital Groups Prayer Burden',
     listen: 'Read it to me', listenPlay: 'Play', listenPause: 'Pause', listenAbout: (m) => `about ${m} min`, speed: 'Speed',
     subHuxi: 'Subscribe to Breathe', subHuxiOn: 'Subscribed', subHuxiHint: 'Subscribers get a message in “Me” as soon as a new Breathe is up.',
     week: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], weekShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -506,12 +506,12 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
 <div class="hx-a-bar" data-bar role="slider" aria-label="${esc(L.listen)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><i data-fill></i></div></div>
 <button class="hx-speed" type="button" data-speed aria-label="${esc(L.speed)}">1×</button>
 <p class="hx-a-msg" data-msg hidden></p></div>`;
+    // above the day: 呼吸, the day's date and what it is (the date is not repeated in the box)
+    const kicker = (p) => `<p class="hx-kicker"><b>${esc(L.huxi)}</b><span>${esc(dateParts(p.date, lang).full)}</span><span>${esc(L.huxiBurden)}</span></p>`;
     const day = (p, live) => {
-      const d = dateParts(p.date, lang);
       const x = p[lang];
       return `<article class="hx"${live ? ' data-huxi-today' : ''} data-date="${p.date}">
 <header class="hx-hero" data-s="0">
-<p class="hx-date"><span data-f="full">${esc(d.full)}</span><span class="dot">·</span><span data-f="wd">${esc(d.wd)}</span></p>
 <h1 class="hx-title"><span data-f="title">${esc(x.title)}</span>${sampleTag(p, lang)}</h1>
 <p class="hx-lede" data-f="lede"${x.lede ? '' : ' hidden'}>${esc(x.lede)}</p>
 </header>
@@ -531,7 +531,7 @@ ${listen(p)}
       tab: 'huxi',
       scripts: [HUXI_JS],
       body: `<section class="page hx-page" style="--tint:var(--t-sun)">
-<p class="hx-kicker"><b>${esc(L.huxi)}</b>${esc(L.huxiSub)}</p>
+${kicker(todayHuxi)}
 ${day(todayHuxi, true)}
 ${shareBox(lang, L.huxiShare, U(lang, '/huxi/'), L.huxi)}
 ${archive(todayHuxi.date)}
@@ -547,6 +547,7 @@ ${archive(todayHuxi.date)}
         scripts: [HUXI_JS],
         body: `<section class="page hx-page" style="--tint:var(--t-sun)">
 <a class="back" href="${U(lang, '/huxi/')}">← ${esc(L.todayLink)}</a>
+${kicker(p)}
 ${day(p, false)}
 ${shareBox(lang, L.huxiDayShare, U(lang, `/huxi/${p.date}/`), `${d.md} ${L.huxi}`)}
 ${archive(p.date)}
