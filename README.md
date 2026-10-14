@@ -124,6 +124,12 @@ variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
   into their tags at `/write/`; they appear on the tag page and at `/x/<id>`.
 - Zion is the admin: any account whose email is in `ADMIN_EMAILS` (light@zion4life.faith
   and zion.chen@hotmail.com).
+- `/admin/` (wide, for a computer): 概况 (counts, countries, identity tags), 注册的人 (a
+  table with nickname, full email, country, identity tags, 搭子, subscriptions, 打卡,
+  language and time zone, signed up, last seen; search, filters, sort, 导出表格 as a CSV
+  that opens in Excel) and 搭子 (kind, status, people, schedule, members), then messages,
+  claims, managers, questions, 留言 and posts. The country is Cloudflare's `request.cf.country`,
+  stored on sign-in and refreshed with `seen` at most hourly; no IP addresses are stored.
 
 ## 搭子 (groups)
 

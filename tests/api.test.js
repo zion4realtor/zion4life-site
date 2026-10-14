@@ -57,20 +57,22 @@ beforeEach(() => {
     throw new Error(`unexpected fetch ${url}`);
   };
 });
-async function call(p, { method, body, cookie, ip = '1.1.1.1', lang = 'zh' } = {}) {
+async function call(p, { method, body, cookie, ip = '1.1.1.1', lang = 'zh', country } = {}) {
   const headers = { 'cf-connecting-ip': ip, 'x-lang': lang, origin: 'https://zion4life.faith' };
   if (body) headers['content-type'] = 'application/json';
   if (cookie) headers.cookie = cookie;
-  const r = await worker.fetch(new Request(`https://zion4life.faith${p}`, { method: method || (body ? 'POST' : 'GET'), headers, body: body && JSON.stringify(body) }), env);
+  const req = new Request(`https://zion4life.faith${p}`, { method: method || (body ? 'POST' : 'GET'), headers, body: body && JSON.stringify(body) });
+  if (country) Object.defineProperty(req, 'cf', { value: { country } }); // what Cloudflare adds
+  const r = await worker.fetch(req, env);
   const type = r.headers.get('content-type') || '';
   return { status: r.status, headers: r.headers, body: type.includes('json') ? await r.json() : await r.text() };
 }
 // Sign up (or in) and return the session cookie.
-async function signIn(email, name, extra = {}) {
+async function signIn(email, name, extra = {}, { country } = {}) {
   const s = await call('/api/auth/start', { body: { email } });
   assert.equal(s.body.ok, true, JSON.stringify(s.body));
   const code = mails.at(-1).subject.match(/(\d{6})/)[1];
-  const v = await call('/api/auth/verify', { body: { email, code, name, ...extra } });
+  const v = await call('/api/auth/verify', { body: { email, code, name, ...extra }, country });
   assert.equal(v.body.ok, true, JSON.stringify(v.body));
   return v.headers.get('set-cookie').split(';')[0];
 }
@@ -221,6 +223,32 @@ test('no mail set up: sign-in says so instead of failing silently', async () => 
   delete env.RESEND_API_KEY;
   const r = await call('/api/auth/start', { body: { email: 'a@example.com' } });
   assert.equal(r.status, 503);
+});
+
+test('管理: Zion sees everyone with country, email, identity tags, 搭子 and subscriptions', async () => {
+  const zion = await signIn('zion.chen@hotmail.com', 'Zion', {}, { country: 'US' });
+  const sam = await signIn('sam@example.com', '小山', { ids: ['student', 'brother'] }, { country: 'CN' });
+  const g = await call('/api/dazi', { body: groupBody(), cookie: sam });
+  assert.equal(g.body.ok, true, JSON.stringify(g.body));
+  await call('/api/subs', { body: { topic: 'huxi', on: true }, cookie: sam });
+  assert.equal((await call('/api/admin/overview', { cookie: sam })).status, 403, 'only the admin');
+  const ov = (await call('/api/admin/overview', { cookie: zion })).body;
+  const u = ov.users.find((x) => x.name === '小山');
+  assert.equal(u.email, 'sam@example.com');
+  assert.equal(u.country, 'CN');
+  assert.deepEqual(u.ids, ['student', 'brother']);
+  assert.deepEqual(u.subs, ['huxi']);
+  assert.deepEqual(u.groups.map((x) => [x.title, x.role]), [['一起读约翰福音', 'owner']]);
+  assert.equal(u.devices, 1);
+  assert.ok(u.seen >= u.created);
+  assert.equal(ov.users.find((x) => x.name === 'Zion').country, 'US');
+  const grp = ov.groups.find((x) => x.title === '一起读约翰福音');
+  assert.deepEqual(grp.people.map((x) => [x.name, x.role]), [['小山', 'owner']]);
+  assert.equal(grp.days.length, 7);
+  // the country fills in the next time someone opens the site, if it was not known
+  const li = await signIn('li@example.com', '李');
+  await call('/api/me', { cookie: li, country: 'TW' });
+  assert.equal((await call('/api/admin/overview', { cookie: zion })).body.users.find((x) => x.name === '李').country, 'TW');
 });
 
 test('留言: public for everyone, private only for the author, the tag’s managers and Zion', async () => {

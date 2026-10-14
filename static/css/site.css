@@ -525,6 +525,29 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 
 /* ---------- Zion's admin page ---------- */
 .adm { margin: 0 0 28px; }
+.wrap.wide { max-width: 1280px; }
+.adm { scroll-margin-top: 120px; }
+.adm-nav { position: sticky; top: calc(58px + env(safe-area-inset-top, 0px)); z-index: 6; display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; padding: 8px 0; background: color-mix(in srgb, var(--sky) 92%, transparent); }
+.adm-nav a { padding: 5px 12px; border-radius: 999px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); color: var(--ink); font-size: 14px; text-decoration: none; }
+.adm-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+@media (min-width: 900px) { .adm-stats { grid-template-columns: repeat(4, 1fr); } }
+.adm-stat { padding: 14px 16px; border-radius: 16px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+.adm-stat b { display: block; font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.2; color: var(--ink); }
+.adm-stat span { color: var(--mute); font-size: 13.5px; }
+.adm-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 0; font-size: 14px; }
+.adm-chips span:not(.muted) { padding: 3px 10px; border-radius: 999px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+.adm-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
+.adm-tools input, .adm-tools select { min-height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font: inherit; font-size: 14.5px; }
+.adm-tools input { flex: 1 1 220px; }
+.adm-table-wrap { overflow-x: auto; border-radius: 16px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+.adm-table { width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 14px; line-height: 1.5; }
+.adm-table th, .adm-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.adm-table th { color: var(--mute); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.adm-table tr:last-child td { border-bottom: 0; }
+.adm-table td small { color: var(--mute); }
+.adm-table td a { color: var(--water); }
+.adm-table .nowrap { white-space: nowrap; }
+.adm-tag { display: inline-block; margin: 0 4px 4px 0; padding: 1px 8px; border-radius: 999px; background: var(--sky); color: var(--ink); font-size: 12.5px; text-decoration: none; }
 .adm .sec-h small { color: var(--mute); font-family: var(--body); font-size: 14px; }
 .adm-row { padding: 12px 14px; margin: 0 0 8px; border-radius: 14px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); font-size: 15px; }
 .adm-row p { margin: 0 0 4px; }

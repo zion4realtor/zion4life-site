@@ -280,7 +280,7 @@ const sampleTag = (x, lang) => (x.sample ? `<span class="tag-s">${S[lang].sample
 const json = (id, data) => `<script type="application/json" id="${id}">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 const urls = [];
 
-function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scripts = [], only = false, head = '' }) {
+function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scripts = [], only = false, head = '', wide = false }) {
   const L = S[lang];
   const name = site[lang].name;
   const full = title ? `${title}｜${name}` : `${name}｜zion4life.faith`;
@@ -319,7 +319,7 @@ ${head}
 <a class="brand" href="${U(lang, '/')}">${LOGO}<span><b>${esc(name)}</b><small>zion4life.faith</small></span></a>
 <nav class="lang" aria-label="Language"><a href="${alt('zh')}" hreflang="zh-CN"${lang === 'zh' ? ' aria-current="true"' : ''} data-lang="zh">中</a><a href="${alt('en')}" hreflang="en"${lang === 'en' ? ' aria-current="true"' : ''} data-lang="en">EN</a></nav>
 </div></header>
-<main class="wrap">
+<main class="wrap${wide ? ' wide' : ''}">
 ${body}
 <footer class="foot"><b>${esc(name)}</b> zion4life.faith<br><span class="mail">${esc(site.contact)}</span><br>${esc(L.copyright(new Date().getFullYear()))}</footer>
 </main>
@@ -380,7 +380,7 @@ const HOME_SCREEN = {
 <div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>在微信里打开的</b><p>微信里没法直接放到桌面。先点右上角「···」，选「在浏览器打开」（苹果手机是「在 Safari 中打开」），再按下面的步骤做。</p></div>
 <div class="a2hs-step" data-os="ios"><b>苹果手机（iPhone）</b><ol>
 <li>用 <b>Safari</b> 浏览器打开这个页面。</li>
-<li>点屏幕下方中间的「分享」按钮（一个方框，箭头朝上）。</li>
+<li>点屏幕下方的「分享」按钮（一个方框，箭头朝上）。新版 iOS 要先点右下角「···」，再点「分享」。</li>
 <li>往上滑，点「添加到主屏幕」。</li>
 <li>点右上角「添加」。</li></ol></div>
 <div class="a2hs-step" data-os="android"><b>安卓手机（华为、小米、OPPO、vivo、三星等）</b><ol>
@@ -397,7 +397,7 @@ const HOME_SCREEN = {
 <div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>Opened in WeChat?</b><p>WeChat cannot do this itself. Tap “···” at the top right, choose “Open in Browser” (on iPhone, “Open in Safari”), then follow the steps below.</p></div>
 <div class="a2hs-step" data-os="ios"><b>iPhone</b><ol>
 <li>Open this page in <b>Safari</b>.</li>
-<li>Tap the Share button at the bottom (a square with an arrow pointing up).</li>
+<li>Tap the Share button at the bottom (a square with an arrow pointing up). On the newest iOS, tap “···” at the bottom right first, then “Share”.</li>
 <li>Scroll up and tap “Add to Home Screen”.</li>
 <li>Tap “Add” at the top right.</li></ol></div>
 <div class="a2hs-step" data-os="android"><b>Android</b><ol>
@@ -822,7 +822,7 @@ ${config}
 
 // Zion's page (Chinese only)
 write('/admin/', page({
-  lang: 'zh', title: '管理', path: '/admin/', noindex: true, only: true,
+  lang: 'zh', title: '管理', path: '/admin/', noindex: true, only: true, wide: true,
   body: '<section class="page" data-page="admin"><h1 class="page-title">管理</h1><div data-admin><p class="muted">正在载入……</p></div></section>',
 }));
 

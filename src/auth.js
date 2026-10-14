@@ -30,11 +30,17 @@ export const ADMIN_DEFAULT = 'light@zion4life.faith,zion.chen@hotmail.com';
 export const adminEmails = (env) => String(env.ADMIN_EMAILS || ADMIN_DEFAULT).toLowerCase().split(/[,\s]+/).filter(Boolean);
 export const isAdmin = (env, user) => !!user && adminEmails(env).includes(user.email);
 
+// The country Cloudflare sees the request coming from ('CN', 'US' …; '' when unknown or Tor).
+export const countryOf = (request) => {
+  const c = request.cf && request.cf.country;
+  return typeof c === 'string' && /^[A-Z]{2}$/.test(c) && c !== 'T1' && c !== 'XX' ? c : '';
+};
+
 // The signed-in account for this request, or null.
 export async function currentUser(db, request) {
   const token = cookieValue(request);
   if (!token) return null;
-  return db('sessionUser', { token: await hash(token) });
+  return db('sessionUser', { token: await hash(token), country: countryOf(request) });
 }
 
 // POST requests must come from this site's own pages.
@@ -118,9 +124,9 @@ export async function handleAuth(request, env, db, url, now, lang) {
       }[r.reason]);
     }
     if (!user) {
-      user = await db('userCreate', { id: randomId(10), email, name, ids: cleanIds(b.ids), idsPublic: !!b.idsPublic, lang, cal: randomToken(18), tz: cleanTz(b.tz), now });
-    } else if (cleanTz(b.tz) && cleanTz(b.tz) !== user.tz) {
-      user = await db('userUpdate', { id: user.id, tz: cleanTz(b.tz) });
+      user = await db('userCreate', { id: randomId(10), email, name, ids: cleanIds(b.ids), idsPublic: !!b.idsPublic, lang, cal: randomToken(18), tz: cleanTz(b.tz), country: countryOf(request), now });
+    } else {
+      user = await db('userUpdate', { id: user.id, tz: cleanTz(b.tz) || undefined, country: countryOf(request), now });
     }
     const token = randomToken();
     await db('sessionPut', { token: await hash(token), uid: user.id, expires: now + YEAR, now });

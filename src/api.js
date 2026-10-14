@@ -70,7 +70,7 @@ async function adminRoute(request, env, db, url, now) {
   if (p === '/api/admin/overview' && request.method === 'GET') {
     const data = await siteData(env, url);
     const [asks, claims, managers, groups, talk, posts, users, count, sent] = await Promise.all([
-      db('asks', {}), db('claims', {}), db('mgrList', {}), db('dzAll', {}), db('talkRecent', {}), db('postsAll', {}), db('users', { limit: 150 }), db('userCount', {}),
+      db('asks', {}), db('claims', {}), db('mgrList', {}), db('dzAll', {}), db('talkRecent', {}), db('postsAll', {}), db('adminPeople', { now }), db('userCount', {}),
       db('msgsAll', {}),
     ]);
     return json({
@@ -78,9 +78,16 @@ async function adminRoute(request, env, db, url, now) {
       tags: data.tags.map((x) => ({ id: x.id, zh: x.zh, en: x.en, person: !!x.person })),
       asks, claims: claims.map((c) => ({ id: c.id, tag: c.tag, note: c.note, name: c.name, email: c.email, ids: c.ids, created: c.created })),
       managers: managers.map((x) => ({ tag: x.tag, uid: x.uid, name: x.name, email: x.email })),
-      groups: groups.map((g) => ({ id: g.id, kind: g.kind, kindLabel: KINDS[g.kind].zh, lang: g.lang, title: g.title, visibility: g.visibility, join: g.join, status: g.status, members: g.members.length, owner: g.members.find((x) => x.role === 'owner')?.name || '', created: g.created })),
+      groups: groups.map((g) => ({
+        id: g.id, kind: g.kind, kindLabel: KINDS[g.kind].zh, lang: g.lang, title: g.title, visibility: g.visibility, join: g.join, status: g.status,
+        members: g.members.length, max: g.max, owner: g.members.find((x) => x.role === 'owner')?.name || '', created: g.created,
+        days: g.days, time: g.time, minutes: g.minutes, tz: g.tz, startDate: g.startDate,
+        people: g.members.map((x) => ({ uid: x.uid, name: x.name, role: x.role, joined: x.joined })),
+      })),
       talk, posts,
-      users: users.map((u) => ({ id: u.id, name: u.name, email: u.email, ids: u.ids, created: u.created })), userCount: count.n,
+      // Zion's own page: full emails, for the admin only
+      users: users.map((u) => ({ id: u.id, name: u.name, email: u.email, ids: u.ids, idsPublic: u.idsPublic, lang: u.lang, tz: u.tz, country: u.country,
+        created: u.created, seen: u.seen, groups: u.groups, subs: u.subs, manages: u.manages, checks: u.checks, devices: u.devices })), userCount: count.n,
       sent: sent.map((x) => ({ id: x.id, title: x.title_zh, body: x.body_zh, created: x.created })),
     });
   }

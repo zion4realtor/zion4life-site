@@ -75,7 +75,7 @@ const SCHEMA = [
 ];
 
 // Columns added after the tables first went live.
-const ADDED = [['user', 'tz', "TEXT NOT NULL DEFAULT ''"], ['dz', 'legs', "TEXT NOT NULL DEFAULT '[]'"]];
+const ADDED = [['user', 'tz', "TEXT NOT NULL DEFAULT ''"], ['dz', 'legs', "TEXT NOT NULL DEFAULT '[]'"], ['user', 'country', "TEXT NOT NULL DEFAULT ''"]];
 
 export function migrate(sql) {
   for (const q of SCHEMA) sql.exec(q);
@@ -91,7 +91,7 @@ const parse = (s, d) => {
 };
 
 // Account row → what the server code uses (email included; never send it to a page as is).
-const userOf = (r) => r && { id: r.id, email: r.email, name: r.name, ids: parse(r.ids, []), idsPublic: !!r.ids_public, lang: r.lang, cal: r.cal, tz: r.tz || '', created: r.created };
+const userOf = (r) => r && { id: r.id, email: r.email, name: r.name, ids: parse(r.ids, []), idsPublic: !!r.ids_public, lang: r.lang, cal: r.cal, tz: r.tz || '', country: r.country || '', created: r.created, seen: r.seen };
 // What other people may see of an account.
 export const publicUser = (u) => u && { id: u.id, name: u.name, ids: u.idsPublic ? u.ids : [] };
 
@@ -139,13 +139,15 @@ export const OPS = {
   userByCal(sql, { cal }) {
     return userOf(first(sql, 'SELECT * FROM user WHERE cal = ?', cal));
   },
-  userCreate(sql, { id, email, name, ids, idsPublic, lang, cal, tz = '', now = Date.now() }) {
-    sql.exec('INSERT INTO user (id, email, name, ids, ids_public, lang, cal, tz, created, seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, email, name, JSON.stringify(ids || []), idsPublic ? 1 : 0, lang, cal, tz, now, now);
+  userCreate(sql, { id, email, name, ids, idsPublic, lang, cal, tz = '', country = '', now = Date.now() }) {
+    sql.exec('INSERT INTO user (id, email, name, ids, ids_public, lang, cal, tz, country, created, seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, email, name, JSON.stringify(ids || []), idsPublic ? 1 : 0, lang, cal, tz, country, now, now);
     return userOf(first(sql, 'SELECT * FROM user WHERE id = ?', id));
   },
-  userUpdate(sql, { id, name, ids, idsPublic, lang, tz }) {
+  userUpdate(sql, { id, name, ids, idsPublic, lang, tz, country, now }) {
     if (tz != null) sql.exec('UPDATE user SET tz = ? WHERE id = ?', tz, id);
+    if (country) sql.exec('UPDATE user SET country = ? WHERE id = ?', country, id);
+    if (now) sql.exec('UPDATE user SET seen = ? WHERE id = ?', now, id);
     if (name != null) sql.exec('UPDATE user SET name = ? WHERE id = ?', name, id);
     if (ids != null) sql.exec('UPDATE user SET ids = ? WHERE id = ?', JSON.stringify(ids), id);
     if (idsPublic != null) sql.exec('UPDATE user SET ids_public = ? WHERE id = ?', idsPublic ? 1 : 0, id);
@@ -155,6 +157,29 @@ export const OPS = {
   users(sql, { limit = 300 }) {
     return rows(sql, 'SELECT * FROM user ORDER BY created DESC LIMIT ?', limit).map(userOf);
   },
+  // Zion's list of everyone: the account, its 搭子, subscriptions, tags it manages, 打卡 and devices
+  adminPeople(sql, { limit = 5000, now = Date.now() } = {}) {
+    const byUid = (q, ...b) => {
+      const m = new Map();
+      for (const r of rows(sql, q, ...b)) { if (!m.has(r.uid)) m.set(r.uid, []); m.get(r.uid).push(r); }
+      return m;
+    };
+    const groups = byUid(`SELECT m.uid, m.gid, m.role, m.created AS joined, d.title, d.kind, d.status FROM dz_member m
+      JOIN dz d ON d.id = m.gid WHERE m.status = 'active' ORDER BY m.created`);
+    const subs = byUid('SELECT uid, topic FROM sub ORDER BY created');
+    const mgr = byUid('SELECT uid, tag FROM mgr ORDER BY created');
+    const count = (q, ...b) => new Map(rows(sql, q, ...b).map((r) => [r.uid, r.n]));
+    const checks = count('SELECT uid, COUNT(*) AS n FROM dz_check WHERE done IS NOT NULL AND done != 0 GROUP BY uid');
+    const devices = count('SELECT uid, COUNT(*) AS n FROM session WHERE expires > ? GROUP BY uid', now);
+    return rows(sql, 'SELECT * FROM user ORDER BY created DESC LIMIT ?', limit).map((r) => ({
+      ...userOf(r),
+      groups: (groups.get(r.id) || []).map((g) => ({ id: g.gid, title: g.title, kind: g.kind, role: g.role, status: g.status, joined: g.joined })),
+      subs: (subs.get(r.id) || []).map((x) => x.topic),
+      manages: (mgr.get(r.id) || []).map((x) => x.tag),
+      checks: checks.get(r.id) || 0,
+      devices: devices.get(r.id) || 0,
+    }));
+  },
   userCount(sql) {
     return { n: first(sql, 'SELECT COUNT(*) AS n FROM user').n };
   },
@@ -162,11 +187,16 @@ export const OPS = {
     sql.exec('INSERT INTO session (token, uid, created, expires) VALUES (?, ?, ?, ?)', token, uid, now, expires);
     return { ok: true };
   },
-  sessionUser(sql, { token, now = Date.now() }) {
+  // the signed-in account; at most once an hour, when it was last seen and from which country
+  sessionUser(sql, { token, country = '', now = Date.now() }) {
     const s = first(sql, 'SELECT * FROM session WHERE token = ?', token);
     if (!s || s.expires < now) return null;
     const u = first(sql, 'SELECT * FROM user WHERE id = ?', s.uid);
-    if (u && now - u.seen > 3600000) sql.exec('UPDATE user SET seen = ? WHERE id = ?', now, u.id);
+    if (u && (now - u.seen > 3600000 || (country && !u.country))) {
+      sql.exec('UPDATE user SET seen = ? WHERE id = ?', now, u.id);
+      if (country) sql.exec('UPDATE user SET country = ? WHERE id = ?', country, u.id);
+      return userOf(first(sql, 'SELECT * FROM user WHERE id = ?', u.id));
+    }
     return userOf(u);
   },
   sessionDel(sql, { token }) {

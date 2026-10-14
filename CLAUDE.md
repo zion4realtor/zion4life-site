@@ -28,7 +28,7 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
 - Code that runs: `src/worker.js` routes `/api/*` to `src/api.js` (auth.js, content.js,
   dazi.js, inbox.js for 我的 → 消息 and subscriptions, audio.js) and renders `/g/<id>` and `/x/<id>`; state is in the SQLite-backed Durable Object
   (`src/store.js`). Never return an email address to any page (show `maskEmail` to its owner
-  only); private 留言, venue details and signatures are for the people allowed to see them.
+  only), except Zion's `/admin/` (admins only), which lists full emails and countries; private 留言, venue details and signatures are for the people allowed to see them.
   Schedules are in the initiator's phone time zone (never a choice on the form) and shown in
   each viewer's own; link previews carry no clock times.
 - Accounts have no passwords (email codes). Zion is the admin through `ADMIN_EMAILS`.

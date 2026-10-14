@@ -489,8 +489,56 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
       if (!r.ok) { adminBox.innerHTML = `<p class="form-error">${esc(r.error)}</p>`; return; }
       const tagName = Object.fromEntries(r.tags.map((x) => [x.id, x.zh]));
       const d = (ms) => new Date(ms).toLocaleString('zh-CN', { hour12: false });
+      const day = (ms) => (ms ? new Date(ms).toLocaleDateString('zh-CN') : '—');
+      let region = (c) => c || '';
+      try { const dn = new Intl.DisplayNames(['zh-CN'], { type: 'region' }); region = (c) => (c ? dn.of(c) || c : ''); } catch (e) { /* old browser: show the code */ }
+      const WEEK = '日一二三四五六';
+      const when = (g) => `${g.days.length === 7 ? '每天' : `每周${g.days.map((i) => WEEK[i]).join('、')}`} ${g.time}，${g.minutes} 分钟`;
+      const topicName = (x) => (x === 'huxi' ? '呼吸' : tagName[x.slice(4)] || x.slice(4));
+      const statusName = { active: '进行中', closed: '已结束', removed: '已撤下' };
+      const DAY = 86400000;
+      const now = Date.now();
+      const U = r.users;
+      const live = r.groups.filter((g) => g.status !== 'removed');
+      const stats = [
+        ['注册的人', r.userCount],
+        ['最近 7 天新注册', U.filter((u) => now - u.created < 7 * DAY).length],
+        ['最近 7 天来过', U.filter((u) => now - u.seen < 7 * DAY).length],
+        ['订阅了呼吸', U.filter((u) => u.subs.includes('huxi')).length],
+        ['搭子：进行中 / 全部', `${r.groups.filter((g) => g.status === 'active').length} / ${r.groups.length}`],
+        ['搭子里的人（人次）', live.reduce((n, g) => n + g.members, 0)],
+        ['加入了搭子的人', U.filter((u) => u.groups.length).length],
+        ['来自几个国家和地区', new Set(U.map((u) => u.country).filter(Boolean)).size],
+      ];
+      const tally = (list) => { const m = {}; list.forEach((k) => { m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+      const byCountry = tally(U.map((u) => u.country || ''));
+      const byId = tally(U.flatMap((u) => u.ids));
       adminBox.innerHTML = `
-<section class="adm"><h2 class="sec-h">发消息给所有人 <small>${r.userCount} 位注册的人</small></h2>
+<nav class="adm-nav"><a href="#adm-sum">概况</a><a href="#adm-people">注册的人</a><a href="#adm-groups">搭子</a><a href="#adm-send">发消息</a><a href="#adm-claims">认领</a><a href="#adm-mgr">标签管理员</a><a href="#adm-asks">问题</a><a href="#adm-talk">留言</a><a href="#adm-posts">文章</a></nav>
+<section class="adm" id="adm-sum"><h2 class="sec-h">概况</h2>
+<div class="adm-stats">${stats.map(([k, v]) => `<div class="adm-stat"><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join('')}</div>
+<p class="adm-chips"><span class="muted">国家和地区：</span>${byCountry.map(([c, n]) => `<span>${esc(region(c) || '还不知道')} ${n}</span>`).join('') || '<span>—</span>'}</p>
+<p class="adm-chips"><span class="muted">身份标签：</span>${byId.map(([k, n]) => `<span>${esc(idName(k))} ${n}</span>`).join('') || '<span>还没有人选</span>'}</p></section>
+<section class="adm" id="adm-people"><h2 class="sec-h">注册的人 <small>${r.userCount}</small></h2>
+<form class="adm-tools" data-people-tools role="search">
+<input type="search" name="q" placeholder="搜昵称或邮箱">
+<select name="country"><option value="">所有国家和地区</option>${byCountry.map(([c, n]) => `<option value="${esc(c || '-')}">${esc(region(c) || '还不知道')}（${n}）</option>`).join('')}</select>
+<select name="id"><option value="">所有身份</option>${byId.map(([k, n]) => `<option value="${esc(k)}">${esc(idName(k))}（${n}）</option>`).join('')}</select>
+<select name="sort"><option value="created">按注册时间</option><option value="seen">按最近来过</option><option value="groups">按搭子多少</option><option value="checks">按打卡多少</option></select>
+<button class="btn btn-line btn-sm" type="button" data-csv>导出表格</button></form>
+<p class="muted small" data-people-count></p>
+<div class="adm-table-wrap"><table class="adm-table"><thead><tr><th>昵称</th><th>邮箱</th><th>国家/地区</th><th>身份标签</th><th>搭子</th><th>订阅</th><th>打卡</th><th>语言 · 时区</th><th>注册</th><th>最近来过</th></tr></thead><tbody data-people></tbody></table></div>
+<p class="hint">国家/地区按这个人最近一次打开网站时所在的地方记录（每小时更新一次）；之前注册、还没回来过的人暂时空着。邮箱只有管理员在这里看得到。</p></section>
+<section class="adm" id="adm-groups"><h2 class="sec-h">搭子 <small>${r.groups.length}</small></h2>
+${r.groups.length ? `<div class="adm-table-wrap"><table class="adm-table"><thead><tr><th>搭子</th><th>状态</th><th>人数</th><th>时间</th><th>成员</th><th>建立</th><th></th></tr></thead><tbody>${r.groups.map((g) => `<tr>
+<td><a href="/g/${g.id}"><b>${esc(g.title)}</b></a><br><small>${esc(g.kindLabel)} · ${g.lang === 'en' ? 'English' : '中文'} · ${g.visibility === 'public' ? '在广场上' : '只凭邀请链接'}</small></td>
+<td class="nowrap">${statusName[g.status] || esc(g.status)}</td>
+<td class="nowrap">${g.members}${g.max ? ` / ${g.max}` : ''}</td>
+<td>${esc(when(g))}<br><small>${esc(g.tz)} · ${esc(g.startDate)} 开始</small></td>
+<td>${g.people.map((x) => `<span class="adm-tag">${esc(x.name)}${x.role === 'owner' ? '（发起）' : ''}</span>`).join('')}</td>
+<td class="nowrap">${esc(day(g.created))}</td>
+<td class="nowrap">${g.status === 'removed' ? `<button class="link-btn" data-dz="${g.id}" data-st="active">恢复</button>` : `<button class="link-btn danger" data-dz="${g.id}" data-st="removed">撤下</button>`}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">还没有。</p>'}</section>
+<section class="adm" id="adm-send"><h2 class="sec-h">发消息给所有人 <small>${r.userCount} 位注册的人</small></h2>
 <form class="form adm-send" data-send novalidate>
 <label class="field"><span>标题</span><input name="title" maxlength="80" placeholder="例如：这个主日下午的特别聚会"></label>
 <label class="field"><span>内容</span><textarea name="body" rows="4" maxlength="3000"></textarea></label>
@@ -501,19 +549,60 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
 <p class="form-error" data-error hidden></p><button class="btn btn-water" type="submit">发送</button>
 <p class="hint">每个人在“我的 → 消息”里会看到，我的菜单上会有红点。</p></form>
 ${r.sent.length ? `<div class="adm-sent">${r.sent.slice(0, 8).map((x) => `<div class="adm-row"><p><b>${esc(x.title)}</b> <span class="muted">${esc(d(x.created))}</span></p><p class="muted">${esc(x.body.slice(0, 140))}</p></div>`).join('')}</div>` : ''}</section>
-<section class="adm"><h2 class="sec-h">认领申请 <small>${r.claims.length}</small></h2>${r.claims.length ? r.claims.map((c) => `<div class="adm-row"><p><b>${esc(c.name)}</b>（${esc(c.email)}）想认领「${esc(tagName[c.tag] || c.tag)}」${c.ids.length ? `，身份：${c.ids.map((k) => esc(idName(k))).join('、')}` : ''}</p>${c.note ? `<p class="muted">留言：${esc(c.note)}</p>` : ''}<p class="btn-row"><button class="btn btn-water btn-sm" data-claim="${c.id}" data-st="approved">同意</button><button class="btn btn-line btn-sm" data-claim="${c.id}" data-st="declined">不同意</button></p></div>`).join('') : '<p class="muted">没有待处理的申请。</p>'}</section>
-<section class="adm"><h2 class="sec-h">标签管理员</h2>
+<section class="adm" id="adm-claims"><h2 class="sec-h">认领申请 <small>${r.claims.length}</small></h2>${r.claims.length ? r.claims.map((c) => `<div class="adm-row"><p><b>${esc(c.name)}</b>（${esc(c.email)}）想认领「${esc(tagName[c.tag] || c.tag)}」${c.ids.length ? `，身份：${c.ids.map((k) => esc(idName(k))).join('、')}` : ''}</p>${c.note ? `<p class="muted">留言：${esc(c.note)}</p>` : ''}<p class="btn-row"><button class="btn btn-water btn-sm" data-claim="${c.id}" data-st="approved">同意</button><button class="btn btn-line btn-sm" data-claim="${c.id}" data-st="declined">不同意</button></p></div>`).join('') : '<p class="muted">没有待处理的申请。</p>'}</section>
+<section class="adm" id="adm-mgr"><h2 class="sec-h">标签管理员</h2>
 <form class="adm-form" data-add-mgr><select name="tag">${r.tags.map((x) => `<option value="${x.id}">${esc(x.zh)}</option>`).join('')}</select><input name="email" type="email" placeholder="对方注册用的邮箱"><button class="btn btn-water btn-sm" type="submit">任命</button></form>
 ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>「${esc(tagName[x.tag] || x.tag)}」${esc(x.name)}（${esc(x.email)}）</span><button class="link-btn danger" data-del-mgr="${x.tag}|${x.uid}">取消</button></div>`).join('') : '<p class="muted">还没有任命管理员。</p>'}</section>
-<section class="adm"><h2 class="sec-h">大家发来的问题 <small>${r.asks.length}</small></h2>${r.asks.length ? r.asks.slice(0, 50).map((a) => `<div class="adm-row"><p>${esc(a.message).replace(/\n/g, '<br>')}</p><p class="muted">${esc(a.name || '没留称呼')} · ${a.reply ? `<a href="mailto:${esc(a.reply)}">${esc(a.reply)}</a>` : '没留邮箱'} · ${esc(d(a.created))} · ${a.mailed ? '已发到邮箱' : '没发邮件'}</p></div>`).join('') : '<p class="muted">还没有。</p>'}</section>
-<section class="adm"><h2 class="sec-h">搭子 <small>${r.groups.length}</small></h2>${r.groups.map((g) => `<div class="adm-row inline"><span><a href="/g/${g.id}">${esc(g.title)}</a> · ${esc(g.kindLabel)} · ${g.lang === 'en' ? 'English' : '中文'} · ${g.visibility === 'public' ? '公开' : '隐藏'} · ${g.members} 人 · ${esc(g.owner)} · ${{ active: '进行中', closed: '已结束', removed: '已撤下' }[g.status]}</span>${g.status === 'removed' ? `<button class="link-btn" data-dz="${g.id}" data-st="active">恢复</button>` : `<button class="link-btn danger" data-dz="${g.id}" data-st="removed">撤下</button>`}</div>`).join('') || '<p class="muted">还没有。</p>'}</section>
-<section class="adm"><h2 class="sec-h">最近的留言</h2>${r.talk.map((c) => `<div class="adm-row inline"><span><b>${esc(c.name)}</b>${c.pub ? '' : '（只给管理员）'}：${esc(c.body.slice(0, 120))} <span class="muted">${esc(c.target)}</span></span><button class="link-btn danger" data-talk-hide="${c.id}">删除</button></div>`).join('') || '<p class="muted">还没有。</p>'}</section>
-<section class="adm"><h2 class="sec-h">管理员发的文章和视频</h2>${r.posts.map((p) => `<div class="adm-row inline"><span><a href="/x/${p.id}/">${esc(p.title)}</a> · ${esc(p.author)} · ${p.status === 'live' ? '在线' : '已撤下'}</span>${p.status === 'live' ? `<button class="link-btn danger" data-post="${p.id}" data-st="removed">撤下</button>` : `<button class="link-btn" data-post="${p.id}" data-st="live">恢复</button>`}</div>`).join('') || '<p class="muted">还没有。</p>'}</section>
-<section class="adm"><h2 class="sec-h">注册的人 <small>${r.userCount}</small></h2>${r.users.map((u) => `<div class="adm-row inline"><span>${esc(u.name)} · ${esc(u.email)} · ${u.ids.map((k) => esc(idName(k))).join('、')}</span><span class="muted">${esc(d(u.created))}</span></div>`).join('')}</section>`;
+<section class="adm" id="adm-asks"><h2 class="sec-h">大家发来的问题 <small>${r.asks.length}</small></h2>${r.asks.length ? r.asks.slice(0, 50).map((a) => `<div class="adm-row"><p>${esc(a.message).replace(/\n/g, '<br>')}</p><p class="muted">${esc(a.name || '没留称呼')} · ${a.reply ? `<a href="mailto:${esc(a.reply)}">${esc(a.reply)}</a>` : '没留邮箱'} · ${esc(d(a.created))} · ${a.mailed ? '已发到邮箱' : '没发邮件'}</p></div>`).join('') : '<p class="muted">还没有。</p>'}</section>
+<section class="adm" id="adm-talk"><h2 class="sec-h">最近的留言</h2>${r.talk.map((c) => `<div class="adm-row inline"><span><b>${esc(c.name)}</b>${c.pub ? '' : '（只给管理员）'}：${esc(c.body.slice(0, 120))} <span class="muted">${esc(c.target)}</span></span><button class="link-btn danger" data-talk-hide="${c.id}">删除</button></div>`).join('') || '<p class="muted">还没有。</p>'}</section>
+<section class="adm" id="adm-posts"><h2 class="sec-h">管理员发的文章和视频</h2>${r.posts.map((p) => `<div class="adm-row inline"><span><a href="/x/${p.id}/">${esc(p.title)}</a> · ${esc(p.author)} · ${p.status === 'live' ? '在线' : '已撤下'}</span>${p.status === 'live' ? `<button class="link-btn danger" data-post="${p.id}" data-st="removed">撤下</button>` : `<button class="link-btn" data-post="${p.id}" data-st="live">恢复</button>`}</div>`).join('') || '<p class="muted">还没有。</p>'}</section>`;
       const post = async (path, body) => {
         const x = await api(path, { body });
         if (!x.ok) toast(x.error); else load();
       };
+      // 注册的人: search, filter, sort, and export what is shown as a table file (opens in Excel)
+      const tools = $('[data-people-tools]', adminBox);
+      const shown = () => {
+        const q = tools.q.value.trim().toLowerCase();
+        const c = tools.country.value;
+        const id = tools.id.value;
+        const key = tools.sort.value;
+        return U.filter((u) => (!q || u.name.toLowerCase().includes(q) || u.email.includes(q))
+          && (!c || (u.country || '-') === c) && (!id || u.ids.includes(id)))
+          .sort((a, b) => (key === 'groups' ? b.groups.length - a.groups.length : key === 'checks' ? b.checks - a.checks : b[key] - a[key]));
+      };
+      const drawPeople = () => {
+        const list = shown();
+        $('[data-people-count]', adminBox).textContent = `显示 ${list.length} / ${U.length} 位`;
+        $('[data-people]', adminBox).innerHTML = list.map((u) => `<tr>
+<td><b>${esc(u.name)}</b>${u.manages.length ? `<br><small>管理：${u.manages.map((x) => esc(tagName[x] || x)).join('、')}</small>` : ''}</td>
+<td><a href="mailto:${esc(u.email)}">${esc(u.email)}</a></td>
+<td class="nowrap">${esc(region(u.country) || '—')}</td>
+<td>${u.ids.map((k) => `<span class="adm-tag">${esc(idName(k))}</span>`).join('') || '<small>没选</small>'}${u.ids.length && !u.idsPublic ? '<br><small>只自己看得到</small>' : ''}</td>
+<td>${u.groups.map((g) => `<a class="adm-tag" href="/g/${g.id}">${esc(g.title)}${g.role === 'owner' ? '（发起）' : ''}</a>`).join('') || '<small>—</small>'}</td>
+<td>${u.subs.map((x) => `<span class="adm-tag">${esc(topicName(x))}</span>`).join('') || '<small>—</small>'}</td>
+<td class="nowrap">${u.checks}</td>
+<td class="nowrap">${u.lang === 'en' ? 'English' : '中文'}<br><small>${esc(u.tz || '—')}</small></td>
+<td class="nowrap">${esc(day(u.created))}</td>
+<td class="nowrap">${esc(ago(u.seen))}</td></tr>`).join('') || '<tr><td colspan="10" class="muted">没有符合的人。</td></tr>';
+      };
+      ['input', 'change'].forEach((ev) => tools.addEventListener(ev, drawPeople));
+      tools.addEventListener('submit', (e) => e.preventDefault());
+      drawPeople();
+      $('[data-csv]', adminBox).addEventListener('click', () => {
+        const cell = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+        const head = ['昵称', '邮箱', '国家/地区', '国家代码', '身份标签', '身份标签公开', '搭子', '订阅', '管理的标签', '打卡次数', '语言', '时区', '注册时间', '最近来过', '登录的设备'];
+        const rowsOut = shown().map((u) => [u.name, u.email, region(u.country), u.country, u.ids.map(idName).join('、'), u.idsPublic ? '是' : '否',
+          u.groups.map((g) => `${g.title}${g.role === 'owner' ? '（发起）' : ''}`).join('、'), u.subs.map(topicName).join('、'), u.manages.map((x) => tagName[x] || x).join('、'),
+          u.checks, u.lang === 'en' ? 'English' : '中文', u.tz, d(u.created), d(u.seen), u.devices]);
+        const csv = '﻿' + [head, ...rowsOut].map((row) => row.map(cell).join(',')).join('\r\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = `有光-注册的人-${new Date().toLocaleDateString('en-CA')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      });
       $$('[data-claim]', adminBox).forEach((b) => b.addEventListener('click', () => post(`/api/admin/claims/${b.getAttribute('data-claim')}`, { status: b.getAttribute('data-st') })));
       const sendF = $('[data-send]', adminBox);
       sendF.addEventListener('submit', async (e) => {
