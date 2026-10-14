@@ -262,6 +262,7 @@ const JS = `/js/site.js?v=${ver('js/site.js')}`;
 const APP_JS = `/js/app.js?v=${ver('js/app.js')}`;
 const DAZI_JS = `/js/dazi.js?v=${ver('js/dazi.js')}`;
 const HUXI_JS = `/js/huxi.js?v=${ver('js/huxi.js')}`;
+const WX_SHARE_JS = `/js/wechat-share.js?v=${ver('js/wechat-share.js')}`;
 const LOGO = fs.readFileSync(path.join(STATIC, 'logo.svg'), 'utf8').replace('<svg ', '<svg class="logo" aria-hidden="true" ');
 const MASCOT = (cls = 'mascot') => `<svg class="${cls}" viewBox="0 0 100 124" aria-hidden="true"><path d="M50 3C50 3 11 51 11 80a39 39 0 0 0 78 0C89 51 50 3 50 3z" fill="var(--t-aqua)"/><ellipse cx="36" cy="40" rx="7" ry="12" transform="rotate(28 36 40)" fill="#fff" opacity=".7"/><ellipse cx="38" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><ellipse cx="62" cy="80" rx="4.5" ry="6.5" fill="#1b2a38"/><circle cx="39.5" cy="77.5" r="1.6" fill="#fff"/><circle cx="63.5" cy="77.5" r="1.6" fill="#fff"/><ellipse cx="29" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><ellipse cx="71" cy="92" rx="6" ry="3.5" fill="var(--blush)"/><path d="M45 92q5 5 10 0" stroke="#1b2a38" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
 const ICON = {
@@ -636,7 +637,7 @@ ${listen(p)}
       title: heading(todayHuxi),
       desc: preview(todayHuxi),
       tab: 'huxi',
-      scripts: [HUXI_JS],
+      scripts: lang === 'en' ? [HUXI_JS, WX_SHARE_JS] : [HUXI_JS],
       head: appHead,
       body: `<section class="page hx-page" style="--tint:var(--t-sun)">
 ${kicker(todayHuxi)}
@@ -651,7 +652,7 @@ ${archive(todayHuxi.date)}
         desc: preview(p),
         tab: 'huxi',
         noindex: p.sample,
-        scripts: [HUXI_JS],
+        scripts: lang === 'en' ? [HUXI_JS, WX_SHARE_JS] : [HUXI_JS],
         head: appHead,
         body: `<section class="page hx-page" style="--tint:var(--t-sun)">
 <a class="back" href="${U(lang, '/huxi/')}">← ${esc(L.todayLink)}</a>
