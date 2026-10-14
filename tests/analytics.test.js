@@ -65,6 +65,9 @@ test('devices', () => {
   const hw = device('Mozilla/5.0 (Linux; Android 12; HarmonyOS; NOH-AN00) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/99.0.4844.88 HuaweiBrowser/14.0.0.320 Mobile Safari/537.36');
   assert.equal(hw.operating_system, 'HarmonyOS');
   assert.equal(hw.browser, 'Huawei Browser');
+  assert.equal(hw.model, 'NOH-AN00');
+  assert.equal(hw.brand, 'Huawei');
+  assert.equal(device(WX).model, 'iPhone');
   assert.equal(device('Mozilla/5.0 (iPad; CPU OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1').category, 'tablet');
 });
 

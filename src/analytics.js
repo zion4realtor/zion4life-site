@@ -62,6 +62,8 @@ export async function handleHit(request, env, ctx, url) {
     for (const body of hits) {
       try {
         const r = await fetch(endpoint, { method: 'POST', body: JSON.stringify(body) });
+        // TEMP diagnostic while checking the first hits arrive (remove after)
+        console.log('[ga] sent', body.events.map((e) => e.name).join(','), r.status, String(secret).length);
         if (!r.ok) console.error('[ga]', r.status);
       } catch (e) {
         console.error('[ga]', e?.message || e);
@@ -189,6 +191,17 @@ export function device(ua, lang, scr) {
     [/Quark\/([\d.]+)/, 'Quark'], [/HuaweiBrowser\/([\d.]+)/, 'Huawei Browser'], [/MiuiBrowser\/([\d.]+)/, 'Mi Browser'], [/SamsungBrowser\/([\d.]+)/, 'Samsung Internet'],
     [/Weibo/, 'Weibo'], [/EdgA?\/([\d.]+)|EdgiOS\/([\d.]+)/, 'Edge'], [/OPR\/([\d.]+)/, 'Opera'], [/Firefox\/([\d.]+)|FxiOS\/([\d.]+)/, 'Firefox'],
     [/CriOS\/([\d.]+)|Chrome\/([\d.]+)/, 'Chrome'], [/Version\/([\d.]+).*Safari/, 'Safari'], [/Safari/, 'Safari']];
+  let model = '', brand = '';
+  if ((m = ua.match(/\b(iPhone|iPad|iPod)\b/))) { model = m[1]; brand = 'Apple'; }
+  else if (os === 'Macintosh') { model = 'Macintosh'; brand = 'Apple'; }
+  else if ((m = ua.match(/Android [\d.]+; (?:[a-z]{2}[-_][a-z]{2}; )?([^;)]+?)(?: Build\/[^;)]*)?[;)]/i)) && m[1] !== 'K' && !/^(Linux|U|wv|Mobile|HarmonyOS|OpenHarmony)$/i.test(m[1])) model = m[1].trim();
+  else if (os === 'HarmonyOS' && (m = ua.match(/; ([A-Z]{3}-[A-Z0-9]{3,5})[;)]/))) model = m[1];
+  if (!brand) {
+    if (/HONOR/i.test(ua)) brand = 'Honor';
+    else if (/HUAWEI|HarmonyOS|OpenHarmony/i.test(ua) || /^[A-Z]{3}-[A-Z]{1,2}\d{2}$/.test(model)) brand = 'Huawei';
+    else if (/^SM-/i.test(model) || /SamsungBrowser/.test(ua)) brand = 'Samsung';
+    else if (/Xiaomi|Redmi|MiuiBrowser/i.test(ua)) brand = 'Xiaomi';
+  }
   let br = '', brv = '';
   for (const [re, name] of BROWSERS) {
     if ((m = ua.match(re))) { br = name; brv = m.slice(1).find(Boolean) || ''; break; }
@@ -199,6 +212,8 @@ export function device(ua, lang, scr) {
     screen_resolution: typeof scr === 'string' && /^\d{2,5}x\d{2,5}$/.test(scr) ? scr : undefined,
     operating_system: os || undefined,
     operating_system_version: osv.slice(0, 20) || undefined,
+    model: model.slice(0, 40) || undefined,
+    brand: brand || undefined,
     browser: br || undefined,
     browser_version: brv.slice(0, 20) || undefined,
   };
