@@ -319,8 +319,14 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta property="og:title" content="${esc(title || name)}">
 <meta property="og:description" content="${esc(desc || site[lang].description)}">
 <meta property="og:url" content="${canonical}">
-<meta property="og:image" content="${site.url}/img/og-${lang}.png?v=20261014">
+<meta property="og:image" content="${site.url}/img/og-${lang}.png?v=20261015">
+<meta property="og:image:secure_url" content="${site.url}/img/og-${lang}.png?v=20261015">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(lang === 'en' ? 'In Your light, we see light · Light' : '在祂的光中，我们看见光 · 有光')}">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${site.url}/img/og-${lang}.png?v=20261015">
 <meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#eaf6ff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c1824" media="(prefers-color-scheme: dark)">
