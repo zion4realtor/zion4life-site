@@ -253,7 +253,7 @@ test('管理: Zion sees everyone with country, email, identity tags, 搭子 and 
 
 test('留言: public for everyone, private only for the author, the tag’s managers and Zion', async () => {
   const sam = await signIn('sam@example.com', '小山');
-  const li = await signIn('li@example.com', '李光宏', { ids: ['teacher'] });
+  const li = await signIn('li@example.com', '李光弘', { ids: ['teacher'] });
   const zion = await signIn('zion.chen@hotmail.com', 'Zion');
   const anon = await call('/api/talk?target=tag:lgh');
   assert.deepEqual(anon.body.comments, []);
@@ -261,7 +261,7 @@ test('留言: public for everyone, private only for the author, the tag’s mana
   await call('/api/talk', { body: { target: 'tag:lgh', body: '想私下问一个问题', pub: false }, cookie: sam });
   assert.equal((await call('/api/talk?target=tag:lgh')).body.comments.length, 1, 'strangers see the public one only');
   assert.equal((await call('/api/talk?target=tag:lgh', { cookie: li })).body.comments.length, 1, 'not a manager yet');
-  // 李光宏 claims his tag; Zion approves
+  // 李光弘 claims his tag; Zion approves
   const claim = await call('/api/claims', { body: { tag: 'lgh', note: '我是本人' }, cookie: li });
   assert.equal(claim.body.ok, true);
   assert.equal((await call('/api/claims', { body: { tag: 'mystery' }, cookie: li })).body.ok, false, 'only person tags can be claimed');
@@ -287,7 +287,7 @@ test('留言: public for everyone, private only for the author, the tag’s mana
 });
 
 test('tag managers post articles and videos into their tag; the Worker renders them', async () => {
-  const li = await signIn('li@example.com', '李光宏');
+  const li = await signIn('li@example.com', '李光弘');
   const zion = await signIn('zion.chen@hotmail.com', 'Zion');
   const no = await call('/api/posts', { body: { tags: ['lgh'], title: '标题', body: '正文正文正文正文正文' }, cookie: li });
   assert.equal(no.status, 403, 'not a manager yet');
@@ -431,6 +431,28 @@ test('validation', async () => {
   assert.equal(en.body.error, 'Pick the days of the week');
 });
 
+test('Line is supported when creating, updating, and viewing a buddy group', async () => {
+  const owner = await signIn('owner@example.com', '老陈');
+  const created = await call('/api/dazi', {
+    body: groupBody({ venue: { type: 'line', info: 'line-id' } }), cookie: owner,
+  });
+  assert.equal(created.body.ok, true, JSON.stringify(created.body));
+  const id = created.body.id;
+  let view = await call(`/api/dazi/${id}`, { cookie: owner });
+  assert.deepEqual(view.body.group.venue, { type: 'line', info: 'line-id' });
+
+  const saved = await call(`/api/dazi/${id}/manage`, {
+    body: { action: 'update', venue: { type: 'phone', info: '555-0100' } }, cookie: owner,
+  });
+  assert.equal(saved.body.ok, true, JSON.stringify(saved.body));
+  const changed = await call(`/api/dazi/${id}/manage`, {
+    body: { action: 'update', venue: { type: 'line', info: 'line-id-updated' } }, cookie: owner,
+  });
+  assert.equal(changed.body.ok, true, JSON.stringify(changed.body));
+  view = await call(`/api/dazi/${id}`, { cookie: owner });
+  assert.deepEqual(view.body.group.venue, { type: 'line', info: 'line-id-updated' });
+});
+
 test('搭子: the initiator changes the plan; files; members hear about both', async () => {
   const owner = await signIn('owner@example.com', '老陈');
   const sam = await signIn('sam@example.com', '小山');
@@ -483,7 +505,7 @@ test('搭子: the initiator changes the plan; files; members hear about both', a
 test('我的 消息: subscriptions, managers’ posts, Zion’s announcements, unread count', async () => {
   const zion = await signIn('zion.chen@hotmail.com', 'Zion');
   const sam = await signIn('sam@example.com', '小山');
-  const li = await signIn('li@example.com', '李光宏');
+  const li = await signIn('li@example.com', '李光弘');
   await call('/api/admin/managers', { body: { tag: 'lgh', email: 'li@example.com' }, cookie: zion });
   assert.equal((await call('/api/subs', { body: { topic: 'tag:nope', on: true }, cookie: sam })).body.ok, false);
   assert.deepEqual((await call('/api/subs', { body: { topic: 'tag:lgh', on: true }, cookie: sam })).body.topics, ['tag:lgh']);
@@ -495,7 +517,7 @@ test('我的 消息: subscriptions, managers’ posts, Zion’s announcements, u
   assert.equal((await call('/api/admin/broadcast', { body: { title: 'x', body: 'y' }, cookie: sam })).status, 403);
   assert.equal((await call('/api/me', { cookie: sam })).body.unread, 2);
   const box = (await call('/api/inbox', { cookie: sam })).body.list;
-  assert.deepEqual(box.map((m) => m.title.zh), ['主日下午特别聚会', '「李光宏」有新内容']);
+  assert.deepEqual(box.map((m) => m.title.zh), ['主日下午特别聚会', '「李光弘」有新内容']);
   assert.equal(box[1].url.startsWith('/x/'), true);
   assert.equal((await call('/api/me', { cookie: sam })).body.unread, 0, 'opening the box marks them read');
   // the cron: the first run only records what is already on the site

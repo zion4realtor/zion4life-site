@@ -15,6 +15,7 @@ export const VENUES = {
   wechat: { zh: '微信', en: 'WeChat' },
   zoom: { zh: 'Zoom', en: 'Zoom' },
   whatsapp: { zh: 'WhatsApp', en: 'WhatsApp' },
+  line: { zh: 'Line', en: 'Line' },
   teams: { zh: 'Teams', en: 'Teams' },
 };
 export const TZ_LABELS = {
