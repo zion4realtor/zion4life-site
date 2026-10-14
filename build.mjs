@@ -472,7 +472,7 @@ for (const lang of LANGS) {
     const tpd = tp && dateParts(tp.date, lang);
     const todayTile = `<a class="tile w2 today-tile" href="${U(lang, '/huxi/')}" style="--tint:var(--t-sun)" data-ripple${tp ? ` data-huxi-today data-date="${tp.date}"` : ''}>
 <span class="today-top"><span class="today-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8h10a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7"/></svg></span><span class="today-label">${esc(L.todayFocus)}</span>${tp ? `<time class="today-date" data-f="md" datetime="${tp.date}">${esc(tpd.md)}</time>` : ''}</span>
-<span class="today-title" data-f="title">${tp ? esc(tp[lang].title) : esc(L.today)}</span>
+<span class="today-title" data-f="title" data-fit-title>${tp ? esc(tp[lang].title) : esc(L.today)}</span>
 <span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
     const daziTile = `<a class="tile dazi-tile" href="${U(lang, '/dazi/') }" style="--tint:var(--t-mint)" data-ripple><span class="name">${esc(L.dazi)}</span><span class="topic-info"><span class="topic-stat" data-dazi-stat hidden><span class="topic-count" data-dazi-count></span><span class="topic-unit">${lang === 'zh' ? '组' : 'groups'}</span></span><span class="topic-latest-box"><span class="topic-kicker" data-dazi-kicker>${lang === 'zh' ? '广场动态' : 'Plaza updates'}</span><span class="topic-latest" data-dazi-summary>${esc(L.daziSub)}</span></span></span></a>`;
     const tagTiles = orderedTags.map(({ tag: t, latest }, index) => {

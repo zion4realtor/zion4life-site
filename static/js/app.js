@@ -257,6 +257,37 @@
   // Keep the two home shortcuts fixed. Reorder topic tiles using each tag's newest
   // published file, including posts updated by tag managers after the static build.
   var homeGrid = $('[data-home-grid]');
+  var fitTodayTitles = function () {
+    $$('[data-fit-title]').forEach(function (title) {
+      var card = title.closest('.today-tile');
+      if (!card) return;
+      var top = $('.today-top', card);
+      var bottom = $('.today-bottom', card);
+      if (!top || !bottom || !card.clientHeight) return;
+      title.style.fontSize = '';
+      title.style.display = 'block';
+      title.style.flex = 'none';
+      title.style.webkitLineClamp = 'unset';
+      var style = getComputedStyle(card);
+      var gap = parseFloat(style.rowGap || style.gap) || 0;
+      var available = card.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0)
+        - top.offsetHeight - bottom.offsetHeight - gap * 2;
+      var size = parseFloat(getComputedStyle(title).fontSize) || 16;
+      while (size > 11 && title.scrollHeight > available) {
+        size = Math.max(11, size - 0.5);
+        title.style.fontSize = size + 'px';
+      }
+      title.style.display = '-webkit-box';
+      title.style.flex = '0 1 auto';
+      title.style.webkitLineClamp = '2';
+      title.style.fontSize = size + 'px';
+    });
+  };
+  if ($$('[data-fit-title]').length) {
+    requestAnimationFrame(fitTodayTitles);
+    window.addEventListener('resize', fitTodayTitles);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTodayTitles);
+  }
   if (homeGrid) {
     api('/api/posts?latest-by-tag=1').then(function (r) {
       if (!r.ok || !r.latest) return;
