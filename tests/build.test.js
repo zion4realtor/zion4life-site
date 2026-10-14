@@ -17,7 +17,7 @@ test('markdown: verse with source line, lists, Chinese line joins', () => {
   assert.match(h, /<p>第一句第二句<\/p>/);
 });
 
-test('build output: both languages, tags, tiles fill whole rows', () => {
+test('build output: both languages, guided homepage paths, and shared content pages', () => {
   execFileSync('node', ['build.mjs'], { cwd: ROOT });
   const pages = ['index.html', 'en/index.html', 'huxi/index.html', 'en/huxi/index.html', 'me/index.html', 'en/me/index.html',
     'dazi/index.html', 'en/dazi/index.html', 'dazi/new/index.html', 'en/dazi/new/index.html', 'g/index.html', 'en/g/index.html',
@@ -27,13 +27,15 @@ test('build output: both languages, tags, tiles fill whole rows', () => {
   for (const p of pages) assert.ok(fs.existsSync(path.join(ROOT, 'dist', p)), p);
   for (const p of ['index.html', 'en/index.html']) {
     const html = dist(p);
-    let cells = 0;
-    for (const m of html.matchAll(/<a class="(tile[^"]*)"/g)) cells += /\bbig\b/.test(m[1]) ? 4 : /\bw2\b/.test(m[1]) ? 2 : 1;
-    assert.equal(cells % 3, 0, `${p}: tiles leave a gap in the last row`);
-    assert.match(html, /data-ask/, 'question box');
+    assert.match(html, /class="home-command"/, `${p}: daily focus and buddy entry`);
+    assert.match(html, /class="home-paths" data-home-grid/, `${p}: guided topic paths`);
+    assert.match(html, /data-home-path="start"/, `${p}: first guided path`);
+    assert.match(html, /data-home-path="practice"/, `${p}: practice path`);
+    assert.match(html, /class="home-recent"/, `${p}: recent updates`);
+    assert.doesNotMatch(html, /data-ask/, `${p}: the question form belongs under 我的`);
   }
   assert.match(dist('en/index.html'), /<html lang="en">/);
-  assert.match(dist('en/a/rensheng-aomi/index.html'), /The Mystery of Life/);
+  assert.match(dist('en/a/rensheng-aomi/index.html'), /The Mystery of Human Life/);
   // /huxi/ shows the newest day for everyone, with no clock check in the page
   const newest = JSON.parse(dist('data/huxi.json'))[0];
   assert.match(dist('huxi/index.html'), new RegExp(`<article class="hx" data-huxi-today data-date="${newest.date}"`));
@@ -49,7 +51,7 @@ test('build output: both languages, tags, tiles fill whole rows', () => {
   // 留言 on tag, article and video pages; the post shell has its marker; the plaza has no title on top
   assert.match(dist('t/lgh/index.html'), /data-talk="tag:lgh"/);
   assert.match(dist('t/lgh/index.html'), /data-tag-tools="lgh" data-person/);
-  assert.match(dist('a/rensheng-aomi/index.html'), /data-talk="a:rensheng-aomi"/);
+  assert.match(dist('a/rensheng-aomi/index.html'), /class="mystery-pdf"/);
   assert.match(dist('x/index.html'), /<!--POST-->/);
   assert.doesNotMatch(dist('dazi/index.html'), /class="banner"/);
   assert.match(dist('en/dazi/new/index.html'), /Meal buddies/);
