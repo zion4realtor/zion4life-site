@@ -11,6 +11,7 @@ import { store } from './store.js';
 import { siteData } from './content.js';
 import { planText, minutesText, sessionState, KINDS } from './schedule.js';
 import { esc, md, plain } from './md.js';
+import { handleWechatSignature } from './wechat.js';
 
 export { Store } from './store.js';
 
@@ -18,6 +19,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const p = url.pathname;
+    if (p === '/api/wechat/signature') return handleWechatSignature(request, env, url);
     if (p === '/api/hit') return handleHit(request, env, ctx, url);
     if (p.startsWith('/api/')) {
       try {
