@@ -17,7 +17,7 @@ import { addMsg } from './inbox.js';
 
 const HOUR = 3600000;
 const groupUrl = (g, lang, n) => `${SITE}${pre(lang)}/g/${g.id}${n ? `/${n}` : ''}`;
-const inviteUrl = (g, lang) => `${SITE}${pre(lang)}/g/${g.id}?i=${g.invite}`;
+const inviteUrl = (g, lang) => `${SITE}${pre(lang)}/g/${g.id}?i=${g.invite}&pv=20261014`;
 const colorOf = (uid) => [...uid].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 6;
 // The first session that is not over yet (the initiator can change the plan from there on).
 function firstOpen(g, now, ctx) {
