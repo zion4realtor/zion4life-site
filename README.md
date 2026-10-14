@@ -188,6 +188,11 @@ keeps them across deploys):
   sign-in codes, reminders, invitations. Without it sign-in is closed and says so.
   `FROM_EMAIL_ADDRESS` (`有光 <light@zion4life.faith>`) and `ADMIN_EMAILS` are set in
   `wrangler.jsonc`; the AI binding (`AI`) records 呼吸.
+- WeChat sharing on the English 呼吸 pages: set `WX_APP_ID` as a Worker variable and
+  `WX_APP_SECRET` as a Worker Secret. In the WeChat Official Account platform, add
+  `zion4life.faith` under “JS接口安全域名”. The JS-SDK signer runs in the Worker; the
+  secret is never sent to browsers. Until both settings are in place, normal link sharing
+  remains available and the SDK enhancement stays inactive.
 - light@zion4life.faith: Cloudflare Email Routing forwards it to Zion's Hotmail (until he
   chooses a mailbox; see the notes he was sent).
 - Optional for the question box: `ASK_MAIL` (send_email binding), `ASK_FROM`, `ASK_TO`.
