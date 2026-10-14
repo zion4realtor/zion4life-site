@@ -319,7 +319,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta property="og:title" content="${esc(title || name)}">
 <meta property="og:description" content="${esc(desc || site[lang].description)}">
 <meta property="og:url" content="${canonical}">
-<meta property="og:image" content="${site.url}/img/og-${lang}.png">
+<meta property="og:image" content="${site.url}/img/og-${lang}.png?v=20261014">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#eaf6ff" media="(prefers-color-scheme: light)">
