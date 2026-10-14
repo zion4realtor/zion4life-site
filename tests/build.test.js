@@ -39,6 +39,13 @@ test('build output: both languages, tags, tiles fill whole rows', () => {
   assert.match(dist('huxi/index.html'), new RegExp(`<article class="hx" data-huxi-today data-date="${newest.date}"`));
   assert.match(dist('index.html'), new RegExp(`data-huxi-today data-date="${newest.date}"`));
   assert.doesNotMatch(dist('huxi/index.html'), /id="huxi-data"/);
+  // the link preview says the date and 活力排祷告负担; the page can go on the home screen as an app
+  assert.match(dist('huxi/index.html'), new RegExp(`<meta property="og:title" content="\\d{4}年\\d{1,2}月\\d{1,2}日 活力排祷告负担">`));
+  assert.match(dist('huxi/index.html'), /<link rel="manifest" href="\/huxi\/app.webmanifest">/);
+  assert.match(dist('huxi/index.html'), /data-a2hs[^]*data-os="ios"[^]*data-os="android"/);
+  const app = JSON.parse(dist('en/huxi/app.webmanifest'));
+  assert.equal(app.start_url, '/en/huxi/');
+  assert.equal(app.display, 'standalone');
   // 留言 on tag, article and video pages; the post shell has its marker; the plaza has no title on top
   assert.match(dist('t/lgh/index.html'), /data-talk="tag:lgh"/);
   assert.match(dist('t/lgh/index.html'), /data-tag-tools="lgh" data-person/);

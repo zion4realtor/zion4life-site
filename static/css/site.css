@@ -183,6 +183,20 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .share { margin: 30px 0 8px; padding: 18px; border-radius: 20px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); text-align: center; }
 .share p { margin: 0 0 12px; color: var(--mute); font-size: 15px; line-height: 1.7; }
 .share .share-wx { margin: 12px 0 0; font-size: 14px; }
+/* 放到手机桌面 (inside the share box on 呼吸) */
+.a2hs { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); text-align: left; }
+.a2hs summary { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; cursor: pointer; list-style: none; color: var(--water); font-weight: 600; font-size: 15.5px; }
+.a2hs summary::-webkit-details-marker { display: none; }
+.a2hs summary svg { flex: none; width: 22px; height: 22px; }
+.a2hs summary::after { content: "›"; font-size: 20px; line-height: 1; transition: transform .2s; }
+.a2hs[open] summary::after { transform: rotate(90deg); }
+.a2hs-in { margin-top: 10px; }
+.share .a2hs-lead { text-align: center; }
+.a2hs-go { text-align: center; }
+.a2hs-step { margin: 0 0 10px; padding: 12px 14px; border-radius: 14px; background: var(--sky); }
+.a2hs-step > b { display: block; color: var(--ink); font-size: 15px; }
+.a2hs-step ol { margin: 6px 0 0; padding-left: 1.3em; color: var(--ink); font-size: 15px; line-height: 1.75; }
+.share .a2hs-step p { margin: 4px 0 0; text-align: left; }
 
 /* buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border: 0; border-radius: 999px; font-weight: 600; font-size: 16px; text-decoration: none; cursor: pointer; }

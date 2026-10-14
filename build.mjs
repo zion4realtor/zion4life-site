@@ -280,7 +280,7 @@ const sampleTag = (x, lang) => (x.sample ? `<span class="tag-s">${S[lang].sample
 const json = (id, data) => `<script type="application/json" id="${id}">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 const urls = [];
 
-function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scripts = [], only = false }) {
+function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scripts = [], only = false, head = '' }) {
   const L = S[lang];
   const name = site[lang].name;
   const full = title ? `${title}｜${name}` : `${name}｜zion4life.faith`;
@@ -310,6 +310,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta name="theme-color" content="#0c1824" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+${head}
 <link rel="stylesheet" href="${FONT}">
 <link rel="stylesheet" href="${CSS}">
 </head>
@@ -360,12 +361,53 @@ function card(it, lang, current) {
 <span class="kind">${L.kind[it.kind]}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
 <span class="meta"><span>${esc(L.min(it.minutes[lang]))}</span>${others}</span></span></a>`;
 }
-function shareBox(lang, text, sharePath, title) {
+function shareBox(lang, text, sharePath, title, extra = '') {
   const L = S[lang];
   return `<div class="share" data-share data-url="${esc(site.url + sharePath)}" data-title="${esc(title)}" data-copied="${lang === 'zh' ? '链接已复制，粘贴发给朋友就可以了' : 'Link copied. Paste it to a friend.'}">
 <p>${esc(text)}</p><button class="btn btn-water" type="button" data-share-btn data-copy-label="${lang === 'zh' ? '复制链接' : 'Copy link'}">${L.shareBtn}</button>
-<p class="share-wx" hidden>${esc(L.shareWx)}</p></div>`;
+<p class="share-wx" hidden>${esc(L.shareWx)}</p>${extra}</div>`;
 }
+// "Put it on the home screen": steps for iPhone and Android (and WeChat, which cannot do it
+// itself). site.js shows the steps for the phone in hand, and a one-tap button where the
+// browser offers one.
+const PHONE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/><path d="M12 7v6M9.5 10.5 12 13l2.5-2.5"/></svg>';
+const HOME_SCREEN = {
+  zh: `<details class="a2hs" data-a2hs>
+<summary>${PHONE_ICON}<span>放到手机桌面，像 APP 一样一点就开</span></summary>
+<div class="a2hs-in">
+<p class="a2hs-lead">桌面上会多一个「呼吸」图标。以后一点开它，就直接是最新的活力排祷告负担。</p>
+<p class="a2hs-go" data-a2hs-go hidden><button class="btn btn-water btn-sm" type="button" data-a2hs-btn>一键放到桌面</button></p>
+<div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>在微信里打开的</b><p>微信里没法直接放到桌面。先点右上角「···」，选「在浏览器打开」（苹果手机是「在 Safari 中打开」），再按下面的步骤做。</p></div>
+<div class="a2hs-step" data-os="ios"><b>苹果手机（iPhone）</b><ol>
+<li>用 <b>Safari</b> 浏览器打开这个页面。</li>
+<li>点屏幕下方中间的「分享」按钮（一个方框，箭头朝上）。</li>
+<li>往上滑，点「添加到主屏幕」。</li>
+<li>点右上角「添加」。</li></ol></div>
+<div class="a2hs-step" data-os="android"><b>安卓手机（华为、小米、OPPO、vivo、三星等）</b><ol>
+<li>用手机自带的浏览器或 Chrome 打开这个页面。</li>
+<li>点右上角「⋮」，或屏幕下方的菜单「≡」。</li>
+<li>选「添加到主屏幕」或「添加到桌面」（有的手机叫「发送到桌面」「添加快捷方式」）。</li>
+<li>点「添加」。桌面上没出现的话，到手机「设置 → 应用 → 这个浏览器 → 权限」里打开「桌面快捷方式」，再试一次。</li></ol></div>
+</div></details>`,
+  en: `<details class="a2hs" data-a2hs>
+<summary>${PHONE_ICON}<span>Put it on your home screen, like an app</span></summary>
+<div class="a2hs-in">
+<p class="a2hs-lead">A “Breathe” icon appears on your home screen. Tap it any time to open the newest Vital Groups Prayer Burden.</p>
+<p class="a2hs-go" data-a2hs-go hidden><button class="btn btn-water btn-sm" type="button" data-a2hs-btn>Add to home screen</button></p>
+<div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>Opened in WeChat?</b><p>WeChat cannot do this itself. Tap “···” at the top right, choose “Open in Browser” (on iPhone, “Open in Safari”), then follow the steps below.</p></div>
+<div class="a2hs-step" data-os="ios"><b>iPhone</b><ol>
+<li>Open this page in <b>Safari</b>.</li>
+<li>Tap the Share button at the bottom (a square with an arrow pointing up).</li>
+<li>Scroll up and tap “Add to Home Screen”.</li>
+<li>Tap “Add” at the top right.</li></ol></div>
+<div class="a2hs-step" data-os="android"><b>Android</b><ol>
+<li>Open this page in Chrome or your phone’s own browser.</li>
+<li>Tap “⋮” at the top right, or the menu “≡” at the bottom.</li>
+<li>Choose “Add to Home screen” (on some phones “Add to desktop” or “Add shortcut”).</li>
+<li>Tap “Add”. If no icon appears, allow home-screen shortcuts for the browser in Settings → Apps → the browser → Permissions, then try again.</li></ol></div>
+</div></details>`,
+};
+
 function askBox(lang) {
   const L = S[lang];
   return `<form class="ask" data-ask data-lang="${lang}" data-done="${esc(L.askDone)}" novalidate>
@@ -520,36 +562,50 @@ ${listen(p)}
 <p class="hx-sub"><button type="button" class="btn btn-line btn-sm" data-sub="huxi" data-on="${esc(L.subHuxiOn)}" data-off="${esc(L.subHuxi)}">${esc(L.subHuxi)}</button><span class="hint">${esc(L.subHuxiHint)}</span></p>
 </article>`;
     };
+    // the page title and link preview: the day's date and 活力排祷告负担, then the headline and lede
+    const heading = (p) => `${dateParts(p.date, lang).full}${lang === 'en' ? ' · ' : ' '}${L.huxiBurden}`;
+    const preview = (p) => {
+      const t = `${p[lang].title}${lang === 'en' ? '. ' : '。'}${p[lang].lede || ''}`.trim();
+      return t.length > (lang === 'en' ? 200 : 100) ? `${t.slice(0, lang === 'en' ? 197 : 99)}…` : t;
+    };
+    // on the phone's home screen it opens like an app, always at /huxi/ (the newest day)
+    const appHead = `<link rel="manifest" href="${U(lang, '/huxi/app.webmanifest')}">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="${esc(L.huxi)}">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">`;
+    const homeScreen = HOME_SCREEN[lang];
     const archive = (current) => `<section class="more" id="archive"><h2 class="sec-h">${esc(L.past)}</h2><ul class="arch">${huxi.map((p) => {
       const d = dateParts(p.date, lang);
       const hide = p.date === current;
       return `<li data-arch="${p.date}"${hide ? ' hidden' : ''}><a href="${U(lang, `/huxi/${p.date}/`)}"><time datetime="${p.date}">${esc(d.md)} ${esc(d.wdShort)}</time><span>${esc(p[lang].title)}</span></a></li>`;
     }).join('')}</ul></section>`;
     emit(lang, '/huxi/', {
-      title: L.huxi,
-      desc: L.huxiSub,
+      title: heading(todayHuxi),
+      desc: preview(todayHuxi),
       tab: 'huxi',
       scripts: [HUXI_JS],
+      head: appHead,
       body: `<section class="page hx-page" style="--tint:var(--t-sun)">
 ${kicker(todayHuxi)}
 ${day(todayHuxi, true)}
-${shareBox(lang, L.huxiShare, U(lang, '/huxi/'), L.huxi)}
+${shareBox(lang, L.huxiShare, U(lang, '/huxi/'), heading(todayHuxi), homeScreen)}
 ${archive(todayHuxi.date)}
 </section>`,
     });
     for (const p of huxi) {
-      const d = dateParts(p.date, lang);
       emit(lang, `/huxi/${p.date}/`, {
-        title: `${d.md} ${L.huxi}`,
-        desc: p[lang].title,
+        title: heading(p),
+        desc: preview(p),
         tab: 'huxi',
         noindex: p.sample,
         scripts: [HUXI_JS],
+        head: appHead,
         body: `<section class="page hx-page" style="--tint:var(--t-sun)">
 <a class="back" href="${U(lang, '/huxi/')}">← ${esc(L.todayLink)}</a>
 ${kicker(p)}
 ${day(p, false)}
-${shareBox(lang, L.huxiDayShare, U(lang, `/huxi/${p.date}/`), `${d.md} ${L.huxi}`)}
+${shareBox(lang, L.huxiDayShare, U(lang, `/huxi/${p.date}/`), heading(p))}
 ${archive(p.date)}
 </section>`,
       });
@@ -593,6 +649,15 @@ writeData('items.json', items.map((i) => ({ key: `${i.kind === 'video' ? 'v' : '
 writeData('bible.json', BOOKS.map((b) => ({ n: b.n, zh: b.zh, en: b.en, ch: b.chapters })));
 writeData('feed.json', feed.map((p) => ({ n: p.n, sample: p.sample, zh: { title: p.zh.title }, en: { title: p.en.title } })));
 for (const p of feed) writeData(`feed/${p.n}.json`, { n: p.n, sample: p.sample, zh: { title: p.zh.title, html: p.zh.html }, en: { title: p.en.title, html: p.en.html } });
+// the 呼吸 app on the home screen: opens at /huxi/ (the newest day), the whole site in the app
+for (const lang of LANGS) {
+  const manifest = {
+    name: lang === 'en' ? 'Breathe · Light' : '呼吸 · 有光', short_name: S[lang].huxi, lang: lang === 'en' ? 'en' : 'zh-CN',
+    start_url: U(lang, '/huxi/'), scope: '/', display: 'standalone', background_color: '#eaf6ff', theme_color: '#eaf6ff',
+    icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }],
+  };
+  fs.writeFileSync(path.join(DIST, U(lang, '/huxi/app.webmanifest').slice(1)), JSON.stringify(manifest, null, 2));
+}
 writeData('huxi.json', huxi.map((p) => ({ date: p.date, zh: { title: p.zh.title }, en: { title: p.en.title } })));
 for (const p of huxi) {
   writeData(`huxi/${p.date}.json`, { date: p.date, sample: p.sample, zh: { title: p.zh.title, lede: p.zh.lede, html: p.zh.html }, en: { title: p.en.title, lede: p.en.lede, html: p.en.html } });

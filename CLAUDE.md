@@ -14,6 +14,8 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
   never write doctrinal content of our own. Placeholders carry `sample: true`.
 - Low-key words in titles, menus, URLs and link previews: 粮仓 (content), 呼吸 (prayer),
   吃饭 (Bible reading), 搭子 (groups: 饭搭子, 呼吸搭子, 投喂搭子, 细嚼搭子, 晨兴搭子, 粮仓搭子). See README.md.
+  Exception (Zion's choice): 呼吸 pages' titles and link previews say the day's date and
+  活力排祷告负担, then the headline and lede.
 - Kinds of 搭子 live in `src/kinds.js`, one entry each; keep adding kinds there.
 - Audience is largely in mainland China: nothing may load from Google, YouTube
   thumbnails or public CDNs on page load; videos load on tap; phone first.

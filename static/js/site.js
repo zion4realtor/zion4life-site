@@ -123,6 +123,38 @@
     });
   });
 
+  // ---- 放到手机桌面: the steps for the phone in hand, and a one-tap button where the browser
+  // offers one (Chrome on Android). Hidden once the page is already opened from the home screen. ----
+  var a2hs = document.querySelector('[data-a2hs]');
+  if (a2hs) {
+    var ua = navigator.userAgent;
+    var ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var android = /Android/i.test(ua);
+    var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    var go = a2hs.querySelector('[data-a2hs-go]');
+    if (standalone) a2hs.hidden = true;
+    if (isWeChat) a2hs.querySelector('[data-a2hs-wx]').hidden = false;
+    a2hs.querySelectorAll('[data-os]').forEach(function (el) {
+      var os = el.getAttribute('data-os');
+      if ((ios && os !== 'ios') || (android && os !== 'android')) el.hidden = true;
+    });
+    var offer = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      offer = e;
+      go.hidden = false;
+    });
+    a2hs.querySelector('[data-a2hs-btn]').addEventListener('click', function () {
+      if (!offer) return;
+      offer.prompt();
+      offer.userChoice.then(function () { offer = null; go.hidden = true; }, function () {});
+    });
+    window.addEventListener('appinstalled', function () {
+      go.hidden = true;
+      toast(zh ? '放好了，去手机桌面看看。' : 'Done. Look on your home screen.');
+    });
+  }
+
   // ---- 有问题想问？ ----
   document.querySelectorAll('[data-ask]').forEach(function (form) {
     var err = form.querySelector('[data-error]');
