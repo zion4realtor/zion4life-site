@@ -254,6 +254,79 @@
   }
   $$('[data-talk]').forEach(talk);
 
+  // Keep the two home shortcuts fixed. Reorder topic tiles using each tag's newest
+  // published file, including posts updated by tag managers after the static build.
+  var homeGrid = $('[data-home-grid]');
+  if (homeGrid) {
+    api('/api/posts?latest-by-tag=1').then(function (r) {
+      if (!r.ok || !r.latest) return;
+      var tiles = $$('[data-home-tag]', homeGrid).map(function (tile, index) {
+        var published = Number(tile.getAttribute('data-home-updated')) || 0;
+        var managed = Number(r.latest[tile.getAttribute('data-home-tag')]) || 0;
+        return { tile: tile, index: index, updated: Math.max(published, managed) };
+      });
+      tiles.sort(function (a, b) { return b.updated - a.updated || a.index - b.index; });
+      // Alternate two-card and three-card rows while keeping each row full.
+      var spans = tiles.map(function () { return 1; });
+      var offset = 0;
+      var remaining = tiles.length;
+      var row = 0;
+      var pair = 0;
+      while (remaining > 0) {
+        var count = remaining <= 3 ? remaining : remaining === 4 ? 2 : row % 2 === 0 ? 2 : 3;
+        if (count === 2) {
+          var firstWide = tiles[offset].tile.getAttribute('data-home-wide') === '1';
+          var secondWide = tiles[offset + 1].tile.getAttribute('data-home-wide') === '1';
+          var wideOffset = firstWide !== secondWide ? (firstWide ? 0 : 1) : pair % 2;
+          spans[offset + wideOffset] = 2;
+          pair++;
+        } else if (count === 1) {
+          spans[offset] = 3;
+        }
+        offset += count;
+        remaining -= count;
+        row++;
+      }
+      tiles.forEach(function (x, index) {
+        var tag = x.tile.getAttribute('data-home-tag');
+        var extra = r.overview && r.overview[tag];
+        var count = $('[data-home-count]', x.tile);
+        var summary = $('[data-home-summary]', x.tile);
+        if (count) count.textContent = (Number(x.tile.getAttribute('data-home-static-count')) || 0) + (extra ? Number(extra.count) || 0 : 0);
+        if (summary && extra && extra.title && Number(extra.updated) >= (Number(x.tile.getAttribute('data-home-updated')) || 0)) {
+          var title = extra.lang && extra.lang !== (EN ? 'en' : 'zh') ? `${extra.lang === 'en' ? 'EN' : '中文'} · ${extra.title}` : extra.title;
+          summary.textContent = title;
+          summary.title = title;
+        }
+        x.tile.classList.toggle('w2', spans[index] === 2);
+        x.tile.classList.toggle('w3', spans[index] === 3);
+        homeGrid.appendChild(x.tile);
+      });
+    });
+
+    // Add a live snapshot of public, active buddy groups to the pinned shortcut.
+    api('/api/dazi/plaza').then(function (r) {
+      if (!r.ok) return;
+      var groups = Array.isArray(r.groups) ? r.groups : [];
+      var count = $('[data-dazi-count]', homeGrid);
+      var stat = $('[data-dazi-stat]', homeGrid);
+      var kicker = $('[data-dazi-kicker]', homeGrid);
+      var summary = $('[data-dazi-summary]', homeGrid);
+      var total = Number.isFinite(Number(r.count)) ? Number(r.count) : groups.length;
+      if (count) {
+        count.textContent = total;
+      }
+      if (stat) stat.hidden = false;
+      if (summary) {
+        var newest = groups.slice(0, 2).map(function (g) { return g.title; }).filter(Boolean);
+        if (kicker) kicker.textContent = t('最新建组', 'Newest groups');
+        summary.textContent = newest.length ? newest.join(' · ')
+          : t('还没有公开搭子，来发起第一组', 'No public groups yet. Start the first one.');
+        summary.title = newest.join(' · ');
+      }
+    });
+  }
+
   // ---------- tag pages: 认领, 写一篇, and posts by the tag's managers ----------
   const postCard = (p) => `<a class="card" href="${pre}/x/${p.id}/" data-kind="${p.kind === 'video' ? 'videos' : 'reads'}"><span class="card-body" style="display:block">
 <span class="kind">${p.kind === 'video' ? t('视频', 'Video') : t('文章', 'Read')}</span>${p.lang !== (EN ? 'en' : 'zh') ? `<span class="tag-s">${p.lang === 'en' ? 'EN' : '中文'}</span>` : ''}

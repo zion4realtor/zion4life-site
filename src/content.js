@@ -140,6 +140,13 @@ export async function handleContent(request, env, db, url, now, lang) {
 
   // ---------- posts by tag managers ----------
   if (p === '/api/posts' && method === 'GET') {
+    if (url.searchParams.get('latest-by-tag') === '1') {
+      const rows = await db('postsLatestByTag', {});
+      const overview = Object.fromEntries(rows.map((x) => [x.tag, {
+        count: Number(x.count) || 0, updated: Number(x.updated) || 0, title: x.title || '', lang: x.lang || 'zh',
+      }]));
+      return json({ ok: true, latest: Object.fromEntries(Object.entries(overview).map(([tag, x]) => [tag, x.updated])), overview });
+    }
     const tag = str(url.searchParams.get('tag'), 40);
     if (!data.tag[tag]) return fail(t('找不到这个标签', 'Tag not found'), 404);
     const posts = await db('postsByTag', { tag });

@@ -240,9 +240,9 @@ export async function handleDazi(request, env, db, url, now, lang) {
 
   if (p === '/api/dazi/plaza' && method === 'GET') {
     const kind = KINDS[url.searchParams.get('kind')] ? url.searchParams.get('kind') : undefined;
-    const list = await db('dzPlaza', { kind });
+    const [list, plazaCount] = await Promise.all([db('dzPlaza', { kind }), db('dzPlazaCount', { kind })]);
     ctx = await withTagItems(db, ctx, list);
-    return json({ ok: true, groups: list.map((g) => cardView(g, lang, ctx, user?.id)), feedCount: data.feedCount });
+    return json({ ok: true, groups: list.map((g) => cardView(g, lang, ctx, user?.id)), count: plazaCount, feedCount: data.feedCount });
   }
   if (p === '/api/dazi/mine' && method === 'GET') {
     if (!user) return json({ ok: true, groups: [] });

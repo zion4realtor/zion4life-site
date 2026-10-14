@@ -25,7 +25,7 @@ const TINTS = { aqua: 'var(--t-aqua)', mint: 'var(--t-mint)', sky: 'var(--t-sky)
 const S = {
   zh: {
     tabs: ['粮仓', '呼吸', '搭子', '我的'],
-    today: '今日呼吸', dazi: '搭子', daziSub: '一起吃饭、一起呼吸', newest: '最新：',
+    today: '今日呼吸', todayFocus: '今日祷告负担', todayOpen: '打开今日呼吸', dazi: '搭子', daziSub: '查看公开群组和最新组队', newest: '最新：',
     back: '回粮仓', count: (n) => (n ? `${n} 样粮食` : '还没上架'),
     all: '全部', reads: '文章', videos: '视频', kind: { page: '单页', article: '文章', video: '视频' },
     min: (m) => (m >= 60 ? `约 ${m % 60 ? `${Math.floor(m / 60)} 小时 ${m % 60} 分钟` : `${m / 60} 小时`}` : `${m} 分钟`),
@@ -53,7 +53,7 @@ const S = {
   },
   en: {
     tabs: ['Granary', 'Breathe', 'Buddies', 'Me'],
-    today: 'Breathe today', dazi: 'Buddies', daziSub: 'Eat together, breathe together', newest: 'New: ',
+    today: 'Breathe today', todayFocus: 'Today’s prayer burden', todayOpen: 'Open today’s Breathe', dazi: 'Buddies', daziSub: 'See public groups and new teams', newest: 'Latest',
     back: 'Back to the Granary', count: (n) => (n ? `${n} ${n > 1 ? 'things' : 'thing'} to eat` : 'Nothing here yet'),
     all: 'All', reads: 'Reads', videos: 'Videos', kind: { page: 'One page', article: 'Read', video: 'Video' },
     min: (m) => (m >= 60 ? `about ${m % 60 ? `${Math.floor(m / 60)} hr ${m % 60} min` : `${m / 60} hr`}` : `${m} min`),
@@ -271,6 +271,22 @@ const ICON = {
   me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8.5" r="4"/><path d="M4 20.5c1.4-3.8 4.4-5.5 8-5.5s6.6 1.7 8 5.5" stroke-linecap="round"/></svg>',
   play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>',
 };
+const TAG_ICON = {
+  mystery: '<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/>',
+  goodnews: '<path d="M4 5.5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5.5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/><path d="M7 9h2M15 9h2"/>',
+  eat: '<path d="M5 11.5c0-3.8 3.1-6.5 7-6.5s7 2.7 7 6.5v1a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6z"/><path d="M12 5V3m0 0c1.8 0 3-1 3-2"/>',
+  stories: '<path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h7"/>',
+  breathe: '<path d="M3 8h10a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7"/>',
+  life: '<path d="M12 21V9M12 14c-4 0-7-2.5-7-6 4 0 7 2.5 7 6ZM12 11c0-4 2.8-7 7-7 0 4.2-3 7-7 7Z"/>',
+  students: '<path d="M4 5.5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5.5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/>',
+  family: '<circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2"/><circle cx="19" cy="10" r="2"/><path d="M6 20v-2a6 6 0 0 1 12 0v2M1.5 19v-1a3.5 3.5 0 0 1 5-3.2M22.5 19v-1a3.5 3.5 0 0 0-5-3.2"/>',
+  feelings: '<path d="M12 20s-8-4.7-8-10a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.3-8 10-8 10Z"/><path d="M8.5 11h.1m6.8 0h.1M9.5 14.5c1.5 1.2 3.5 1.2 5 0"/>',
+  qa: '<path d="M4 5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M10 9a2 2 0 1 1 3.4 1.4c-.9.8-1.4 1.1-1.4 2.1m0 2h.01"/>',
+  love: '<path d="M12 20s-8-4.7-8-10a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.3-8 10-8 10Z"/>',
+  work: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18m-11 0v2h4v-2"/>',
+  newfriends: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 8h5m-2.5-2.5v5M17 15.5a5 5 0 0 1 4 4.5"/>',
+  songs: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'
+};
 
 // ---------- layout ----------
 const pre = (lang) => (lang === 'en' ? '/en' : '');
@@ -352,6 +368,7 @@ function card(it, lang, current) {
   const c = it[lang];
   const tint = TINTS[TAG[it.tags[0]]?.tint || 'aqua'];
   const others = it.tags.filter((x) => x !== current).map((x) => `<span class="other">${esc(TAG[x][lang])}</span>`).join('');
+  const readTime = it.slug === 'rensheng-aomi' ? '' : `<span>${esc(L.min(it.minutes[lang]))}</span>`;
   if (it.kind === 'video') {
     return `<a class="card" href="${itemHref(it, lang)}" data-kind="videos" style="--tint:${tint}">
 <span class="poster"><span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span>${MASCOT()}</span>
@@ -359,7 +376,7 @@ function card(it, lang, current) {
   }
   return `<a class="card" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}"><span class="card-body" style="display:block">
 <span class="kind">${L.kind[it.kind]}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
-<span class="meta"><span>${esc(L.min(it.minutes[lang]))}</span>${others}</span></span></a>`;
+<span class="meta">${readTime}${others}</span></span></a>`;
 }
 function shareBox(lang, text, sharePath, title, extra = '') {
   const L = S[lang];
@@ -423,37 +440,57 @@ function askBox(lang) {
 for (const lang of LANGS) {
   const L = S[lang];
 
-  // 粮仓 (home): today's 呼吸, 搭子, then every tag as a tile. Tiles fill whole rows of three.
+  // 粮仓 (home): today's 呼吸 and 搭子 stay pinned; tag tiles follow newest content date.
   {
-    const tiles = [{ type: 'today', cells: 2 }, { type: 'dazi', cells: 1 }];
-    for (const t of TAGS) tiles.push({ type: 'tag', tag: t, cells: t.size === 'big' ? 4 : t.size === 'wide' ? 2 : 1, size: t.size });
-    let total = tiles.reduce((s, x) => s + x.cells, 0);
-    for (let i = tiles.length - 1; total % 3 && i >= 0; i--) {
-      if (tiles[i].type === 'tag' && !tiles[i].size) { tiles[i].size = 'wide'; tiles[i].cells = 2; total++; }
+    const orderedTags = TAGS.map((tag, index) => {
+      const latest = itemsOf(tag.id).reduce((date, item) => item.date > date ? item.date : date, '');
+      return { tag, index, latest };
+    }).sort((a, b) => b.latest.localeCompare(a.latest) || a.index - b.index);
+    // Alternate two-card rows with three-card rows for a less repetitive grid.
+    // Each row still fills all three columns, and a final singleton fills its row.
+    const spans = Array(orderedTags.length).fill(1);
+    let offset = 0;
+    let remaining = orderedTags.length;
+    let row = 0;
+    let pair = 0;
+    while (remaining > 0) {
+      const count = remaining <= 3 ? remaining : remaining === 4 ? 2 : row % 2 === 0 ? 2 : 3;
+      if (count === 2) {
+        const firstWide = ['wide', 'big'].includes(orderedTags[offset].tag.size);
+        const secondWide = ['wide', 'big'].includes(orderedTags[offset + 1].tag.size);
+        const wideOffset = firstWide !== secondWide ? (firstWide ? 0 : 1) : pair % 2;
+        spans[offset + wideOffset] = 2;
+        pair++;
+      } else if (count === 1) {
+        spans[offset] = 3;
+      }
+      offset += count;
+      remaining -= count;
+      row++;
     }
     const tp = todayHuxi;
     const tpd = tp && dateParts(tp.date, lang);
-    const html = tiles.map((x) => {
-      if (x.type === 'today') {
-        return `<a class="tile w2" href="${U(lang, '/huxi/')}" style="--tint:var(--t-sun)" data-ripple${tp ? ` data-huxi-today data-date="${tp.date}"` : ''}>
-<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/></svg>
-<span class="name">${esc(L.today)}</span><span class="sub">${tp ? `<span data-f="md">${esc(tpd.md)}</span> <span data-f="title">${esc(tp[lang].title)}</span>` : ''}</span></a>`;
-      }
-      if (x.type === 'dazi') {
-        return `<a class="tile" href="${U(lang, '/dazi/')}" style="--tint:var(--t-mint)" data-ripple><span class="name">${esc(L.dazi)}</span><span class="sub">${esc(L.daziSub)}</span></a>`;
-      }
-      const t = x.tag;
+    const todayTile = `<a class="tile w2 today-tile" href="${U(lang, '/huxi/')}" style="--tint:var(--t-sun)" data-ripple${tp ? ` data-huxi-today data-date="${tp.date}"` : ''}>
+<span class="today-top"><span class="today-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8h10a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7"/></svg></span><span class="today-label">${esc(L.todayFocus)}</span>${tp ? `<time class="today-date" data-f="md" datetime="${tp.date}">${esc(tpd.md)}</time>` : ''}</span>
+<span class="today-title" data-f="title">${tp ? esc(tp[lang].title) : esc(L.today)}</span>
+<span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
+    const daziTile = `<a class="tile dazi-tile" href="${U(lang, '/dazi/') }" style="--tint:var(--t-mint)" data-ripple><span class="name">${esc(L.dazi)}</span><span class="topic-info"><span class="topic-stat" data-dazi-stat hidden><span class="topic-count" data-dazi-count></span><span class="topic-unit">${lang === 'zh' ? '组' : 'groups'}</span></span><span class="topic-latest-box"><span class="topic-kicker" data-dazi-kicker>${lang === 'zh' ? '广场动态' : 'Plaza updates'}</span><span class="topic-latest" data-dazi-summary>${esc(L.daziSub)}</span></span></span></a>`;
+    const tagTiles = orderedTags.map(({ tag: t, latest }, index) => {
       const list = itemsOf(t.id);
-      const cls = `tile${x.size === 'big' ? ' w2 h2 big' : x.size === 'wide' ? ' w2' : ''}${t.person ? ' person' : ''}`;
-      const sub = list.length && x.size ? L.newest + list[0][lang].title : '';
-      return `<a class="${cls}" href="${U(lang, `/t/${t.id}/`)}" style="--tint:${TINTS[t.tint] || TINTS.aqua}" data-ripple>${x.size === 'big' ? MASCOT() : ''}${t.person ? `<span class="avatar">${esc(t.person[lang])}</span>` : list.length ? `<span class="num">${list.length}</span>` : ''}
-<span class="name">${esc(t[lang])}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</a>`;
+      const staticUpdated = latest ? Date.parse(`${latest}T00:00:00Z`) : 0;
+      const sub = list.length ? list[0][lang].title : L.empty;
+      const art = t.size !== 'big' && !t.person && TAG_ICON[t.id] ? `<span class="tile-art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">${TAG_ICON[t.id]}</svg></span>` : '';
+      const span = spans[index];
+      const cls = `tile topic-tile${span === 2 ? ' w2' : span === 3 ? ' w3' : ''}${t.size === 'big' ? ' big' : ''}${t.person ? ' person' : ''}${art ? ' has-art' : ''}`;
+      return `<a class="${cls}" href="${U(lang, `/t/${t.id}/`)}" style="--tint:${TINTS[t.tint] || TINTS.aqua}" data-ripple data-home-tag="${esc(t.id)}" data-home-wide="${['wide', 'big'].includes(t.size) ? 1 : 0}" data-home-static-count="${list.length}" data-home-updated="${Number.isFinite(staticUpdated) ? staticUpdated : 0}">${t.size === 'big' ? MASCOT() : ''}${art}${t.person ? `<span class="avatar">${esc(t.person[lang])}</span>` : ''}
+<span class="name">${esc(t[lang])}</span><span class="topic-info"><span class="topic-stat"><span class="topic-count" data-home-count>${list.length}</span><span class="topic-unit">${lang === 'zh' ? '项内容' : 'items'}</span></span><span class="topic-latest-box"><span class="topic-kicker">${list.length ? esc(L.newest) : (lang === 'zh' ? '等待上新' : 'Coming soon')}</span><span class="topic-latest" data-home-summary>${esc(sub)}</span></span></span></a>`;
     }).join('\n');
+    const html = [todayTile, daziTile, tagTiles].join('\n');
     emit(lang, '/', {
       title: '',
       tab: 'home',
       body: `<section class="hello"><h1>${esc(site[lang].hi)}</h1><p>${esc(site[lang].hiSub)}</p></section>
-<section class="grid">${html}</section>
+<section class="grid" data-home-grid>${html}</section>
 ${askBox(lang)}`,
     });
   }
@@ -486,24 +523,36 @@ ${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).joi
   // articles and single pages
   for (const a of articles) {
     const c = a[lang];
+    const mystery = a.slug === 'rensheng-aomi';
+    const dripShepherding = a.slug === 'diguan-muyang-2026-10-14';
+    const dripImage = lang === 'zh'
+      ? '/files/drip-shepherding-2026-10-14-zh.jpg'
+      : '/files/drip-shepherding-2026-10-14-en.jpg';
+    const mysteryPdf = lang === 'zh'
+      ? { file: '/files/mystery-of-human-life.zh.pdf', pages: ['/files/mystery-zh-1.jpg', '/files/mystery-zh-2.jpg'] }
+      : { file: '/files/mystery-of-human-life.en.pdf', pages: ['/files/mystery-en-1.jpg', '/files/mystery-en-2.jpg'] };
     const related = items.filter((x) => x !== a && x.tags.some((t) => a.tags.includes(t))).slice(0, 4);
     emit(lang, `/a/${a.slug}/`, {
       title: c.title,
-      desc: c.summary || plain(c.html).slice(0, 90),
+      desc: mystery ? c.title : c.summary || plain(c.html).slice(0, 90),
       tab: 'home',
       noindex: a.sample,
-      body: `<article class="article" style="--tint:${TINTS[TAG[a.tags[0]]?.tint] || TINTS.aqua}">
-<a class="back" href="${U(lang, a.tags[0] ? `/t/${a.tags[0]}/` : '/')}">← ${esc(a.tags[0] ? TAG[a.tags[0]][lang] : L.back)}</a>
+      body: `<article class="article${mystery ? ' mystery-article' : ''}${dripShepherding ? ' drip-article' : ''}" style="--tint:${TINTS[TAG[a.tags[0]]?.tint] || TINTS.aqua}">
+<a class="back" href="${U(lang, mystery ? '/' : a.tags[0] ? `/t/${a.tags[0]}/` : '/')}">← ${esc(mystery ? L.home : a.tags[0] ? TAG[a.tags[0]][lang] : L.back)}</a>
 <h1 class="a-title">${esc(c.title)}</h1>
-<div class="a-meta">${a.date ? `<time datetime="${a.date}">${esc(dateParts(a.date, lang).full)}</time>` : ''}<span>${esc(L.readMin(a.minutes[lang]))}</span></div>
-<div class="a-tags">${a.tags.map((t) => `<a class="chiplink" style="--tint:${TINTS[TAG[t].tint]}" href="${U(lang, `/t/${t}/`)}">${esc(TAG[t][lang])}</a>`).join('')}</div>
+${mystery ? '' : `<div class="a-meta">${a.date ? `<time datetime="${a.date}">${esc(dateParts(a.date, lang).full)}</time>` : ''}<span>${esc(L.readMin(a.minutes[lang]))}</span></div>
+<div class="a-tags">${a.tags.map((t) => `<a class="chiplink" style="--tint:${TINTS[TAG[t].tint]}" href="${U(lang, `/t/${t}/`)}">${esc(TAG[t][lang])}</a>`).join('')}</div>`}
 ${c.fallback ? `<p class="note-box">${esc(L.fallback)}</p>` : ''}${a.sample ? `<p class="note-box">${esc(L.sampleNote)}</p>` : ''}
-<div class="prose"${c.fallback ? ` lang="${lang === 'zh' ? 'en' : 'zh-CN'}"` : ''}>
-${c.html}
-</div>
+${dripShepherding ? `<section class="drip-page" aria-label="${esc(c.title)}">
+<a class="drip-image-link" href="${dripImage}" target="_blank" rel="noopener" aria-label="${lang === 'zh' ? '打开整页图片' : 'Open full page image'}"><img src="${dripImage}" alt="${esc(c.title)}" fetchpriority="high"></a>
+<a class="btn btn-line drip-download" href="${dripImage}" download>${lang === 'zh' ? '下载整页图片' : 'Download full page image'}</a>
+</section>` : mystery ? `<section class="mystery-pdf" aria-label="${esc(c.title)}">
+<div class="mystery-pdf-actions"><a class="btn btn-water" href="${mysteryPdf.file}" target="_blank" rel="noopener">${lang === 'zh' ? '打开 PDF 阅读' : 'Open PDF'}</a><a class="btn btn-line" href="${mysteryPdf.file}" download>${lang === 'zh' ? '下载 PDF' : 'Download PDF'}</a></div>
+<div class="mystery-doc-pages">${mysteryPdf.pages.map((src, i) => `<a href="${mysteryPdf.file}" target="_blank" rel="noopener" aria-label="${lang === 'zh' ? `打开 PDF 第 ${i + 1} 页` : `Open PDF page ${i + 1}`}"><img src="${src}" alt="${esc(c.title)} — ${lang === 'zh' ? `第 ${i + 1} 页` : `page ${i + 1}`}" loading="lazy"></a>`).join('')}</div>
+</section>` : `<div class="prose"${c.fallback ? ` lang="${lang === 'zh' ? 'en' : 'zh-CN'}"` : ''}>${c.html}</div>
 ${shareBox(lang, L.shareArticle, U(lang, `/a/${a.slug}/`), c.title)}
 <section class="talk" data-talk="a:${a.slug}"></section>
-${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}
+${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}`}
 </article>`,
     });
   }

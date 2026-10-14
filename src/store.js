@@ -256,6 +256,12 @@ export const OPS = {
       FROM post p JOIN user u ON u.id = p.uid, json_each(p.tags) t WHERE t.value = ? AND p.status = 'live' ORDER BY p.created DESC LIMIT ?`, tag, limit)
       .map((r) => ({ ...r, tags: parse(r.tags, []), video: r.video ? parse(r.video, null) : null }));
   },
+  postsLatestByTag(sql) {
+    return rows(sql, `SELECT t.value AS tag, COUNT(*) AS count, MAX(p.updated) AS updated,
+        (SELECT p2.title FROM post p2, json_each(p2.tags) t2 WHERE p2.status = 'live' AND t2.value = t.value ORDER BY p2.updated DESC LIMIT 1) AS title,
+        (SELECT p2.lang FROM post p2, json_each(p2.tags) t2 WHERE p2.status = 'live' AND t2.value = t.value ORDER BY p2.updated DESC LIMIT 1) AS lang
+      FROM post p, json_each(p.tags) t WHERE p.status = 'live' GROUP BY t.value ORDER BY updated DESC`);
+  },
   postsAll(sql, { limit = 200 } = {}) {
     return rows(sql, 'SELECT p.id, p.tags, p.kind, p.lang, p.title, p.status, p.created, u.name AS author FROM post p JOIN user u ON u.id = p.uid ORDER BY p.created DESC LIMIT ?', limit)
       .map((r) => ({ ...r, tags: parse(r.tags, []) }));
@@ -305,6 +311,10 @@ export const OPS = {
   dzPlaza(sql, { kind, limit = 120 } = {}) {
     const q = `SELECT * FROM dz WHERE visibility = 'public' AND status = 'active' ${kind ? 'AND kind = ?' : ''} ORDER BY created DESC LIMIT ?`;
     return (kind ? rows(sql, q, kind, limit) : rows(sql, q, limit)).map((r) => ({ ...groupOf(r), members: membersOf(sql, r.id) }));
+  },
+  dzPlazaCount(sql, { kind } = {}) {
+    const q = `SELECT COUNT(*) AS n FROM dz WHERE visibility = 'public' AND status = 'active' ${kind ? 'AND kind = ?' : ''}`;
+    return (kind ? first(sql, q, kind) : first(sql, q)).n;
   },
   // Groups a person belongs to (any status of the group except removed by Zion).
   dzMine(sql, { uid }) {
