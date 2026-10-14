@@ -62,8 +62,6 @@ export async function handleHit(request, env, ctx, url) {
     for (const body of hits) {
       try {
         const r = await fetch(endpoint, { method: 'POST', body: JSON.stringify(body) });
-        // TEMP diagnostic while checking the first hits arrive (remove after)
-        console.log('[ga] sent', body.events.map((e) => e.name).join(','), r.status, String(secret).length);
         if (!r.ok) console.error('[ga]', r.status);
       } catch (e) {
         console.error('[ga]', e?.message || e);
