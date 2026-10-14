@@ -425,16 +425,18 @@ const HOME_SCREEN = {
 </div></details>`,
 };
 
-function askBox(lang) {
+function askBox(lang, compact = false) {
   const L = S[lang];
-  return `<form class="ask" data-ask data-lang="${lang}" data-done="${esc(L.askDone)}" novalidate>
+  const opening = compact ? `<details class="ask-fold"><summary><span>${esc(L.askT)}</span><small>${lang === 'zh' ? '想和我们说句话？点此留言' : 'Have a question? Leave us a note.'}</small><b aria-hidden="true">＋</b></summary>` : '';
+  const closing = compact ? '</details>' : '';
+  return `${opening}<form class="ask" data-ask data-lang="${lang}" data-done="${esc(L.askDone)}" novalidate>
 <h2>${esc(L.askT)}</h2><p>${esc(L.askP)}</p>
 <textarea name="message" maxlength="3000" required placeholder="${esc(L.askMsg)}" aria-label="${esc(L.askMsg)}"></textarea>
 <div class="row"><input name="name" maxlength="40" placeholder="${esc(L.askName)}" aria-label="${esc(L.askName)}" autocomplete="nickname"><input name="reply" type="email" maxlength="120" placeholder="${esc(L.askReply)}" aria-label="${esc(L.askReply)}" autocomplete="email" inputmode="email"></div>
 <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
 <p class="form-error" data-error hidden></p>
 <button class="btn btn-water btn-block" type="submit">${esc(L.askSend)}</button>
-</form>`;
+</form>${closing}`;
 }
 // ---------- pages ----------
 for (const lang of LANGS) {
@@ -442,56 +444,51 @@ for (const lang of LANGS) {
 
   // 粮仓 (home): today's 呼吸 and 搭子 stay pinned; tag tiles follow newest content date.
   {
-    const orderedTags = TAGS.map((tag, index) => {
-      const latest = itemsOf(tag.id).reduce((date, item) => item.date > date ? item.date : date, '');
-      return { tag, index, latest };
-    }).sort((a, b) => b.latest.localeCompare(a.latest) || a.index - b.index);
-    // Alternate two-card rows with three-card rows for a less repetitive grid.
-    // Each row still fills all three columns, and a final singleton fills its row.
-    const spans = Array(orderedTags.length).fill(1);
-    let offset = 0;
-    let remaining = orderedTags.length;
-    let row = 0;
-    let pair = 0;
-    while (remaining > 0) {
-      const count = remaining <= 3 ? remaining : remaining === 4 ? 2 : row % 2 === 0 ? 2 : 3;
-      if (count === 2) {
-        const firstWide = ['wide', 'big'].includes(orderedTags[offset].tag.size);
-        const secondWide = ['wide', 'big'].includes(orderedTags[offset + 1].tag.size);
-        const wideOffset = firstWide !== secondWide ? (firstWide ? 0 : 1) : pair % 2;
-        spans[offset + wideOffset] = 2;
-        pair++;
-      } else if (count === 1) {
-        spans[offset] = 3;
-      }
-      offset += count;
-      remaining -= count;
-      row++;
-    }
     const tp = todayHuxi;
     const tpd = tp && dateParts(tp.date, lang);
-    const todayTile = `<a class="tile w2 today-tile" href="${U(lang, '/huxi/')}" style="--tint:var(--t-sun)" data-ripple${tp ? ` data-huxi-today data-date="${tp.date}"` : ''}>
-<span class="today-top"><span class="today-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8h10a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h7"/></svg></span><span class="today-label">${esc(L.todayFocus)}</span>${tp ? `<time class="today-date" data-f="md" datetime="${tp.date}">${esc(tpd.md)}</time>` : ''}</span>
+    const todayTile = `<a class="today-tile" href="${U(lang, '/huxi/')}" data-ripple${tp ? ` data-huxi-today data-date="${tp.date}"` : ''}>
+<span class="today-orbit" aria-hidden="true"></span><span class="today-top"><span class="today-label">${esc(L.todayFocus)}</span>${tp ? `<time class="today-date" data-f="md" datetime="${tp.date}">${esc(tpd.md)}</time>` : ''}</span>
 <span class="today-title" data-f="title" data-fit-title>${tp ? esc(tp[lang].title) : esc(L.today)}</span>
 <span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
-    const daziTile = `<a class="tile dazi-tile" href="${U(lang, '/dazi/') }" style="--tint:var(--t-mint)" data-ripple><span class="name">${esc(L.dazi)}</span><span class="topic-info"><span class="topic-stat" data-dazi-stat hidden><span class="topic-count" data-dazi-count></span><span class="topic-unit">${lang === 'zh' ? '组' : 'groups'}</span></span><span class="topic-latest-box"><span class="topic-kicker" data-dazi-kicker>${lang === 'zh' ? '广场动态' : 'Plaza updates'}</span><span class="topic-latest" data-dazi-summary>${esc(L.daziSub)}</span></span></span></a>`;
-    const tagTiles = orderedTags.map(({ tag: t, latest }, index) => {
-      const list = itemsOf(t.id);
-      const staticUpdated = latest ? Date.parse(`${latest}T00:00:00Z`) : 0;
-      const sub = list.length ? list[0][lang].title : L.empty;
-      const art = t.size !== 'big' && !t.person && TAG_ICON[t.id] ? `<span class="tile-art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">${TAG_ICON[t.id]}</svg></span>` : '';
-      const span = spans[index];
-      const cls = `tile topic-tile${span === 2 ? ' w2' : span === 3 ? ' w3' : ''}${t.size === 'big' ? ' big' : ''}${t.person ? ' person' : ''}${art ? ' has-art' : ''}`;
-      return `<a class="${cls}" href="${U(lang, `/t/${t.id}/`)}" style="--tint:${TINTS[t.tint] || TINTS.aqua}" data-ripple data-home-tag="${esc(t.id)}" data-home-wide="${['wide', 'big'].includes(t.size) ? 1 : 0}" data-home-static-count="${list.length}" data-home-updated="${Number.isFinite(staticUpdated) ? staticUpdated : 0}">${t.size === 'big' ? MASCOT() : ''}${art}${t.person ? `<span class="avatar">${esc(t.person[lang])}</span>` : ''}
-<span class="name">${esc(t[lang])}</span><span class="topic-info"><span class="topic-stat"><span class="topic-count" data-home-count>${list.length}</span><span class="topic-unit">${lang === 'zh' ? '项内容' : 'items'}</span></span><span class="topic-latest-box"><span class="topic-kicker">${list.length ? esc(L.newest) : (lang === 'zh' ? '等待上新' : 'Coming soon')}</span><span class="topic-latest" data-home-summary>${esc(sub)}</span></span></span></a>`;
-    }).join('\n');
-    const html = [todayTile, daziTile, tagTiles].join('\n');
+    const daziTile = `<a class="dazi-tile" href="${U(lang, '/dazi/') }" data-ripple><span class="dazi-top"><span class="dazi-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.3A4.7 4.7 0 0 1 8.2 13h1.6a4.7 4.7 0 0 1 4.7 4.7V19M16 5.5a3 3 0 0 1 0 5.8M17 13h.8a3.7 3.7 0 0 1 3.7 3.7V19"/></svg></span><span class="dazi-kicker">${lang === 'zh' ? '同行操练' : 'GROW TOGETHER'}</span></span><span class="dazi-name">${esc(L.dazi)}</span><span class="dazi-about">${lang === 'zh' ? '读经 · 祷告 · 彼此关心' : 'Read · Pray · Care together'}</span><span class="dazi-countline" data-dazi-countline hidden><b data-dazi-count></b><span>${lang === 'zh' ? '个公开小组' : 'public groups'}</span></span><span class="dazi-latest" data-dazi-summary>${lang === 'zh' ? '看看大家正在一起操练什么' : 'See what others are practicing together'}</span><span class="dazi-link">${lang === 'zh' ? '找一个搭子' : 'Find a buddy'} <span aria-hidden="true">↗</span></span></a>`;
+    const pathDefs = lang === 'zh' ? [
+      { id: 'start', title: '认识福音', note: '从信仰的起点开始', tags: ['mystery', 'goodnews', 'newfriends', 'eat'] },
+      { id: 'grow', title: '生命长大', note: '在真理和生命中成长', tags: ['breathe', 'life', 'songs'] },
+      { id: 'practice', title: '在生活中操练', note: '把所听见的活出来', tags: ['students', 'family', 'feelings', 'love', 'work'] },
+      { id: 'stories', title: '见证与问答', note: '听故事，也寻找答案', tags: ['stories', 'lgh', 'qa'] },
+    ] : [
+      { id: 'start', title: 'Discover the Gospel', note: 'Begin with the foundations', tags: ['mystery', 'goodnews', 'newfriends', 'eat'] },
+      { id: 'grow', title: 'Grow in Life', note: 'Grow through truth and life', tags: ['breathe', 'life', 'songs'] },
+      { id: 'practice', title: 'Practice in Daily Life', note: 'Live out what you hear', tags: ['students', 'family', 'feelings', 'love', 'work'] },
+      { id: 'stories', title: 'Stories & Answers', note: 'Hear stories and find answers', tags: ['stories', 'lgh', 'qa'] },
+    ];
+    const tagMap = new Map(TAGS.map((tag) => [tag.id, tag]));
+    const pathHTML = pathDefs.map((group, index) => {
+      const pathTags = group.tags.map((id) => {
+        const tag = tagMap.get(id);
+        const list = itemsOf(id);
+        const lastDate = list[0]?.date || '';
+        const timestamp = lastDate ? Date.parse(`${lastDate}T00:00:00Z`) : 0;
+        return `<a class="path-tag" href="${U(lang, `/t/${id}/`)}" data-home-tag="${id}" data-home-static-count="${list.length}" data-home-updated="${timestamp}"><span>${esc(tag[lang])}</span><small data-home-count>${list.length}</small></a>`;
+      }).join('');
+      const groupItems = group.tags.flatMap((id) => itemsOf(id).map((it) => ({ ...it, homeTag: id }))).sort((a, b) => b.date.localeCompare(a.date));
+      const latest = groupItems[0];
+      const count = group.tags.length;
+      const recentTitle = latest ? latest[lang].title : (lang === 'zh' ? '内容正在整理中' : 'New content is on the way');
+      return `<section class="home-path" data-home-path="${group.id}" data-path-updated="${latest ? Date.parse(`${latest.date}T00:00:00Z`) : 0}"><div class="path-heading"><span class="path-index">${String(index + 1).padStart(2, '0')}</span><div><h3>${group.title}</h3><p>${group.note}</p></div><span class="path-total">${count} ${lang === 'zh' ? '个主题' : (count === 1 ? 'topic' : 'topics')}</span></div><div class="path-tags">${pathTags}</div><a class="path-update" href="${latest ? itemHref(latest, lang) : U(lang, `/t/${group.tags[0]}/`)}" data-path-link><span>${lang === 'zh' ? '最近上新' : 'LATEST'}</span><b data-path-summary>${esc(recentTitle)}</b><span aria-hidden="true">↗</span></a></section>`;
+    }).join('');
+    const recentItems = items.slice(0, 4).map((it) => {
+      const tag = tagMap.get(it.tags[0]);
+      const c = it[lang];
+      return `<a class="recent-row" href="${itemHref(it, lang)}"><span class="recent-date">${esc(it.date)}</span><span class="recent-text"><b>${esc(c.title)}</b><small>${esc(c.summary || tag?.[lang] || '')}</small></span><span class="recent-kind">${it.kind === 'video' ? (lang === 'zh' ? '视频' : 'VIDEO') : (lang === 'zh' ? '文章' : 'READ')}<i aria-hidden="true">↗</i></span></a>`;
+    }).join('');
     emit(lang, '/', {
       title: '',
       tab: 'home',
-      body: `<section class="hello"><h1>${esc(site[lang].hi)}</h1><p>${esc(site[lang].hiSub)}</p></section>
-<section class="grid" data-home-grid>${html}</section>
-${askBox(lang)}`,
+      body: `<section class="hello home-hello"><span class="hello-kicker">${lang === 'zh' ? '有光 · 活力排操练' : 'ZION · GROWING IN LIFE'}</span><h1>${esc(site[lang].hi)}</h1><p>${esc(site[lang].hiSub)}</p></section>
+<section class="home-command" aria-label="${lang === 'zh' ? '今日操练与同伴' : 'Today and community'}"><div class="home-daily">${todayTile}</div><div class="home-companion">${daziTile}</div></section>
+<section class="home-discover" aria-labelledby="home-discover-title"><div class="home-section-head"><span class="home-eyebrow">${lang === 'zh' ? '照着你的需要开始' : 'FIND YOUR NEXT STEP'}</span><h2 id="home-discover-title">${lang === 'zh' ? '今天，你想从哪里开始？' : 'Where would you like to begin?'}</h2><p>${lang === 'zh' ? '从认识福音，到在生活中操练。' : 'Explore faith, grow in life, and practice day by day.'}</p></div><div class="home-paths" data-home-grid>${pathHTML}</div></section>
+<section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/t/mystery/')}" class="recent-more">${lang === 'zh' ? '浏览粮仓' : 'Explore'} ↗</a></div><div class="recent-list">${recentItems}</div></section>`,
     });
   }
 

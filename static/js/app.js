@@ -294,44 +294,28 @@
       var tiles = $$('[data-home-tag]', homeGrid).map(function (tile, index) {
         var published = Number(tile.getAttribute('data-home-updated')) || 0;
         var managed = Number(r.latest[tile.getAttribute('data-home-tag')]) || 0;
-        return { tile: tile, index: index, updated: Math.max(published, managed) };
+        return { tile: tile, index: index, updated: Math.max(published, managed), extra: r.overview && r.overview[tile.getAttribute('data-home-tag')] };
       });
-      tiles.sort(function (a, b) { return b.updated - a.updated || a.index - b.index; });
-      // Alternate two-card and three-card rows while keeping each row full.
-      var spans = tiles.map(function () { return 1; });
-      var offset = 0;
-      var remaining = tiles.length;
-      var row = 0;
-      var pair = 0;
-      while (remaining > 0) {
-        var count = remaining <= 3 ? remaining : remaining === 4 ? 2 : row % 2 === 0 ? 2 : 3;
-        if (count === 2) {
-          var firstWide = tiles[offset].tile.getAttribute('data-home-wide') === '1';
-          var secondWide = tiles[offset + 1].tile.getAttribute('data-home-wide') === '1';
-          var wideOffset = firstWide !== secondWide ? (firstWide ? 0 : 1) : pair % 2;
-          spans[offset + wideOffset] = 2;
-          pair++;
-        } else if (count === 1) {
-          spans[offset] = 3;
-        }
-        offset += count;
-        remaining -= count;
-        row++;
-      }
       tiles.forEach(function (x, index) {
         var tag = x.tile.getAttribute('data-home-tag');
-        var extra = r.overview && r.overview[tag];
         var count = $('[data-home-count]', x.tile);
-        var summary = $('[data-home-summary]', x.tile);
-        if (count) count.textContent = (Number(x.tile.getAttribute('data-home-static-count')) || 0) + (extra ? Number(extra.count) || 0 : 0);
-        if (summary && extra && extra.title && Number(extra.updated) >= (Number(x.tile.getAttribute('data-home-updated')) || 0)) {
-          var title = extra.lang && extra.lang !== (EN ? 'en' : 'zh') ? `${extra.lang === 'en' ? 'EN' : '中文'} · ${extra.title}` : extra.title;
+        if (count) count.textContent = (Number(x.tile.getAttribute('data-home-static-count')) || 0) + (x.extra ? Number(x.extra.count) || 0 : 0);
+      });
+      $$('[data-home-path]', homeGrid).forEach(function (path) {
+        var entries = tiles.filter(function (x) { return path.contains(x.tile); });
+        entries.sort(function (a, b) { return b.updated - a.updated || a.index - b.index; });
+        var list = $('.path-tags', path);
+        if (list) entries.forEach(function (x) { list.appendChild(x.tile); });
+        var freshest = entries.slice().sort(function (a, b) { return b.updated - a.updated; })[0];
+        var summary = $('[data-path-summary]', path);
+        if (summary && freshest && freshest.extra && freshest.extra.title && freshest.updated > (Number(path.getAttribute('data-path-updated')) || 0)) {
+          var title = freshest.extra.lang && freshest.extra.lang !== (EN ? 'en' : 'zh') ? `${freshest.extra.lang === 'en' ? 'EN' : '中文'} · ${freshest.extra.title}` : freshest.extra.title;
           summary.textContent = title;
           summary.title = title;
+          var latestLink = $('[data-path-link]', path);
+          if (latestLink) latestLink.href = `${pre}/t/${freshest.tile.getAttribute('data-home-tag')}/`;
+          path.setAttribute('data-path-updated', String(freshest.updated));
         }
-        x.tile.classList.toggle('w2', spans[index] === 2);
-        x.tile.classList.toggle('w3', spans[index] === 3);
-        homeGrid.appendChild(x.tile);
       });
     });
 
@@ -339,14 +323,17 @@
     api('/api/dazi/plaza').then(function (r) {
       if (!r.ok) return;
       var groups = Array.isArray(r.groups) ? r.groups : [];
-      var count = $('[data-dazi-count]', homeGrid);
-      var stat = $('[data-dazi-stat]', homeGrid);
-      var kicker = $('[data-dazi-kicker]', homeGrid);
-      var summary = $('[data-dazi-summary]', homeGrid);
+      var daziCard = $('[data-dazi-count]') && $('[data-dazi-count]').closest('.dazi-tile');
+      var count = daziCard && $('[data-dazi-count]', daziCard);
+      var countline = daziCard && $('[data-dazi-countline]', daziCard);
+      var stat = daziCard && $('[data-dazi-stat]', daziCard);
+      var kicker = daziCard && $('[data-dazi-kicker]', daziCard);
+      var summary = daziCard && $('[data-dazi-summary]', daziCard);
       var total = Number.isFinite(Number(r.count)) ? Number(r.count) : groups.length;
       if (count) {
         count.textContent = total;
       }
+      if (countline) countline.hidden = false;
       if (stat) stat.hidden = false;
       if (summary) {
         var newest = groups.slice(0, 2).map(function (g) { return g.title; }).filter(Boolean);
