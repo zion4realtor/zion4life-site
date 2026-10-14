@@ -11,10 +11,12 @@
 import { json, fail, hash } from './util.js';
 
 const MODEL = '@cf/myshell-ai/melotts';
+const EN_AURA2_FROM = '2026-10-15';
+const LEGACY_EN_VOICE = { model: MODEL };
 // The voice each language is read in: { model, speaker } (speaker for Deepgram Aura only).
 export const VOICE = {
   zh: { model: MODEL },
-  en: { model: MODEL },
+  en: { model: '@cf/deepgram/aura-2-en', speaker: 'helena' },
 };
 // Voices to try (each recorded once, on first listen, from the same few lines).
 const SAMPLE = 'Recovery is revival. We must take the initiative to gain this revival, and it must reach everyone in the church. Satan’s scheme is to keep us from gaining it.';
@@ -107,7 +109,7 @@ export async function makeAudio(env, db, url, now = Date.now()) {
       const s = speech[lang];
       if (!s || !s.chunks.length) continue;
       const key = keyOf(d.date, lang);
-      const v = VOICE[lang];
+      const v = lang === 'en' && d.date < EN_AURA2_FROM ? LEGACY_EN_VOICE : VOICE[lang];
       // the text and the voice together: either changing records the day again
       const h = await hash(`${s.hash}|${v.model}|${v.speaker || ''}`);
       let a = await db('audioGet', { key });
@@ -117,7 +119,7 @@ export async function makeAudio(env, db, url, now = Date.now()) {
       }
       while (a.done < a.parts && budget > 0 && a.tries < 6) {
         try {
-          const out = await speak(env, s.chunks[a.done].t, lang, VOICE[lang]);
+          const out = await speak(env, s.chunks[a.done].t, lang, v);
           const saved = await db.put(`${key}/${a.done}`, out, typeof out === 'string' ? 'b64' : 'raw');
           await db('audioPart', { key, done: a.done + 1, bytes: saved.bytes || 0, now });
           a.done++;
