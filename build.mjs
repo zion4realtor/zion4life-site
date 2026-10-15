@@ -459,13 +459,13 @@ for (const lang of LANGS) {
 <span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
     const daziTile = `<a class="dazi-tile" href="${U(lang, '/dazi/') }" data-ripple><span class="dazi-top"><span class="dazi-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.3A4.7 4.7 0 0 1 8.2 13h1.6a4.7 4.7 0 0 1 4.7 4.7V19M16 5.5a3 3 0 0 1 0 5.8M17 13h.8a3.7 3.7 0 0 1 3.7 3.7V19"/></svg></span><span class="dazi-kicker">${lang === 'zh' ? '同行操练' : 'GROW TOGETHER'}</span></span><span class="dazi-name">${esc(L.dazi)}</span><span class="dazi-about">${lang === 'zh' ? '读经 · 祷告 · 彼此关心' : 'Read · Pray · Care together'}</span><span class="dazi-countline" data-dazi-countline hidden><b data-dazi-count></b><span>${lang === 'zh' ? '个公开小组' : 'public groups'}</span></span><span class="dazi-latest" data-dazi-summary>${lang === 'zh' ? '看看大家正在一起操练什么' : 'See what others are practicing together'}</span><span class="dazi-link">${lang === 'zh' ? '找一个搭子' : 'Find a buddy'} <span aria-hidden="true">↗</span></span></a>`;
     const pathDefs = lang === 'zh' ? [
-      { id: 'start', title: '认识福音', note: '从信仰的起点开始', tags: ['mystery', 'goodnews', 'newfriends', 'eat'] },
-      { id: 'grow', title: '生命长大', note: '在真理和生命中成长', tags: ['breathe', 'life', 'songs'] },
+      { id: 'start', title: '从福音启程', note: '认识主，从信仰的起点出发', tags: ['mystery', 'goodnews', 'newfriends', 'eat', 'lgh'] },
+      { id: 'grow', title: '扎根生命，向上生长', note: '在真理、生命与诗歌中长大', tags: ['breathe', 'life', 'songs'] },
       { id: 'practice', title: '在生活中操练', note: '把所听见的活出来', tags: ['students', 'family', 'feelings', 'love', 'work'] },
       { id: 'stories', title: '见证与问答', note: '听故事，也寻找答案', tags: ['stories', 'lgh', 'qa'] },
     ] : [
-      { id: 'start', title: 'Discover the Gospel', note: 'Begin with the foundations', tags: ['mystery', 'goodnews', 'newfriends', 'eat'] },
-      { id: 'grow', title: 'Grow in Life', note: 'Grow through truth and life', tags: ['breathe', 'life', 'songs'] },
+      { id: 'start', title: 'Begin with the Gospel', note: 'Meet the Lord and begin a new journey', tags: ['mystery', 'goodnews', 'newfriends', 'eat', 'lgh'] },
+      { id: 'grow', title: 'Rooted & Growing', note: 'Grow through truth, life, and song', tags: ['breathe', 'life', 'songs'] },
       { id: 'practice', title: 'Practice in Daily Life', note: 'Live out what you hear', tags: ['students', 'family', 'feelings', 'love', 'work'] },
       { id: 'stories', title: 'Stories & Answers', note: 'Hear stories and find answers', tags: ['stories', 'lgh', 'qa'] },
     ];
