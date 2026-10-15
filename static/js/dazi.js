@@ -479,7 +479,7 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
     const invite = q.get('i') || '';
     let isNew = q.get('new') === '1';
     if (isNew) history.replaceState(null, '', location.pathname + (invite ? `?i=${invite}` : ''));
-    let tab = ['progress', 'files', 'board', 'people', 'cal', 'set', 'stats'].includes(q.get('tab')) ? q.get('tab') : 'progress';
+    let tab = ['progress', 'files', 'people', 'cal', 'set', 'stats'].includes(q.get('tab')) ? q.get('tab') : 'progress';
     let data = null;
 
     const load = async () => {
@@ -542,13 +542,14 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
         h += '</section>';
         h += `<section class="more"><h2 class="sec-h">${t('搭子们', 'The buddies')}</h2>${membersHtml(g, false)}</section>`;
       } else {
-        const tabs = [['progress', t('进度', 'Progress')], ['files', `${t('资料', 'Files')}${r.files && r.files.length ? ` ${r.files.length}` : ''}`], ['board', t('留言板', 'Board')], ['people', t('搭子们', 'Buddies')], ['cal', t('日历', 'Calendar')], ['set', t('设置', 'Settings')]];
+        const tabs = [['progress', t('进度', 'Progress')], ['files', `${t('资料', 'Files')}${r.files && r.files.length ? ` ${r.files.length}` : ''}`], ['people', t('搭子们', 'Buddies')], ['cal', t('日历', 'Calendar')], ['set', t('设置', 'Settings')]];
         if (owner) tabs.splice(1, 0, ['stats', t('统计', 'Stats')]);
-        h += `<div class="seg-tabs" role="tablist">${tabs.map(([key, label]) => `<button type="button" role="tab" data-tab="${key}" aria-selected="${tab === key}">${esc(label)}</button>`).join('')}</div><div data-tab-body></div>`;
+        h += `<div class="seg-tabs" role="tablist">${tabs.map(([key, label]) => `<button type="button" role="tab" data-tab="${key}" aria-selected="${tab === key}">${esc(label)}</button>`).join('')}</div><div data-tab-body></div>
+<section class="group-board" aria-labelledby="group-board-title"><header class="group-board-heading"><h2 id="group-board-title">${t('大家的留言', 'Group conversation')}</h2><span class="group-board-count" data-board-count></span></header><p class="group-board-intro">${t('相聚前后，在这里分享、交流。只有本组搭子可见。', 'Keep the conversation going between meetings. Only this group’s members can see these messages.')}</p><div data-inline-board aria-live="polite"></div></section>`;
       }
       root.innerHTML = h;
       bind(g);
-      if (member) showTab(g);
+      if (member) { showTab(g); showBoard(g); }
     }
     function membersHtml(g, member) {
       return `<ul class="people">${g.members.map((m) => `<li><span class="seat static" style="--seat:${COLORS[m.c]}">${esc([...m.name][0] || '·')}</span><span class="pname"><b>${esc(m.name)}</b>${m.role === 'owner' ? `<em>${t('发起人', 'Initiator')}</em>` : ''}${m.me ? `<em>${t('我', 'Me')}</em>` : ''}${m.ids && m.ids.length ? `<small>${m.ids.map((x) => esc(Y.idName(x))).join(' · ')}</small>` : ''}</span>${member && m.sig ? `<img class="sig" src="${m.sig}" alt="${t('签名', 'Signature')}">` : ''}${member && data.me.role === 'owner' && m.role !== 'owner' ? `<button type="button" class="link-btn danger" data-remove="${esc(m.key)}" data-name="${esc(m.name)}">${t('移出', 'Remove')}</button>` : ''}</li>`).join('')}</ul>`;
@@ -577,6 +578,30 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
         $$('[data-tab]', root).forEach((x) => x.setAttribute('aria-selected', String(x === b)));
         showTab(g);
       }));
+    }
+    async function showBoard(g) {
+      const body = $('[data-inline-board]', root);
+      if (!body) return;
+      body.innerHTML = `<p class="muted">${t('正在载入留言……', 'Loading messages…')}</p>`;
+      const draw = async () => {
+          const b = await api(`/api/dazi/${g.id}/board`);
+          if (!body.isConnected) return;
+          if (!b.ok) { body.innerHTML = `<p class="form-error">${esc(b.error)}</p>`; return; }
+          $('[data-board-count]', root).textContent = t(`${b.posts.length} 条留言`, `${b.posts.length} messages`);
+          body.innerHTML = `<div class="talk-list">${b.posts.length ? b.posts.map((p) => `<div class="msg"><p class="msg-h"><span class="seat static sm" style="--seat:${COLORS[p.c]}">${esc([...p.name][0] || '·')}</span><b>${esc(p.name)}</b><time>${esc(ago(p.created))}</time></p><p class="msg-b">${esc(p.body).replace(/\n/g, '<br>')}</p>${p.mine || b.canDelete ? `<p class="msg-a"><button type="button" class="link-btn danger" data-del="${p.id}">${t('删除', 'Remove')}</button></p>` : ''}</div>`).join('') : `<p class="muted">${t('还没有人说话。', 'Nothing here yet.')}</p>`}</div><section class="board-compose"><h3>${t('留句话给搭子们', 'Leave a message')}</h3><form class="talk-form" data-board><textarea name="body" rows="3" maxlength="1000" placeholder="${t('跟搭子们说点什么', 'Say something to your buddies')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div></form></section>`;
+          const f = $('[data-board]', body);
+          f.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const x = await api(`/api/dazi/${g.id}/board`, { body: { body: f.body.value } });
+            if (x.ok) draw(); else toast(x.error);
+          });
+          $$('[data-del]', body).forEach((btn) => btn.addEventListener('click', async () => {
+            if (!confirm(t('删除这条？', 'Remove this?'))) return;
+            const x = await api(`/api/dazi/${g.id}/board/${btn.getAttribute('data-del')}/delete`, { body: {} });
+            if (x.ok) draw(); else toast(x.error);
+          }));
+        };
+        draw();
     }
     async function showTab(g) {
       const body = $('[data-tab-body]', root);
@@ -623,25 +648,6 @@ ${files.length ? `<ul class="files">${files.map((f) => `<li>${/^image\/(jpeg|png
 <tbody>${s.rows.map((row) => `<tr><th><span class="seat static sm" style="--seat:${COLORS[row.c]}">${esc([...row.name][0] || '·')}</span>${esc(row.name)}</th>${row.cells.map((c) => `<td class="${c || 'miss'}">${c === 'on' ? '✓' : c === 'late' ? t('补', 'M') : '·'}</td>`).join('')}<td class="pct">${row.of ? Math.round((row.done / row.of) * 100) : 0}%</td></tr>`).join('')}</tbody></table></div>
 <p class="hint">${t('✓ 按时打卡　补 后来补上　· 还没打卡', '✓ on time   M made up later   · not yet')}</p>
 ${r.declined && r.declined.length ? `<p class="hint">${t('婉拒了邀请：', 'Declined: ')}${r.declined.map((x) => esc(x.name || t('（没留名字）', '(no name)'))).join('、')}</p>` : ''}`;
-      } else if (tab === 'board') {
-        const draw = async () => {
-          const b = await api(`/api/dazi/${g.id}/board`);
-          if (!b.ok) { body.innerHTML = `<p class="form-error">${esc(b.error)}</p>`; return; }
-          body.innerHTML = `<form class="talk-form" data-board><textarea name="body" rows="3" maxlength="1000" placeholder="${t('跟搭子们说点什么', 'Say something to your buddies')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div></form>
-<div class="talk-list">${b.posts.length ? b.posts.map((p) => `<div class="msg"><p class="msg-h"><span class="seat static sm" style="--seat:${COLORS[p.c]}">${esc([...p.name][0] || '·')}</span><b>${esc(p.name)}</b><time>${esc(ago(p.created))}</time></p><p class="msg-b">${esc(p.body).replace(/\n/g, '<br>')}</p>${p.mine || b.canDelete ? `<p class="msg-a"><button type="button" class="link-btn danger" data-del="${p.id}">${t('删除', 'Remove')}</button></p>` : ''}</div>`).join('') : `<p class="muted">${t('还没有人说话。', 'Nothing here yet.')}</p>`}</div>`;
-          const f = $('[data-board]', body);
-          f.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const x = await api(`/api/dazi/${g.id}/board`, { body: { body: f.body.value } });
-            if (x.ok) draw(); else toast(x.error);
-          });
-          $$('[data-del]', body).forEach((btn) => btn.addEventListener('click', async () => {
-            if (!confirm(t('删除这条？', 'Remove this?'))) return;
-            const x = await api(`/api/dazi/${g.id}/board/${btn.getAttribute('data-del')}/delete`, { body: {} });
-            if (x.ok) draw(); else toast(x.error);
-          }));
-        };
-        draw();
       } else if (tab === 'people') {
         body.innerHTML = `${membersHtml(g, true)}<p class="btn-row"><button type="button" class="btn btn-line btn-sm" data-copy-invite>${t('复制邀请链接', 'Copy invite link')}</button></p>`;
         $$('[data-copy-invite]', body).forEach((b) => b.addEventListener('click', () => copy(r.invite, t('邀请链接已复制，发给朋友就可以了', 'Invite link copied. Send it to a friend.'))));
