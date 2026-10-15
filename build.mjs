@@ -614,6 +614,7 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
 ${listen(p)}
 <div class="hx-body" lang="${lang === 'en' ? 'en' : 'zh-CN'}" data-f="html">${x.html}</div>
 <p class="hx-sub"><button type="button" class="btn btn-line btn-sm" data-sub="huxi" data-on="${esc(L.subHuxiOn)}" data-off="${esc(L.subHuxi)}">${esc(L.subHuxi)}</button><span class="hint">${esc(L.subHuxiHint)}</span></p>
+<section class="talk hx-prayer-talk" data-talk="huxi:${p.date}"></section>
 </article>`;
     };
     // the page title and link preview: the day's date and 活力排祷告负担, then the headline and lede
