@@ -344,7 +344,7 @@ ${styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
 </div></header>
 <main class="wrap${wide ? ' wide' : ''}">
 ${body}
-<footer class="foot"><b>${esc(name)}</b> zion4life.faith<br><span class="mail">${esc(site.contact)}</span><br>${esc(L.copyright(new Date().getFullYear()))}</footer>
+<footer class="foot"><b>${esc(name)}</b> zion4life.faith<br><span class="mail">${esc(site.contact)}</span><br>${esc(L.copyright(new Date().getFullYear()))} · Atlanta USA</footer>
 </main>
 <div class="tab-space"></div>
 <nav class="tabbar" aria-label="${lang === 'zh' ? '菜单' : 'Menu'}"><div class="tabbar-in">${tabs}</div></nav>
