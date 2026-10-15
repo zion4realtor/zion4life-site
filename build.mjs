@@ -813,8 +813,8 @@ for (const lang of LANGS) {
 <p>${lang === 'zh' ? '加入后，可在小组“日历”中订阅或下载日历。添加到手机日历并开启提醒后，可从提醒中的链接打开当次材料。提醒方式取决于手机和日历设置。' : 'After joining, subscribe to or download the group calendar from its Calendar tab. Add it to your phone calendar and enable reminders; the event link opens that session’s reading. Alerts depend on your phone and calendar settings.'}</p>
 </details></section>
 <div class="plaza-top"><p class="plaza-count" data-count>${esc(L.loading)}</p>
-<div class="kinds" role="group" data-kinds><button type="button" data-kind="" aria-pressed="true">${esc(D.all)}</button>${Object.entries(GROUP_KINDS).map(([k, v]) => `<button type="button" data-kind="${k}" aria-pressed="false"><span class="ki">${v.icon}</span>${esc(v[lang])}</button>`).join('')}</div>
-<div class="plaza-tools"><input type="search" data-plaza-search aria-label="${lang === 'zh' ? '搜索搭子' : 'Search groups'}" placeholder="${lang === 'zh' ? '搜索名字或读物' : 'Search names or readings'}"><label><input type="checkbox" data-plaza-vacant>${lang === 'zh' ? '只看空位' : 'Open seats'}</label></div></div>
+<div class="kinds" role="group" data-kinds><button type="button" data-kind="" aria-pressed="true">${esc(D.all)}</button>${Object.entries(GROUP_KINDS).map(([k, v]) => `<button type="button" data-kind="${k}" aria-pressed="false"><span class="ki">${v.icon}</span>${esc(v[lang])}</button>`).join('')}<label class="vacant-filter"><input type="checkbox" data-plaza-vacant>${lang === 'zh' ? '只看空位' : 'Open seats'}</label></div></div>
+
 <div class="mine-strip" data-mine hidden><h2>${esc(D.mine)}</h2><div class="mine-row" data-mine-row></div></div>
 <div class="plaza" data-plaza aria-live="polite"></div>
 <dialog class="table-popup" data-table-popup aria-labelledby="plaza-popup-title"><button type="button" class="popup-close" data-popup-close aria-label="${lang === 'zh' ? '关闭说明' : 'Close details'}">×</button><div data-popup-body></div></dialog>

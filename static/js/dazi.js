@@ -90,13 +90,11 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
   function plaza() {
     const box = $('[data-plaza]');
     const count = $('[data-count]');
-    const search = $('[data-plaza-search]');
     const vacant = $('[data-plaza-vacant]');
     const popup = $('[data-table-popup]');
     const popupBody = $('[data-popup-body]');
     const memberCache = new Map();
     const memberRequests = new Map();
-    const names = new Map();
     let groups = [], pageIndex = 1, loadVersion = 0, selected = null, lastFocus = null;
     let kind = new URLSearchParams(location.search).get('kind') || '';
     if (!CFG.kinds[kind]) kind = '';
@@ -128,7 +126,6 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
         seat.setAttribute('aria-label', t(`${name} 已入座`, `${name}, seated`));
       });
       $$('.seat.free', node).forEach((seat) => seat.setAttribute('aria-label', t('空椅，虚位以待', 'An open chair awaits a companion')));
-      if (members) names.set(g.id, members.map((m) => m.name).join(' '));
     };
     const popupContent = (g, members) => {
       const nx = g.next;
@@ -159,14 +156,13 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
     });
     popup.addEventListener('close', () => { selected = null; if (lastFocus?.isConnected) lastFocus.focus({ preventScroll: true }); });
     const render = () => {
-      const q = search.value.trim().toLocaleLowerCase();
-      const filtered = groups.filter((g) => (!vacant.checked || g.seats.length < g.max) && (!q || `${g.title} ${g.planText} ${g.next?.reading || ''} ${names.get(g.id) || ''}`.toLocaleLowerCase().includes(q)));
+      const filtered = groups.filter((g) => !vacant.checked || g.seats.length < g.max);
       const limit = pageSize(), pages = Math.max(1, Math.ceil(filtered.length / limit));
       pageIndex = Math.min(pageIndex, pages);
       const visible = filtered.slice((pageIndex - 1) * limit, pageIndex * limit);
       count.textContent = groups.length ? t(`此刻，广场上有 ${groups.length} 组搭子`, `${groups.length} buddy ${groups.length === 1 ? 'group' : 'groups'} on the plaza right now`) : t('广场上还空着，第一桌由你来摆', 'The plaza is empty. Set out the first table');
-      if (q || vacant.checked) count.textContent += t(` · 找到 ${filtered.length} 组`, ` · ${filtered.length} found`);
-      const empty = groups.length ? t('暂时没有符合条件的搭子，换一个搜索条件试试。', 'No groups match. Try a different search or filter.') : `<a href="${pre}/dazi/new/${kind ? `?kind=${encodeURIComponent(kind)}` : ''}">${t('摆一张新桌，邀请伙伴同行', 'Set a new table and invite your companions')}</a>`;
+      if (vacant.checked) count.textContent += t(` · 找到 ${filtered.length} 组`, ` · ${filtered.length} found`);
+      const empty = groups.length ? t('这个分类暂时没有符合条件的搭子，试试其他分类或取消空位筛选。', 'No groups match this filter. Try another category or turn off Open seats.') : `<a href="${pre}/dazi/new/${kind ? `?kind=${encodeURIComponent(kind)}` : ''}">${t('摆一张新桌，邀请伙伴同行', 'Set a new table and invite your companions')}</a>`;
       box.innerHTML = `<div class="plaza-grid">${visible.length ? visible.map(spot).join('') : `<p class="plaza-empty">${empty}</p>`}</div>
 <p class="plaza-legend">${t('椅子上的名字是组员 · 空椅虚位以待', 'Names mark companions · Open chairs await you')}</p>
 <nav class="plaza-pager" aria-label="${t('广场分页', 'Plaza pages')}"><button type="button" data-plaza-prev${pageIndex === 1 ? ' disabled' : ''}>${t('上一页', 'Previous')}</button><span>${pageIndex} / ${pages}</span><button type="button" data-plaza-next${pageIndex === pages ? ' disabled' : ''}>${t('下一页', 'Next')}</button></nav>`;
@@ -204,7 +200,6 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
       history.replaceState(null, '', kind ? `?kind=${encodeURIComponent(kind)}` : location.pathname);
       load();
     }));
-    search.addEventListener('input', () => { pageIndex = 1; render(); });
     vacant.addEventListener('change', () => { pageIndex = 1; render(); });
     window.matchMedia('(min-width: 620px)').addEventListener('change', () => { pageIndex = 1; render(); });
     load();
