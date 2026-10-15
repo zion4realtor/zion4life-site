@@ -244,21 +244,26 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .home-command .dazi-link { position: relative; z-index: 1; margin-top: 11px; color: #236f64; font-size: 13px; font-weight: 700; }
 .home-discover { margin-bottom: 44px; }
 .home-discover > .home-section-head { display: block; margin-bottom: 18px; }
-.home-discover .home-section-head h2, .home-recent .home-section-head h2 { margin: 6px 0 0; font-family: var(--display); font-size: clamp(24px, 5vw, 31px); font-weight: 400; line-height: 1.3; letter-spacing: .035em; }
-.home-discover .home-section-head p { margin: 4px 0 0; color: var(--mute); font-size: 15px; line-height: 1.55; }
+.home-discover .home-section-head h2, .home-recent .home-section-head h2 { margin: 6px 0 0; font-family: var(--display); font-size: clamp(26px, 5.4vw, 34px); font-weight: 500; line-height: 1.26; letter-spacing: .035em; }
+.home-discover .home-section-head p { margin: 6px 0 0; color: var(--mute); font-size: 15px; line-height: 1.55; }
 .home-paths { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
-.home-path { min-width: 0; padding: 19px 19px 16px; border: 1px solid color-mix(in srgb, var(--t-aqua) 14%, var(--line)); border-radius: 22px; background: color-mix(in srgb, var(--paper) 92%, var(--sky)); box-shadow: 0 9px 24px -22px rgba(28, 62, 78, .45); }
-.path-heading { display: grid; grid-template-columns: 31px minmax(0,1fr) auto; align-items: center; gap: 9px; }
-.path-index { color: #398d8c; font: 600 11px/1 var(--body); letter-spacing: .06em; }
-.path-heading h3 { margin: 0; color: var(--ink); font-family: var(--display); font-size: 19px; font-weight: 400; line-height: 1.25; }
-.path-heading p { margin: 3px 0 0; color: var(--mute); font-size: 12px; line-height: 1.4; }
-.path-total { color: var(--mute); font-size: 11px; white-space: nowrap; }
-.path-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
-.path-tag { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: var(--paper); font-size: 13px; line-height: 1.25; text-decoration: none; transition: border-color .16s ease, background .16s ease; }
+.home-path { --path-accent: var(--t-aqua); position: relative; isolation: isolate; overflow: hidden; min-width: 0; padding: 18px 18px 15px; border: 1px solid color-mix(in srgb, var(--path-accent) 30%, var(--line)); border-radius: 22px; background: radial-gradient(ellipse 78% 56% at 100% 0%, color-mix(in srgb, var(--path-accent) 22%, transparent), transparent 76%), linear-gradient(145deg, color-mix(in srgb, var(--paper) 95%, var(--path-accent)), color-mix(in srgb, var(--paper) 98%, var(--sky))); box-shadow: 0 12px 28px -23px color-mix(in srgb, var(--path-accent) 70%, transparent), inset 0 1px 0 color-mix(in srgb, var(--paper) 96%, transparent); }
+.home-path:nth-child(2) { --path-accent: var(--t-mint); }
+.home-path:nth-child(3) { --path-accent: var(--t-sky); }
+.home-path:nth-child(4) { --path-accent: var(--t-lilac); }
+.home-path::before { content: ""; position: absolute; z-index: -1; top: -54px; right: -45px; width: 132px; height: 132px; border: 1px solid color-mix(in srgb, var(--path-accent) 26%, transparent); border-radius: 50%; box-shadow: 0 0 0 12px color-mix(in srgb, var(--paper) 22%, transparent), 0 0 0 13px color-mix(in srgb, var(--path-accent) 15%, transparent), 0 0 0 28px color-mix(in srgb, var(--paper) 16%, transparent); pointer-events: none; }
+.path-heading { position: relative; display: grid; grid-template-columns: 34px minmax(0,1fr); align-items: start; gap: 10px; }
+.path-index { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; color: #fff; background: color-mix(in srgb, var(--path-accent) 78%, var(--water-ink)); box-shadow: inset 0 1px 0 rgba(255,255,255,.36); font: 700 11px/1 var(--body); letter-spacing: .03em; }
+.path-heading h3 { margin: 0; color: var(--ink); font-family: var(--body); font-size: clamp(17px, 2.6vw, 21px); font-weight: 750; line-height: 1.3; letter-spacing: .01em; text-wrap: pretty; }
+.path-heading p { margin: 5px 0 0; color: var(--mute); font-size: 13px; line-height: 1.48; }
+.path-total { position: absolute; right: 0; top: 42px; color: var(--water-ink); font-size: 11px; font-weight: 650; white-space: nowrap; }
+.path-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+.path-tag { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--path-accent) 22%, var(--line)); border-radius: 999px; color: var(--ink); background: color-mix(in srgb, var(--paper) 86%, var(--path-accent)); font-size: 13px; line-height: 1.25; text-decoration: none; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
 .path-tag:hover { border-color: color-mix(in srgb, var(--t-aqua) 58%, var(--line)); background: color-mix(in srgb, var(--paper) 83%, var(--t-aqua)); }
+.path-tag:active { transform: scale(.97); }
 .path-tag small { color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; }
-.path-update { display: grid; grid-template-columns: auto minmax(0,1fr) 16px; align-items: center; gap: 8px; margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; }
-.path-update > span:first-child { color: var(--water-ink); font-size: 10px; font-weight: 750; letter-spacing: .1em; white-space: nowrap; }
+.path-update { position: relative; display: grid; grid-template-columns: auto minmax(0,1fr) 16px; align-items: center; gap: 8px; margin-top: 15px; padding: 11px 10px 0; border-top: 1px solid color-mix(in srgb, var(--path-accent) 24%, var(--line)); color: var(--ink); text-decoration: none; }
+.path-update > span:first-child { color: var(--water-ink); font-size: 10px; font-weight: 750; letter-spacing: .06em; white-space: nowrap; }
 .path-update b { overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .path-update > span:last-child { color: var(--water-ink); text-align: right; }
 .home-recent { margin-bottom: 24px; }
