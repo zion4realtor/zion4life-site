@@ -799,8 +799,8 @@ for (const lang of LANGS) {
 
   // The courtyard is presentation only; group, covenant and calendar flows stay shared.
   emit(lang, '/dazi/', {
-    title: lang === 'zh' ? '搭子广场｜找读经、祷告、晨兴小组，一起同行' : 'Buddies plaza | Find friends to read, pray and grow together',
-    desc: lang === 'zh' ? '在这里找读经、祷告、晨兴和生命读经的搭子。约好时间，一起读、一起祷告，彼此陪伴。' : 'Find companions for Bible reading, prayer, morning revival and Life-study. Set a time, meet regularly, and encourage one another.',
+    title: lang === 'zh' ? '搭子广场' : 'Buddies plaza',
+    desc: lang === 'zh' ? '约上两三个人，定好时间，一起坚持。' : 'Two or three friends. A set time. Keep going together.',
     tab: 'dazi',
     scripts: [DAZI_JS],
     styles: [`/css/plaza.css?v=${ver('css/plaza.css')}`],
