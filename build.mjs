@@ -44,7 +44,7 @@ const S = {
     md: (m, d) => `${m}月${d}日`, full: (y, m, d) => `${y}年${m}月${d}日`,
     me: '我的', meSub: '你的搭子、打卡和留言，都会在这里。', loading: '正在载入……',
     talkT: '留言', postsT: '新上架',
-    askT: '有问题想问？', askP: '写下来，我们会认真看。想收到回复的话，留一个邮箱。',
+    askT: '有问题或建议？', askP: '可以问我们，也欢迎告诉我们你希望网站怎样改进。想收到回复，请留邮箱。',
     askMsg: '想问什么，都可以写在这里', askName: '怎么称呼你（可以不填）', askReply: '回信邮箱（可以不填）', askSend: '发送',
     askDone: '收到了，谢谢你。我们会认真看。',
     plazaT: '搭子广场', plazaP: '约上两三个人，定好时间，一起坚持。', newT: '发起一个搭子',
@@ -73,7 +73,7 @@ const S = {
     full: (y, m, d) => `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${d}, ${y}`,
     me: 'Me', meSub: 'Your buddies, check-ins and messages live here.', loading: 'Loading…',
     talkT: 'Messages', postsT: 'Just added',
-    askT: 'Have a question?', askP: 'Write it here and we will read it carefully. Leave an email if you would like a reply.',
+    askT: 'Questions or ideas?', askP: 'Ask us anything, or suggest how the site could be better. Leave an email if you would like a reply.',
     askMsg: 'Ask anything here', askName: 'Your name (optional)', askReply: 'Email for a reply (optional)', askSend: 'Send',
     askDone: 'Got it, thank you. We will read it carefully.',
     plazaT: 'Buddies', plazaP: 'Two or three people, a set time, and keep going together.', newT: 'Start a buddy group',
@@ -434,7 +434,7 @@ const HOME_SCREEN = {
 
 function askBox(lang, compact = false) {
   const L = S[lang];
-  const opening = compact ? `<details class="ask-fold"><summary><span>${esc(L.askT)}</span><small>${lang === 'zh' ? '想和我们说句话？点此留言' : 'Have a question? Leave us a note.'}</small><b aria-hidden="true">＋</b></summary>` : '';
+  const opening = compact ? `<details class="ask-fold"><summary><span class="ask-fold-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></span><span class="ask-fold-copy"><strong>${lang === 'zh' ? '有问题，或想提建议？' : 'Questions or ideas?'}</strong><small>${lang === 'zh' ? '欢迎提问，也欢迎告诉我网站可以怎样改进' : 'Ask a question or suggest a site improvement'}</small></span><span class="ask-fold-action"><span>${lang === 'zh' ? '留言' : 'Write'}</span><b aria-hidden="true">＋</b></span></summary>` : '';
   const closing = compact ? '</details>' : '';
   return `${opening}<form class="ask" data-ask data-lang="${lang}" data-done="${esc(L.askDone)}" novalidate>
 <h2>${esc(L.askT)}</h2><p>${esc(L.askP)}</p>
@@ -495,7 +495,8 @@ for (const lang of LANGS) {
       body: `<section class="hello home-hello"><span class="hello-kicker">${lang === 'zh' ? '有光 · 活力排操练' : 'ZION · GROWING IN LIFE'}</span><h1>${esc(site[lang].hi)}</h1><p>${esc(site[lang].hiSub)}</p></section>
 <section class="home-command" aria-label="${lang === 'zh' ? '今日操练与同伴' : 'Today and community'}"><div class="home-daily">${todayTile}</div><div class="home-companion">${daziTile}</div></section>
 <section class="home-discover" aria-labelledby="home-discover-title"><div class="home-section-head"><span class="home-eyebrow">${lang === 'zh' ? '照着你的需要开始' : 'FIND YOUR NEXT STEP'}</span><h2 id="home-discover-title">${lang === 'zh' ? '今天，你想从哪里开始？' : 'Where would you like to begin?'}</h2><p>${lang === 'zh' ? '从认识福音，到在生活中操练。' : 'Explore faith, grow in life, and practice day by day.'}</p></div><div class="home-paths" data-home-grid>${pathHTML}</div></section>
-<section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/t/mystery/')}" class="recent-more">${lang === 'zh' ? '浏览粮仓' : 'Explore'} ↗</a></div><div class="recent-list">${recentItems}</div></section>`,
+<section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/t/mystery/')}" class="recent-more">${lang === 'zh' ? '浏览粮仓' : 'Explore'} ↗</a></div><div class="recent-list">${recentItems}</div></section>
+${askBox(lang, true)}`,
     });
   }
 
