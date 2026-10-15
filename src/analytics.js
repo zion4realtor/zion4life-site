@@ -49,13 +49,21 @@ export async function handleHit(request, env, ctx, url) {
     return done();
   }
   let hits;
+  const cf = request.cf || {};
   try {
-    hits = buildHits(b, { ua, cf: request.cf || {}, host: url.host, now: Date.now() });
+    hits = buildHits(b, { ua, cf, host: url.host, now: Date.now() });
   } catch (e) {
     console.error('[ga]', e?.message || e);
     return done();
   }
   if (!hits.length) return done();
+  // Temporary sampled diagnostic: only booleans, never city, IP, or client ID.
+  if (Math.random() < 0.05) {
+    console.info('[ga_geo_probe]', JSON.stringify({
+      cf_city_present: typeof cf.city === 'string' && cf.city.trim().length > 0,
+      ga_city_present: hits.some((hit) => typeof hit.user_location?.city === 'string' && hit.user_location.city.length > 0),
+    }));
+  }
   const endpoint = `${MP}?measurement_id=${encodeURIComponent(id)}&api_secret=${encodeURIComponent(secret)}`;
   const send = async () => {
     // campaign_details (where the visit came from) goes first, so it applies to the page view
