@@ -35,6 +35,7 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
 - Site contact: light@zion4life.faith (Zion's address; Cloudflare forwards it to his Hotmail
   until he picks a mailbox). The question box stores every
   message (see `/admin/`) and emails it when mail is set up.
-- Visit counts go to Google Analytics through our own `/api/hit` (`src/analytics.js`), never a
-  Google script on the page. New actions: add the name to `EVENTS` there and call `window.ygTrack`.
+- Page views use the async Google tag for city-aware reporting; custom events and the blocked-tag
+  fallback go through `/api/hit` (`src/analytics.js`). The tag shares the site's client ID and
+  sends sanitized page URLs. New actions: add the name to `EVENTS` there and call `window.ygTrack`.
 - Before pushing: `node build.mjs && node --test`. Pushing to `main` deploys.
