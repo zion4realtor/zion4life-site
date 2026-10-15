@@ -495,7 +495,7 @@ ${attendanceFields(g)}
     const invite = q.get('i') || '';
     let isNew = q.get('new') === '1';
     if (isNew) history.replaceState(null, '', location.pathname + (invite ? `?i=${invite}` : ''));
-    let tab = ['progress', 'files', 'people', 'cal', 'set', 'stats'].includes(q.get('tab')) ? q.get('tab') : 'progress';
+    let tab = ['progress', 'people', 'cal', 'set', 'stats'].includes(q.get('tab')) ? q.get('tab') : 'progress';
     let data = null;
 
     const load = async () => {
@@ -559,14 +559,15 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
         h += '</section>';
         h += `<section class="more"><h2 class="sec-h">${t('搭子们', 'The buddies')}</h2>${membersHtml(g, false)}</section>`;
       } else {
-        const tabs = [['progress', t('进度', 'Progress')], ['files', `${t('资料', 'Files')}${r.files && r.files.length ? ` ${r.files.length}` : ''}`], ['people', t('搭子们', 'Buddies')], ['cal', t('日历', 'Calendar')], ['set', t('设置', 'Settings')]];
+        const tabs = [['progress', t('进度', 'Progress')], ['people', t('搭子们', 'Buddies')], ['cal', t('日历', 'Calendar')], ['set', t('设置', 'Settings')]];
         if (owner) tabs.splice(1, 0, ['stats', t('统计', 'Stats')]);
         h += `<div class="seg-tabs" role="tablist">${tabs.map(([key, label]) => `<button type="button" role="tab" data-tab="${key}" aria-selected="${tab === key}">${esc(label)}</button>`).join('')}</div><div data-tab-body></div>
+<section class="group-files" aria-labelledby="group-files-title"><h2 id="group-files-title">${t('小组资料', 'Group files')}</h2><div data-inline-files aria-live="polite"></div></section>
 <section class="group-board" aria-labelledby="group-board-title"><header class="group-board-heading"><h2 id="group-board-title">${t('大家的留言', 'Group conversation')}</h2><span class="group-board-count" data-board-count></span></header><p class="group-board-intro">${t('相聚前后，在这里分享、交流。只有本组搭子可见。', 'Keep the conversation going between meetings. Only this group’s members can see these messages.')}</p><div data-inline-board aria-live="polite"></div></section>`;
       }
       root.innerHTML = h;
       bind(g);
-      if (member) { showTab(g); showBoard(g); }
+      if (member) { showTab(g); showFiles(g); showBoard(g); }
     }
     function membersHtml(g, member) {
       return `<ul class="people">${g.members.map((m) => `<li><span class="seat static" style="--seat:${COLORS[m.c]}">${esc([...m.name][0] || '·')}</span><span class="pname"><b>${esc(m.name)}</b>${m.role === 'owner' ? `<em>${t('发起人', 'Initiator')}</em>` : ''}${m.me ? `<em>${t('我', 'Me')}</em>` : ''}${m.ids && m.ids.length ? `<small>${m.ids.map((x) => esc(Y.idName(x))).join(' · ')}</small>` : ''}</span>${member && m.sig ? `<img class="sig" src="${m.sig}" alt="${t('签名', 'Signature')}">` : ''}${member && data.me.role === 'owner' && m.role !== 'owner' ? `<button type="button" class="link-btn danger" data-remove="${esc(m.key)}" data-name="${esc(m.name)}">${t('移出', 'Remove')}</button>` : ''}</li>`).join('')}</ul>`;
@@ -619,18 +620,17 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
         };
         draw();
     }
-    async function showTab(g) {
-      const body = $('[data-tab-body]', root);
+    async function refreshFiles() {
+      const g = data.group;
+      const result = await api(`/api/dazi/${g.id}/files`);
+      if (!result.ok) { toast(result.error); return; }
+      data.files = result.files;
+      showFiles(g);
+    }
+    function showFiles(g) {
+      const body = $('[data-inline-files]', root);
+      if (!body) return;
       const r = data;
-      if (tab === 'progress') {
-        const done = new Map(r.myChecks.map((c) => [c.n, c]));
-        const statusOf = (n) => { const c = done.get(n); return c && c.done ? (c.late ? 'late' : 'on') : null; };
-        const items = r.recent || [];
-        body.innerHTML = items.length ? `<ul class="prog">${items.map((x) => {
-          const st = statusOf(x.n);
-          return `<li><a href="${pre}/g/${g.id}/${x.n}"><span class="pn">${t(`第 ${x.n} 次`, `Time ${x.n}`)}<small>${esc(x.text)}</small></span><span class="ps ${st || 'miss'}">${st === 'on' ? `✓ ${t('打卡了', 'Done')}` : st === 'late' ? `✓ ${t('补卡', 'Made up')}` : t('还没打卡', 'Not yet')}</span></a></li>`;
-        }).join('')}</ul><p class="hint">${t('当时没来得及的，点进去读完也可以补卡。', 'Missed one? Open it, read, and check in to make it up.')}</p>` : `<p class="muted">${t('第一次开始前两个小时，就可以在这里打开材料。', 'The reading opens here two hours before the first time.')}</p>`;
-      } else if (tab === 'files') {
         const owner = !!r.progress;
         const files = r.files || [];
         const icon = (f) => (f.type === 'application/pdf' ? 'PDF' : '🖼');
@@ -647,14 +647,26 @@ ${files.length ? `<ul class="files">${files.map((f) => `<li>${/^image\/(jpeg|png
               if (!res.ok) toast(res.error);
             }
             msgEl.textContent = '';
-            load();
+            await refreshFiles();
           });
         }
         $$('[data-del-file]', body).forEach((b) => b.addEventListener('click', async () => {
           if (!confirm(t(`删除「${b.getAttribute('data-name')}」？`, `Remove "${b.getAttribute('data-name')}"?`))) return;
           const x = await api(`/api/dazi/${g.id}/files/${b.getAttribute('data-del-file')}/delete`, { body: {} });
-          if (x.ok) load(); else toast(x.error);
+          if (x.ok) await refreshFiles(); else toast(x.error);
         }));
+    }
+    async function showTab(g) {
+      const body = $('[data-tab-body]', root);
+      const r = data;
+      if (tab === 'progress') {
+        const done = new Map(r.myChecks.map((c) => [c.n, c]));
+        const statusOf = (n) => { const c = done.get(n); return c && c.done ? (c.late ? 'late' : 'on') : null; };
+        const items = r.recent || [];
+        body.innerHTML = items.length ? `<ul class="prog">${items.map((x) => {
+          const st = statusOf(x.n);
+          return `<li><a href="${pre}/g/${g.id}/${x.n}"><span class="pn">${t(`第 ${x.n} 次`, `Time ${x.n}`)}<small>${esc(x.text)}</small></span><span class="ps ${st || 'miss'}">${st === 'on' ? `✓ ${t('打卡了', 'Done')}` : st === 'late' ? `✓ ${t('补卡', 'Made up')}` : t('还没打卡', 'Not yet')}</span></a></li>`;
+        }).join('')}</ul><p class="hint">${t('当时没来得及的，点进去读完也可以补卡。', 'Missed one? Open it, read, and check in to make it up.')}</p>` : `<p class="muted">${t('第一次开始前两个小时，就可以在这里打开材料。', 'The reading opens here two hours before the first time.')}</p>`;
       } else if (tab === 'stats') {
         body.innerHTML = `<p class="muted">${t('正在载入……', 'Loading…')}</p>`;
         const s = await api(`/api/dazi/${g.id}/stats`);
@@ -798,7 +810,7 @@ ${owner ? `<form class="form owner-form" data-edit novalidate><h3 class="sub-h3"
 <p class="sess-when">${esc(when(ss.start))}</p>
 <p class="sess-venue"><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${g.venue.info ? ` · ${esc(g.venue.info)}` : ''}</p></div>
 <section class="reading-card" data-reading><p class="muted">${t('正在载入……', 'Loading…')}</p></section>
-${s.files ? `<p class="files-line"><a class="btn btn-line btn-sm" href="${pre}/g/${g.id}?tab=files">📎 ${t(`组里的资料（${s.files}）`, `Group files (${s.files})`)}</a></p>` : ''}
+${s.files ? `<p class="files-line"><a class="btn btn-line btn-sm" href="${pre}/g/${g.id}?tab=files#group-files-title">📎 ${t(`组里的资料（${s.files}）`, `Group files (${s.files})`)}</a></p>` : ''}
 <section class="my-note"><h2 class="sub-h3">${t('心得', 'My notes')}</h2>
 <textarea data-note rows="4" maxlength="3000" placeholder="${t('读的时候有什么感觉、有什么问题，写在这里。搭子们看得到。', 'What touched you, what you wonder about. Your buddies can read it.')}">${esc(mine.note || '')}</textarea>
 <p class="hint" data-saved></p></section>

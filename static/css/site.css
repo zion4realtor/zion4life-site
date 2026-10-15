@@ -887,3 +887,11 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 
 /* Weekday attendance and future-only schedule changes. */
 .attendance-choice{border:0;margin:18px 0;padding:0}.attendance-choice legend{font-weight:600;font-size:17px;margin-bottom:12px}.attendance-choice .chips{flex-wrap:wrap;gap:7px}.attendance-choice .chip span{min-width:38px;padding:9px 10px;font-size:15px}.attendance-choice input:disabled+span{opacity:.35;cursor:not-allowed}.owner-form[data-schedule],.owner-form[data-attendance]{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}.cov-sheet .attendance-choice{background:var(--sky2);padding:14px;border-radius:14px}.cov-sheet .attendance-choice legend{float:left;width:100%;margin-bottom:10px}.cov-sheet .attendance-choice .chips{clear:both}
+
+/* Uploaded resources stay visible alongside the group conversation. */
+.group-files{margin-top:28px;padding-top:24px;border-top:1px solid var(--line)}
+.group-files h2{margin:0 0 18px;font:24px/1.4 var(--display)}
+.group-files .file-name a{white-space:normal;overflow-wrap:anywhere;font-size:16px;line-height:1.6}
+.group-files .file-name small{font-size:13px}
+#group-files-title{scroll-margin-top:120px}
+@media(max-width:480px){.group-files .files li{grid-template-columns:44px minmax(0,1fr) auto;gap:8px}.group-files .file-ic,.group-files .file-thumb{width:44px;height:44px}.group-files [data-del-file]{grid-column:3}.group-files .file-up .hint{flex-basis:100%;font-size:14px}}
