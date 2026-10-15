@@ -8,11 +8,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import worker from '../src/worker.js';
-import { Store, OPS, migrate } from '../src/store.js';
+import { Store, OPS, migrate, store } from '../src/store.js';
 import { runReminders } from '../src/api.js';
 import { resetSiteData, parseVideo } from '../src/content.js';
 import { BOOKS, TOTAL_CHAPTERS, chapterLink, lifeStudyLink } from '../src/bible.js';
-import { zonedTime, session, startedCount, sessionState, totalSessions, readingFor, scheduleText, planText, sessionLabel, sessionsBetween, icsInvite, vtimezone } from '../src/schedule.js';
+import { zonedTime, session, startedCount, sessionState, totalSessions, readingFor, scheduleText, planText, sessionLabel, sessionsBetween, icsInvite, vtimezone, attendsSession } from '../src/schedule.js';
 import { KINDS, kindsForPage } from '../src/kinds.js';
 import { readWav, shrinkAudio } from '../src/wav.js';
 
@@ -642,4 +642,120 @@ test('recordings are kept small: 44.1 kHz 16-bit WAV becomes 16 kHz μ-law WAV',
   assert.equal(o.getUint32(54, true), 16000, 'one second of 8-bit samples');
   assert.ok(out.length < wav.length / 5);
   assert.deepEqual(shrinkAudio(new Uint8Array([1, 2, 3])), new Uint8Array([1, 2, 3]), 'anything else is kept as it is');
+});
+
+test('member attendance days filter reminders, invitation and personal calendars; old members follow every day', async () => {
+  const owner = await signIn('schedule-owner@example.com', 'Owner');
+  const mon = await signIn('monday@example.com', 'Monday member');
+  const legacy = await signIn('legacy@example.com', 'All days');
+  const today = new Date().toISOString().slice(0, 10);
+  const created = await call('/api/dazi', { body: groupBody({ kind: 'pray', plan: {}, time: '12:00', startDate: today }), cookie: owner });
+  assert.equal(created.body.ok, true);
+  const id = created.body.id;
+  assert.equal((await call(`/api/dazi/${id}/join`, { body: { sig: SIG, attendanceDays: [], attendanceTz: 'UTC' }, cookie: mon })).body.ok, false);
+  assert.equal((await call(`/api/dazi/${id}/join`, { body: { sig: SIG, attendanceDays: [1], attendanceTz: 'UTC' }, cookie: mon })).body.ok, true);
+  const invitation = mails.find((m) => m.to.includes('monday@example.com') && m.attachments);
+  assert.ok(invitation);
+  const invite = Buffer.from(invitation.attachments[0].content, 'base64').toString();
+  const inviteStarts = [...invite.matchAll(/DTSTART:(\d{8}T\d{6}Z)/g)].map((m) => m[1]);
+  assert.ok(inviteStarts.length > 0);
+  for (const stamp of inviteStarts) assert.equal(new Date(stamp.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, '$1-$2-$3T$4:$5:$6Z')).getUTCDay(), 1);
+  assert.equal((await call(`/api/dazi/${id}/join`, { body: { sig: SIG }, cookie: legacy })).body.ok, true);
+  const view = (await call(`/api/dazi/${id}`, { cookie: mon })).body;
+  assert.deepEqual(view.me.attendanceDays, [1]);
+  const downloaded = await call(`/api/dazi/${id}/ics`, { cookie: mon });
+  assert.ok(downloaded.body.includes('BEGIN:VEVENT'));
+  assert.ok(downloaded.body.includes('SEQUENCE:0'));
+  const calendar = await call(`/api/cal/${view.me.cal}.ics`);
+  const starts = [...calendar.body.matchAll(/DTSTART:(\d{8}T\d{6}Z)/g)].map((m) => m[1]);
+  assert.ok(starts.length > 0);
+  for (const stamp of starts) assert.equal(new Date(stamp.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, '$1-$2-$3T$4:$5:$6Z')).getUTCDay(), 1);
+  const g = await store(env)('dzGet', { id });
+  const monday = Array.from({ length: 7 }, (_, i) => session(g, i + 1)).find((s) => new Date(`${s.date}T00:00:00Z`).getUTCDay() === 1);
+  const tuesday = session(g, monday.n + 1);
+  mails.length = 0;
+  await runReminders(env, monday.start);
+  assert.ok(mails.some((m) => m.to.includes('monday@example.com')));
+  mails.length = 0;
+  await runReminders(env, tuesday.start);
+  assert.ok(!mails.some((m) => m.to.includes('monday@example.com')));
+  assert.ok(mails.some((m) => m.to.includes('legacy@example.com')));
+  assert.equal((await call(`/api/dazi/${id}/attendance`, { body: { attendanceDays: [2], attendanceTz: 'UTC' }, cookie: mon })).body.ok, true);
+  assert.deepEqual((await call(`/api/dazi/${id}`, { cookie: mon })).body.me.attendanceDays, [2]);
+});
+
+test('owner schedule revision preserves historical session IDs, readings and check-ins; non-owners cannot edit', async () => {
+  const owner = await signIn('revision-owner@example.com', 'Owner');
+  const member = await signIn('revision-member@example.com', 'Member');
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.parse(today + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+  const created = await call('/api/dazi', { body: groupBody({ startDate: yesterday, time: '00:00' }), cookie: owner });
+  const id = created.body.id;
+  await call(`/api/dazi/${id}/join`, { body: { sig: SIG }, cookie: member });
+  await call(`/api/dazi/${id}/s/1`, { body: { done: true, note: 'history' }, cookie: owner });
+  const before = await store(env)('dzGet', { id });
+  const from = startedCount(before, Date.now()) + 1;
+  const history = Array.from({ length: from - 1 }, (_, i) => session(before, i + 1));
+  const tomorrow = new Date(Date.parse(today + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
+  const change = { action: 'schedule', days: [1, 3, 5], time: '20:30', minutes: 45, tz: 'America/New_York', startDate: tomorrow };
+  assert.equal((await call(`/api/dazi/${id}/manage`, { body: change, cookie: member })).status, 403);
+  assert.equal((await call(`/api/dazi/${id}/manage`, { body: { ...change, days: [] }, cookie: owner })).body.ok, false);
+  const res = await call(`/api/dazi/${id}/manage`, { body: change, cookie: owner });
+  assert.equal(res.body.ok, true, JSON.stringify(res.body));
+  assert.equal(res.body.from, from);
+  const after = await store(env)('dzGet', { id });
+  for (let n = 1; n < from; n++) assert.deepEqual(session(after, n), history[n - 1]);
+  assert.equal(readingFor(after, from).text, readingFor(before, from).text);
+  const first = session(after, from);
+  assert.equal(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(first.start)), '20:30');
+  assert.equal(first.end - first.start, 45 * 60000);
+  assert.equal(startedCount(after, first.start - 1), from - 1);
+  assert.equal(startedCount(after, first.start), from);
+  assert.equal((await call(`/api/dazi/${id}/s/1`, { cookie: owner })).body.mine.note, 'history');
+  assert.ok((await call('/api/inbox', { cookie: member })).body.list.some((m) => (m.title.zh || '').includes('聚会时间')));
+});
+
+test('attendance uses the member timezone across daylight saving; revisions keep all earlier schedule legs', () => {
+  const g = { kind: 'pray', plan: {}, days: [0,1,2,3,4,5,6], time: '00:30', minutes: 30, tz: 'Asia/Shanghai', startDate: '2026-10-01', schedules: [] };
+  // Monday in Los Angeles is Tuesday in Shanghai at this meeting hour.
+  const member = { attendanceDays: [1], attendanceTz: 'America/Los_Angeles' };
+  for (const date of ['2026-10-20', '2026-11-10']) {
+    const n = Math.round((Date.parse(date)-Date.parse(g.startDate))/86400000)+1;
+    assert.equal(attendsSession(g, member, session(g,n)), true);
+    assert.equal(attendsSession(g, member, session(g,n+1)), false);
+  }
+  const a = { from: 10, startDate: '2026-10-15', days: [1,3,5], time: '19:30', minutes: 45, tz: 'America/New_York' };
+  const b = { from: 16, startDate: '2026-11-05', days: [2,4], time: '08:00', minutes: 20, tz: 'Europe/London' };
+  const movedEarlier = { ...g, startDate: '2026-11-01', schedules: [{ ...a, from: 1 }] };
+  assert.equal(startedCount(movedEarlier, session(movedEarlier, 1).start), 1);
+  const revised = { ...g, schedules: [a,b] };
+  assert.deepEqual(session(revised,9), session(g,9));
+  assert.deepEqual(session(revised,15), session({ ...g, schedules:[a] },15));
+  for(let n=1;n<=25;n++) {
+    const s=session(revised,n);
+    assert.equal(startedCount(revised,s.start-1),n-1);
+    assert.equal(startedCount(revised,s.start),n);
+  }
+});
+
+test('attendance preferences survive storage restart and only the member can set their own days', async () => {
+  const sql = fakeSql(); migrate(sql);
+  sql.exec("INSERT INTO dz_member (gid, uid, role, status, created, attendance_days, attendance_tz) VALUES ('test', 'test', 'member', 'active', 1, '[1]', 'UTC')");
+  new Store({ storage: { sql } });
+  assert.equal(sql.exec("SELECT attendance_days FROM dz_member WHERE gid = 'test'").toArray()[0].attendance_days, '[1]');
+  const owner=await signIn('preferences-owner@example.com','Owner');
+  const member=await signIn('preferences-member@example.com','Member');
+  const stranger=await signIn('preferences-stranger@example.com','Stranger');
+  const made=await call('/api/dazi',{cookie:owner,body:groupBody({days:[1,3],time:'20:00'})});
+  const id=made.body.id;
+  assert.equal((await call(`/api/dazi/${id}/join`,{cookie:member,body:{sig:SIG,attendanceDays:[2],attendanceTz:'UTC'}})).body.ok,false);
+  await call(`/api/dazi/${id}/join`,{cookie:member,body:{sig:SIG,attendanceDays:[1],attendanceTz:'UTC'}});
+  assert.equal((await call(`/api/dazi/${id}/attendance`,{cookie:stranger,body:{attendanceDays:[3],attendanceTz:'UTC'}})).status,403);
+  assert.equal((await call(`/api/dazi/${id}/attendance`,{cookie:member,body:{attendanceDays:[],attendanceTz:'UTC'}})).body.ok,false);
+  const me=(await call(`/api/me`,{cookie:member})).body.user;
+  const m=(await store(env)('dzGet',{id})).members.find(m=>m.name==='Member');
+  assert.deepEqual(m.attendanceDays,[1]);
+  assert.equal(m.attendanceTz,'UTC');
+  assert.equal((await call(`/api/dazi/${id}/attendance`,{cookie:member,body:{attendanceDays:null,attendanceTz:'UTC'}})).body.ok,true);
+  assert.equal((await call(`/api/dazi/${id}`,{cookie:member})).body.me.attendanceDays,null);
 });

@@ -83,31 +83,59 @@ function firstWeek(g) {
 export function totalSessions(g, ctx = {}) {
   return kindTotal(g, ctx);
 }
-export function sessionDate(g, n) {
+function baseSessionDate(g, n) {
   const week = firstWeek(g);
   const k = week.length;
   return addDays(week[(n - 1) % k], 7 * Math.floor((n - 1) / k));
 }
-export function session(g, n) {
-  const date = sessionDate(g, n);
+function baseSession(g, n) {
+  const date = baseSessionDate(g, n);
   const start = zonedTime(date, g.time, g.tz);
   return { n, date, start, end: start + g.minutes * 60000 };
 }
-// How many sessions have started at instant ms (0 before the first one).
-export function startedCount(g, ms, ctx = {}) {
-  const today = localDate(g.tz, ms);
-  const span = daysBetween(g.startDate, today);
+// Schedule revisions start at a session number; historical sessions never move.
+export function scheduleLegs(g) {
+  const legs = [{ from: 1, startDate: g.startDate, days: g.days, time: g.time, minutes: g.minutes, tz: g.tz }, ...(g.schedules || [])];
+  return [...new Map(legs.map((leg) => [leg.from, leg])).values()].sort((a, b) => a.from - b.from);
+}
+export function scheduleAt(g, n) {
+  return scheduleLegs(g).filter((x) => x.from <= n).at(-1);
+}
+export function session(g, n) {
+  const leg = scheduleAt(g, n);
+  return { ...baseSession(leg, n - leg.from + 1), n };
+}
+export const sessionDate = (g, n) => session(g, n).date;
+function baseStarted(g, ms) {
+  const today = localDate(g.tz, ms), span = daysBetween(g.startDate, today);
   if (span < 0) return 0;
-  const k = g.days.length;
   const weeks = Math.floor((span + 1) / 7);
-  let n = weeks * k;
-  for (let i = weeks * 7; i <= span; i++) {
-    if (g.days.includes(weekday(addDays(g.startDate, i)))) n++;
+  let n = weeks * g.days.length;
+  for (let i = weeks * 7; i <= span; i++) if (g.days.includes(weekday(addDays(g.startDate, i)))) n++;
+  if (n > 0 && baseSession(g, n).start > ms) n--;
+  return n;
+}
+export function startedCount(g, ms, ctx = {}) {
+  const legs = scheduleLegs(g);
+  let n = 0;
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    if (baseSession(leg, 1).start > ms) break;
+    n = Math.max(n, Math.min(legs[i + 1] ? legs[i + 1].from - 1 : Infinity, leg.from - 1 + baseStarted(leg, ms)));
   }
-  if (n > 0 && session(g, n).start > ms) n--;
   const total = totalSessions(g, ctx);
   return total ? Math.min(n, total) : n;
 }
+export function attendanceWeek(g, ms = Date.now()) {
+  const leg = scheduleAt(g, startedCount(g, ms) + 1);
+  const startDate = [leg.startDate, localDate(leg.tz, ms)].sort().at(-1);
+  return firstWeek({ ...leg, startDate }).map((date) => zonedTime(date, leg.time, leg.tz));
+}
+// A missing preference means every group day, including days added later.
+export function attendsSession(g, member, s) {
+  return !Array.isArray(member?.attendanceDays) || member.attendanceDays.includes(weekday(localDate(member.attendanceTz || g.tz, s.start)));
+}
+
 // The session in progress (started and not yet ended), the latest started one, and the next one.
 // Whether session n has something to read (not a gap between two plans).
 export const planned = (g, n, ctx = {}) => n >= 1 && !!legAt(g, n, ctx);
@@ -146,9 +174,9 @@ export function readingFor(g, n, ctx = {}) {
 // The starts of one week of sessions: from the one on now (or the next), else the first week.
 // The pages turn these into "每周三、五 09:00" in the viewer's own time zone.
 export function weekStarts(g, ms, ctx = {}) {
-  const k = g.days.length;
-  const total = totalSessions(g, ctx);
   const c = startedCount(g, ms, ctx);
+  const k = scheduleAt(g, c + 1).days.length;
+  const total = totalSessions(g, ctx);
   let n = c === 0 ? 1 : session(g, c).end <= ms ? c + 1 : c;
   if (total && n + k - 1 > total) n = Math.max(1, total - k + 1);
   const out = [];
@@ -182,7 +210,8 @@ export function scheduleText(g, lang = 'zh', tz = g.tz, ms = Date.now(), ctx = {
   const when = clocks.size <= 1
     ? `${daysText(list.map((x) => x.wd), lang)}${en ? ' at ' : ' '}${list[0]?.clock || g.time}`
     : en ? `Every ${list.map((x) => `${WEEK.en[x.wd]} ${x.clock}`).join(', ')}` : `每周${list.map((x) => `${WEEK.zh[x.wd]} ${x.clock}`).join('、')}`;
-  return en ? `${when}, ${minutesText(g.minutes, 'en')} each (${tzName(tz, 'en')})` : `${when}，每次${minutesText(g.minutes, 'zh')}（${tzName(tz, 'zh')}）`;
+  const minutes = scheduleAt(g, startedCount(g, ms, ctx) + 1).minutes;
+  return en ? `${when}, ${minutesText(minutes, 'en')} each (${tzName(tz, 'en')})` : `${when}，每次${minutesText(minutes, 'zh')}（${tzName(tz, 'zh')}）`;
 }
 // The plan in words, in the viewer's language.
 // The plan in words; with n, the plan in effect at session n.
@@ -225,7 +254,7 @@ export function icsFeed(name, events, now) {
     `X-WR-CALNAME:${icsText(name)}`, 'X-PUBLISHED-TTL:PT6H', 'REFRESH-INTERVAL;VALUE=DURATION:PT6H'];
   const stamp = icsTime(now);
   for (const e of events) {
-    lines.push('BEGIN:VEVENT', `UID:${e.uid}@zion4life.faith`, `DTSTAMP:${stamp}`, `DTSTART:${icsTime(e.start)}`, `DTEND:${icsTime(e.end)}`,
+    lines.push('BEGIN:VEVENT', `UID:${e.uid}@zion4life.faith`, `SEQUENCE:${e.sequence || 0}`, `DTSTAMP:${stamp}`, `DTSTART:${icsTime(e.start)}`, `DTEND:${icsTime(e.end)}`,
       `SUMMARY:${icsText(e.title)}`, `DESCRIPTION:${icsText(e.description)}`, `URL:${e.url}`,
       'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsText(e.title)}`, 'TRIGGER:PT0S', 'END:VALARM',
       'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsText(e.title)}`, 'TRIGGER:-PT10M', 'END:VALARM', 'END:VEVENT');
@@ -275,7 +304,16 @@ export function vtimezone(tz, fromYear, toYear) {
 // A calendar invitation for one member: a weekly repeating event in the group's own time
 // zone (so calendars keep the right local time across daylight saving), with an alert at
 // the start. Email clients (Gmail, Outlook, Apple Mail) offer to add it to the calendar.
-export function icsInvite(g, { title, description, url, organizer, attendee, method = 'REQUEST' }, now, ctx = {}) {
+export function icsInvite(g, { title, description, url, organizer, attendee, method = 'REQUEST', occurrences }, now, ctx = {}) {
+  if (occurrences) {
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//zion4life.faith//dazi//ZH', 'CALSCALE:GREGORIAN', `METHOD:${method}`];
+    for (const s of occurrences) lines.push('BEGIN:VEVENT', `UID:dazi-${g.id}-${s.n}@zion4life.faith`, `SEQUENCE:${(g.schedules || []).length}`, `DTSTAMP:${icsTime(now)}`, `DTSTART:${icsTime(s.start)}`, `DTEND:${icsTime(s.end)}`, `SUMMARY:${icsText(title)}`, `DESCRIPTION:${icsText(description)}`, `URL:${url}`,
+      ...(organizer ? [`ORGANIZER;CN=${icsText(organizer.name)}:mailto:${organizer.email}`] : []),
+      ...(attendee ? [`ATTENDEE;CN=${icsText(attendee.name)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=FALSE:mailto:${attendee.email}`] : []),
+      'STATUS:CONFIRMED', 'TRANSP:OPAQUE', 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsText(title)}`, 'TRIGGER:PT0S', 'END:VALARM', 'END:VEVENT');
+    lines.push('END:VCALENDAR');
+    return icsJoin(lines);
+  }
   const BY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
   const first = session(g, 1);
   const total = totalSessions(g, ctx);

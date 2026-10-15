@@ -230,3 +230,9 @@ addresses; fallback location comes from Cloudflare. `/admin/` is not counted.
 npx wrangler dev        # the whole site on the Workers runtime, http://localhost:8787
 node --test             # build + tests
 ```
+
+### Attendance days and later schedule changes
+
+- Joining members may choose a subset of meeting weekdays in their phone’s time zone; the selection can be changed under Settings → My attendance days. Existing members and those selecting every day follow the entire group schedule. Personal reminders, calendar downloads, subscriptions and new invitation attachments respect that selection. The group’s reading progress is shared and is not slowed by individual attendance.
+- Initiators can change meeting weekdays, start time and duration from a future effective date under Settings → Change the meeting schedule. Revisions start at the next unstarted session, preserve old session IDs/check-ins/readings and post a group notification. Subscribed calendars update using stable session UIDs and a revision sequence; previously downloaded files must be imported again.
+- SQLite migrations add `dz.schedules`, `dz_member.attendance_days` and `dz_member.attendance_tz` without replacing existing rows. A null attendance selection means all days.

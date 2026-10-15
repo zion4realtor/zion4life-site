@@ -10,7 +10,7 @@ import { siteData } from './content.js';
 import { sendMail, layout } from './mail.js';
 import {
   KINDS, VENUES, validTimeZone, localDate, addDays, sessionState, session, startedCount, totalSessions, readingFor,
-  scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText, weekStarts, planned,
+  scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText, weekStarts, planned, scheduleAt, attendsSession, attendanceWeek, daysText,
 } from './schedule.js';
 import { kindPlan, kindEdit, legsOf, withLeg, progressView, planWords } from './kinds.js';
 import { addMsg } from './inbox.js';
@@ -87,7 +87,7 @@ function groupView(g, lang, ctx, viewer) {
   const at = (st.current || st.next || st.last)?.n || 1;
   return {
     id: g.id, kind: g.kind, lang: g.lang, title: g.title, intro: g.intro, status: g.status, visibility: g.visibility, join: g.join,
-    minutes: g.minutes, startDate: g.startDate, first: session(g, 1).start, week: weekStarts(g, ctx.now, ctx), plan: g.plan, max: g.max,
+    schedule: scheduleAt(g, startedCount(g, ctx.now, ctx) + 1), attendanceWeek: attendanceWeek(g, ctx.now), minutes: scheduleAt(g, startedCount(g, ctx.now, ctx) + 1).minutes, startDate: g.startDate, first: session(g, 1).start, week: weekStarts(g, ctx.now, ctx), plan: g.plan, max: g.max,
     owner: g.members.find((m) => m.role === 'owner')?.name || '',
     planText: planText(g, lang, ctx, at),
     // what the initiator has already set to come later (接着读)
@@ -104,11 +104,23 @@ function cardView(g, lang, ctx, uid) {
   const nx = st.current || st.next;
   return {
     id: g.id, kind: g.kind, lang: g.lang, title: g.title, join: g.join, visibility: g.visibility, status: g.status, max: g.max,
-    minutes: g.minutes, planText: planText(g, lang, ctx, nx?.n || st.last?.n || 1),
+    minutes: scheduleAt(g, nx?.n || st.last?.n || 1).minutes, planText: planText(g, lang, ctx, nx?.n || st.last?.n || 1),
     seats: g.members.map((m) => ({ i: [...m.name][0] || '·', c: colorOf(m.uid), me: !!uid && m.uid === uid })),
     next: nx ? { n: nx.n, start: nx.start, live: !!st.current, reading: readingFor(g, nx.n, ctx)?.text || '' } : null,
     finished: st.finished, mine: !!uid && g.members.some((m) => m.uid === uid), myRole: g.myRole,
   };
+}
+
+// Attendance weekdays are in the member's own stored time zone, never the server's.
+function attendanceChoice(b, g, user, t, now) {
+  const tz = b.attendanceTz || user.tz || g.tz;
+  if (!validTimeZone(tz)) return t('时区不正确，请刷新重试', 'Invalid time zone. Refresh and try again.');
+  if (b.attendanceDays == null) return { attendanceDays: null, attendanceTz: tz };
+  if (!Array.isArray(b.attendanceDays) || !b.attendanceDays.length || b.attendanceDays.length > 7 || b.attendanceDays.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return t('请至少选一个参加日', 'Select at least one attendance day.');
+  const days = [...new Set(b.attendanceDays)].sort();
+  const available = new Set(attendanceWeek(g, now).map((ms) => new Date(`${localDate(tz, ms)}T00:00:00Z`).getUTCDay()));
+  if (days.some((d) => !available.has(d))) return t('请选择小组有聚会的日期，时间可能刚刚调整过，请刷新重试', 'Choose days when the group meets. Its schedule may have changed; refresh and try again.');
+  return { attendanceDays: days, attendanceTz: tz };
 }
 
 // ---------- emails ----------
@@ -127,6 +139,7 @@ function inviteFile(g, user, L, ctx, now) {
     filename: 'invite.ics',
     type: 'text/calendar; charset=utf-8; method=REQUEST',
     content: icsInvite(g, {
+      occurrences: user.attendanceDays || g.schedules?.length ? sessionsBetween(g, now - 86400000, now + 120 * 86400000, ctx).filter((s) => attendsSession(g, user, s)) : undefined,
       title: `${kindName}·${g.title}`,
       description: t(`打开这次要读的材料：${SITE}/g/${g.id}/now\n在哪里见面：${VENUES[g.venue.type].zh}${g.venue.info ? ` ${g.venue.info}` : ''}`,
         `Open this time's reading: ${SITE}/en/g/${g.id}/now\nWhere: ${VENUES[g.venue.type].en}${g.venue.info ? ` ${g.venue.info}` : ''}`),
@@ -146,6 +159,7 @@ async function mailCovenant(env, g, user, owner, ctx, now) {
       owner ? t('把邀请链接发给朋友，他们打开、签名，就立约加入了：', 'Send the invite link to friends. They open it, sign, and they are in:') : '',
       owner ? inviteUrl(g, L) : '',
       ...covenantLines(g, L, { ...ctx, now }, user.tz || g.tz),
+      user.attendanceDays ? t(`我参加：${daysText(user.attendanceDays, 'zh')}（${user.attendanceTz}）`, `My days: ${daysText(user.attendanceDays, 'en')} (${user.attendanceTz})`) : '',
       t('附件是日历邀请，点“加入日历”，每次开始时手机会提醒你，点开提醒就能看到这次要读的材料。', 'The attachment is a calendar invitation. Add it, and your phone will remind you each time, with a link to that time’s reading.'),
     ],
     button: { label: t('打开搭子', 'Open the group'), url: groupUrl(g, L) },
@@ -173,13 +187,14 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
       if (!(await db('dzSentClaim', { gid: g.id, n: s.n, now })).ok) continue;
       const r = readingFor(g, s.n, ctx);
       for (const u of await db('dzMailList', { gid: g.id })) {
+        if (!attendsSession(g, u, s)) continue;
         const L = u.lang || 'zh';
         const t = tr(L);
         const { html, text } = layout({
           lang: L,
           title: t(`${g.title}：现在开始`, `${g.title}: starting now`),
           lines: [
-            t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh', u.tz || g.tz)}，${minutesText(g.minutes, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en', u.tz || g.tz)}, ${minutesText(g.minutes, 'en')}.`),
+            t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh', u.tz || g.tz)}，${minutesText((s.end-s.start)/60000, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en', u.tz || g.tz)}, ${minutesText((s.end-s.start)/60000, 'en')}.`),
             t(`这次读：${r.full}`, `This time: ${r.full}`),
             t(`在哪里见面：${VENUES[g.venue.type].zh}`, `Where: ${VENUES[g.venue.type].en}`),
             t('读完回来点“打卡”，也可以写几句心得。', 'When you finish, come back to check in and jot a few notes.'),
@@ -196,12 +211,12 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
 }
 
 // ---------- calendar feeds ----------
-function sessionEvents(g, L, ctx, from, to) {
-  return sessionsBetween(g, from, to, ctx).map((s) => {
+function sessionEvents(g, L, ctx, from, to, member) {
+  return sessionsBetween(g, from, to, ctx).filter((s) => attendsSession(g, member, s)).map((s) => {
     const r = readingFor(g, s.n, ctx);
     const url = groupUrl(g, L, s.n);
     return {
-      uid: `dazi-${g.id}-${s.n}`, start: s.start, end: s.end,
+      sequence: Math.floor((g.schedules?.at(-1)?.changed || 0) / 1000), uid: `dazi-${g.id}-${s.n}`, start: s.start, end: s.end,
       title: `${KINDS[g.kind][L]}·${r.text}`,
       description: L === 'en' ? `${g.title}\nWhere: ${VENUES[g.venue.type].en}\nOpen the reading: ${url}` : `${g.title}\n在哪里见面：${VENUES[g.venue.type].zh}\n打开这次的材料：${url}`,
       url,
@@ -230,7 +245,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
     const mineAll = await db('dzMine', { uid: u.id });
     ctx = await withTagItems(db, ctx, mineAll);
     for (const g of mineAll) {
-      if (g.status === 'active') events.push(...sessionEvents(g, L, ctx, now - 7 * 86400000, now + 62 * 86400000));
+      if (g.status === 'active') events.push(...sessionEvents(g, L, ctx, now - 7 * 86400000, now + 62 * 86400000, g.members.find((m) => m.uid === u.id)));
     }
     return icsResponse(icsFeed(L === 'en' ? 'Light · buddies' : '有光·搭子', events.slice(0, 600), now), 'youguang');
   }
@@ -286,7 +301,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
     }
     const out = { ok: true, group: groupView(g, lang, ctx, viewer), inviteOk, signedIn: !!user, me: null };
     if (mem) {
-      out.me = { role: mem.role, notify: mem.notify, cal: user.cal };
+      out.me = { role: mem.role, notify: mem.notify, cal: user.cal, attendanceDays: mem.attendanceDays, attendanceTz: mem.attendanceTz };
       out.invite = inviteUrl(g, lang);
       out.myChecks = (await db('dzMyChecks', { gid: g.id, uid: user.id })).map((c) => ({ n: c.n, done: c.done, late: c.late }));
       out.checkMax = startedCount(g, now + 2 * HOUR, ctx);
@@ -313,7 +328,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
   if (action === 'ics' && method === 'GET') {
     if (g.visibility === 'hidden' && !mem && invite !== g.invite) return fail('Not found', 404);
     const L = url.searchParams.get('lang') === 'en' ? 'en' : 'zh';
-    return icsResponse(icsFeed(`${KINDS[g.kind][L]}·${g.title}`, sessionEvents(g, L, ctx, now - 86400000, now + 120 * 86400000), now), `youguang-${g.id}`);
+    return icsResponse(icsFeed(`${KINDS[g.kind][L]}·${g.title}`, sessionEvents(g, L, ctx, now - 86400000, now + 120 * 86400000, mem), now), `youguang-${g.id}`);
   }
 
   // /g/<id>/now: whichever session is on now, or the next one
@@ -331,7 +346,9 @@ export async function handleDazi(request, env, db, url, now, lang) {
     if (!inviteOk && !(g.visibility === 'public' && g.join === 'open')) return fail(t('这个搭子只接受邀请', 'This group is by invitation only'), 403);
     if (!validSig(b.sig)) return fail(t('请在约上签个名', 'Please sign the covenant'));
     if (!(await rateOk(db, request, 'dz-join', 30, now, user.id))) return fail(t('今天操作太多了，明天再试', 'Too many tries today. Please try again tomorrow.'), 429);
-    const r = await db('dzJoin', { gid: g.id, uid: user.id, sig: b.sig, now });
+    const choice = attendanceChoice(b, g, user, t, now);
+    if (typeof choice === 'string') return fail(choice);
+    const r = await db('dzJoin', { gid: g.id, uid: user.id, sig: b.sig, ...choice, now });
     if (!r.ok) {
       return fail({
         exists: t('你已经在这个搭子里了', 'You are already in this group'),
@@ -339,7 +356,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
         removed: t('你不能再加入这个搭子', 'You cannot join this group again'),
       }[r.reason]);
     }
-    await mailCovenant(env, g, user, false, ctx, now);
+    await mailCovenant(env, g, { ...user, ...choice }, false, ctx, now);
     await mailOwner(env, db, g, `${user.name} 和「${g.title}」立约了`, `${user.name} joined "${g.title}"`);
     return json({ ok: true });
   }
@@ -480,6 +497,13 @@ export async function handleDazi(request, env, db, url, now, lang) {
   if (method !== 'POST') return fail('Not found', 404);
   const b = (await readBody(request, 20000)) || {};
 
+  if (action === 'attendance') {
+    if (!mem) return fail(t('只有组员可以修改自己的参加日', 'Only members can change their attendance days'), 403);
+    const choice = attendanceChoice(b, g, user, t, now);
+    if (typeof choice === 'string') return fail(choice);
+    await db('dzAttendance', { gid: g.id, uid: user.id, days: choice.attendanceDays, tz: choice.attendanceTz });
+    return json({ ok: true });
+  }
   if (action === 'notify') {
     await db('dzNotify', { gid: g.id, uid: user.id, on: !!b.on });
     return json({ ok: true });
@@ -493,6 +517,26 @@ export async function handleDazi(request, env, db, url, now, lang) {
   // the initiator's settings
   if (action === 'manage') {
     if (!isOwner && !admin) return fail(t('只有发起人可以改', 'Only the initiator can change this'), 403);
+    if (b.action === 'schedule') {
+      const from = startedCount(g, now, ctx) + 1;
+      if (totalSessions(g, ctx) && from > totalSessions(g, ctx)) return fail(t('本计划已经结束，请先设置接下来要读的进度', 'This plan has ended. Set the next reading plan first.'));
+      const days = b.days;
+      if (!Array.isArray(days) || !days.length || days.length > 7 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return fail(t('请选择聚会日期', 'Choose meeting weekdays.'));
+      const tz = b.tz || g.tz, time = b.time, minutes = Number(b.minutes);
+      if (!validTimeZone(tz) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time || '') || (!Number.isInteger(minutes) || minutes < 10 || minutes > 180)) return fail(t('请检查开始时间和时长', 'Check the start time and duration.'));
+      const date = b.startDate;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || date < localDate(tz, now) || date > addDays(localDate(tz, now), 366)) return fail(t('请选择今天或以后的生效日期', 'Choose today or a later effective date.'));
+      const leg = { from, changed: Math.max(now, ...((g.schedules || []).map((x) => (x.changed || 0) + 1000))), days: [...new Set(days)].sort(), time, minutes, tz, startDate: date };
+      const schedules = [...(g.schedules || []).filter((x) => x.from < from), leg];
+      const next = session({ ...g, schedules }, from);
+      if (next.start <= now || (from > 1 && next.start < session(g, from - 1).end)) return fail(t('新时间须晚于现在和上一次聚会结束时间', 'The new meeting must start after now and the previous meeting ends.'));
+      await db('dzUpdate', { id: g.id, schedules });
+      const updated = { ...g, schedules };
+      await addMsg(db, { scope: `g:${g.id}`, now,
+        title: { zh: `「${g.title}」聚会时间已调整`, en: `Meeting time changed: ${g.title}` },
+        body: { zh: `从第 ${from} 次起：${scheduleText(updated, 'zh', tz, now, ctx)}。请查看日历和自己的参加日。`, en: `From session ${from}: ${scheduleText(updated, 'en', tz, now, ctx)}. Review your calendar and attendance days.` }, url: `/g/${g.id}?tab=set` });
+      return json({ ok: true, from });
+    }
     // 调整进度 / 接着读: from session `from` on, read `plan` (same kind)
     if (b.action === 'progress') {
       const open = firstOpen(g, now, ctx);

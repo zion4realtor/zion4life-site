@@ -348,7 +348,8 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
 <dt>${t('时间', 'When')}</dt><dd>${esc(daysWords(days))} ${esc(form.time.value || '--:--')}${EN ? ', ' : '，'}${esc(mins)}<small>${t('从', 'from ')}${esc(form.startDate.value)}${t(' 开始', '')}</small></dd>
 <dt>${t('读什么', 'What')}</dt><dd>${esc(planWords(k))}${form.lang.value === 'en' ? ' · English' : ' · 中文'}</dd>
 <dt>${t('在哪里', 'Where')}</dt><dd>${esc(CFG.venues[venue].name)}</dd>
-</dl><p class="cov-line">${EN ? `I will keep this time and ${esc(verb)} with my buddies faithfully, week after week.` : `我愿意按约定的时间，坚定持续地和搭子们一起${esc(verb)}。`}</p>`;
+</dl>
+<p class="cov-line">${EN ? `I will keep this time and ${esc(verb)} with my buddies faithfully, week after week.` : `我愿意按约定的时间，坚定持续地和搭子们一起${esc(verb)}。`}</p>`;
     }
     function sync() {
       const k = kind();
@@ -442,6 +443,19 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
   const sizeText = (n) => (n < 1000000 ? `${Math.max(1, Math.round(n / 1000))} KB` : `${(n / 1000000).toFixed(1)} MB`);
 
   // ---------- the group page ----------
+  const weekdayIn = (ms, tz) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }).format(new Date(ms)));
+  function attendanceFields(g, me = {}) {
+    const slots = g.attendanceWeek || g.week || [];
+    const available = [...new Set(slots.map((ms) => new Date(ms).getDay()))].sort(monFirst);
+    const selected = me.attendanceDays == null ? available : [...new Set(slots.filter((ms) => me.attendanceDays.includes(weekdayIn(ms, me.attendanceTz || viewerTz))).map((ms) => new Date(ms).getDay()))];
+    return `${me.attendanceDays?.length && !selected.length ? `<p class="notice">${t('小组时间已调整，你原先的参加日可能已不适用，请重新选择。', 'The group schedule changed. Your previous days may no longer match; please choose again.')}</p>` : ''}<fieldset class="attendance-choice"><legend>${t('我可以参加哪几天', 'Which days can I attend?')}</legend><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" name="attendanceDay" value="${d}"${selected.includes(d) ? ' checked' : ''}${available.includes(d) ? '' : ' disabled'}><span>${EN ? WK[d] : `周${WK[d]}`}</span></label>`).join('')}</div><p class="hint">${t('按你手机上的星期选择，至少选一天。灰色日期没有聚会；选满所有可选日，表示跟随小组全部安排。只影响你的提醒和日历，不改变小组读经进度。', 'Choose at least one day in your phone’s time zone. Grey days have no meetings. Selecting all available days follows the full group schedule. This changes your reminders and calendar, not the group’s reading progress.')}</p></fieldset>`;
+  }
+  function attendanceBody(box) {
+    const all = $$('input[name="attendanceDay"]:not(:disabled)', box);
+    const days = all.filter((x) => x.checked).map((x) => Number(x.value));
+    return { attendanceDays: days.length === all.length && days.length ? null : days, attendanceTz: viewerTz };
+  }
+  const phoneDate = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   function covenantSheet(g, invite) {
     return new Promise((resolve, reject) => {
       const k = CFG.kinds[g.kind] || {};
@@ -449,7 +463,8 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
 <button type="button" class="sheet-x" aria-label="${t('关闭', 'Close')}">×</button>
 <h2>${t('立约', 'Make the covenant')}</h2>
 <div class="covenant"><dl class="terms"><dt>${t('搭子', 'Group')}</dt><dd>${esc(g.title)}</dd><dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}</small></dd><dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}</dd><dt>${t('在哪里', 'Where')}</dt><dd>${esc(CFG.venues[g.venue.type] ? CFG.venues[g.venue.type].name : '')}</dd></dl>
-<p class="cov-line">${EN ? `I will keep this time and ${esc(k.verb || '')} with my buddies faithfully, week after week.` : `我愿意按约定的时间，坚定持续地和搭子们一起${esc(k.verb || '')}。`}</p>
+${attendanceFields(g)}
+<p class="cov-line">${EN ? `I will ${esc(k.verb || '')} with my buddies on my selected days, faithfully, week after week.` : `我愿意在我选择的参加日，按约定时间和搭子们一起${esc(k.verb || '')}。`}</p>
 <p class="cov-sign-label">${t('在下面签个名', 'Sign below')}</p><div class="sigpad" data-sigpad><canvas></canvas><button type="button" class="link-btn" data-sig-clear>${t('重写', 'Clear')}</button></div></div>
 <p class="form-error" data-error hidden></p>
 <button type="button" class="btn btn-water btn-block" data-go>${t('签名立约', 'Sign and join')}</button></div></div>`);
@@ -460,10 +475,11 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
       $('.sheet-x', box).addEventListener('click', () => { close(); reject(new Error('closed')); });
       $('[data-go]', box).addEventListener('click', async () => {
         const er = $('[data-error]', box);
+        if (attendanceBody(box).attendanceDays?.length === 0) { er.textContent = t('请至少选一个参加日', 'Select at least one day.'); er.hidden = false; return; }
         if (pad.empty()) { er.textContent = t('请先签个名', 'Please sign first'); er.hidden = false; return; }
         const btn = $('[data-go]', box);
         btn.disabled = true;
-        const r = await api(`/api/dazi/${g.id}/join`, { body: { sig: pad.png(), invite } });
+        const r = await api(`/api/dazi/${g.id}/join`, { body: { sig: pad.png(), invite, ...attendanceBody(box) } });
         btn.disabled = false;
         if (!r.ok) { er.textContent = r.error; er.hidden = false; return; }
         if (window.ygTrack) window.ygTrack('join_group', { group_id: g.id, kind: g.kind });
@@ -513,6 +529,7 @@ ${g.intro ? `<p class="g-intro">${esc(g.intro)}</p>` : ''}</div>`;
       const venue = CFG.venues[g.venue.type] || {};
       h += `<section class="covenant"><h2>${t('搭子的约', 'The covenant')}</h2><dl class="terms">
 <dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}${g.first > Date.now() ? t(`，${esc(when(g.first))} 第一次`, `; first time ${esc(when(g.first))}`) : ''}</small></dd>
+${member && r.me.attendanceDays ? `<dt>${t('我参加', 'My days')}</dt><dd>${esc(daysWords(r.me.attendanceDays))}<small>${esc(r.me.attendanceTz || viewerTz)}</small></dd>` : ''}
 <dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}${(g.later || []).map((l) => `<small>${t(`第 ${l.from} 次起：`, `From time ${l.from}: `)}${esc(l.text)}</small>`).join('')}</dd>
 <dt>${t('在哪里', 'Where')}</dt><dd><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${member && g.venue.info ? `<small class="venue-info">${esc(g.venue.info)}</small>` : ''}</dd>
 ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.total ? ` / ${g.total}` : ''} 次`, `${g.done}${g.total ? ` of ${g.total}` : ''} so far`)}</dd>` : ''}
@@ -528,9 +545,9 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
       if (!member) {
         h += '<section id="join" class="join-box">';
         if (r.canJoin && r.inviteOk) {
-          h += `<p class="join-lead">${t(`${esc(g.owner)} 邀请你一起${esc(k.verb || '')}`, `${esc(g.owner)} invites you to ${esc(k.verb || '')} together`)}</p><p class="btn-row"><button class="btn btn-water" type="button" data-join>${t('接受邀请，立约', 'Accept and sign')}</button><button class="btn btn-line" type="button" data-decline>${t('婉拒', 'Decline')}</button></p>`;
+          h += `<p class="join-lead">${t(`${esc(g.owner)} 邀请你一起${esc(k.verb || '')}`, `${esc(g.owner)} invites you to ${esc(k.verb || '')} together`)}</p><p class="btn-row"><button class="btn btn-water" type="button" data-join>${t('接受邀请，立约', 'Accept and sign')}</button><button class="btn btn-line" type="button" data-join-days>${t('选择参加日再加入', 'Choose attendance days')}</button><button class="btn btn-line" type="button" data-decline>${t('婉拒', 'Decline')}</button></p>`;
         } else if (r.canJoin) {
-          h += `<p class="btn-row"><button class="btn btn-water btn-block" type="button" data-join>${t('立约加入', 'Sign and join')}</button></p><p class="hint">${t('加入要先登录（不用密码），然后在约上签个名。', 'Sign in (no password) and sign the covenant to join.')}</p>`;
+          h += `<p class="btn-row"><button class="btn btn-water btn-block" type="button" data-join>${t('立约加入', 'Sign and join')}</button><button class="btn btn-line btn-block" type="button" data-join-days>${t('只参加部分日期', 'Attend selected days')}</button></p><p class="hint">${t('加入要先登录（不用密码），然后在约上签个名。', 'Sign in (no password) and sign the covenant to join.')}</p>`;
         } else if (g.status !== 'active') {
           h += `<p class="muted">${t('这个搭子已经结束了。', 'This group has ended.')}</p>`;
         } else if (g.members.length >= g.max) {
@@ -556,15 +573,14 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
     }
     function bind(g) {
       $$('[data-copy-invite]', root).forEach((b) => b.addEventListener('click', () => copy(data.invite, t('邀请链接已复制，发给朋友就可以了', 'Invite link copied. Send it to a friend.'))));
-      const j = $('[data-join]', root);
-      if (j) {
+      $$('[data-join], [data-join-days]', root).forEach((j) => {
         j.addEventListener('click', async () => {
           try { await requireLogin(t('立约前先登录一下（不用密码）。', 'Sign in first (no password).')); } catch (x) { return; }
           try { await covenantSheet(g, invite); } catch (x) { return; }
           toast(t('立约好了，欢迎你！', 'You are in. Welcome!'));
           load();
         });
-      }
+      });
       const d = $('[data-decline]', root);
       if (d) {
         d.addEventListener('click', async () => {
@@ -667,7 +683,9 @@ ${r.declined && r.declined.length ? `<p class="hint">${t('婉拒了邀请：', '
 <p class="hint">${t('立约的时候，邮箱里也收到了一封日历邀请，点“加入日历”也可以。', 'You also got a calendar invitation by email when you joined; adding it from there works too.')}${/MicroMessenger/i.test(navigator.userAgent) ? t(' 在微信里打不开的话，点右上角“···”，选“在浏览器打开”。', ' In WeChat, tap “···” and open in the browser first.') : ''}</p>`;
       } else if (tab === 'set') {
         const owner = r.me.role === 'owner';
-        body.innerHTML = `<label class="check"><input type="checkbox" data-notify${r.me.notify ? ' checked' : ''}><span>${t('每次开始时给我发邮件提醒', 'Email me when each time starts')}</span></label>
+        body.innerHTML = `<label class="check"><input type="checkbox" data-notify${r.me.notify ? ' checked' : ''}><span>${t('在我参加的日期，开始时给我发邮件提醒', 'Email me when meetings start on my attendance days')}</span></label>
+<form class="form owner-form" data-attendance novalidate><h3 class="sub-h3">${t('我的参加日', 'My attendance days')}</h3>${attendanceFields(g, r.me)}<p class="hint">${t('更改后，订阅日历会更新；已经导入的日历文件，请重新下载导入。', 'Subscriptions update after a change. Download and import the calendar again if you imported a file.')}</p><p class="form-error" data-error hidden></p><button class="btn btn-water" type="submit">${t('保存参加日', 'Save attendance days')}</button></form>
+${owner ? `<form class="form owner-form" data-schedule novalidate><h3 class="sub-h3">${t('调整聚会时间', 'Change the meeting schedule')}</h3><p class="hint">${t('从下一次尚未开始的聚会起生效。已完成的次数、打卡和读经进度不变。时间按你手机所在时区填写；保存后会通知组员。订阅日历会更新，下载的日历文件需重新导入。', 'Applies from the next meeting that has not started. Past sessions, check-ins and reading progress stay unchanged. Enter times in your phone’s time zone. Members will receive a notice. Subscribed calendars update; downloaded calendar files must be imported again.')}</p><div class="field"><span>${t('每周哪几天', 'Meeting weekdays')}</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" name="scheduleDay" value="${d}"${(g.attendanceWeek || g.week).some((ms) => new Date(ms).getDay() === d) ? ' checked' : ''}><span>${EN ? WK[d] : `周${WK[d]}`}</span></label>`).join('')}</div></div><div class="row2"><label class="field"><span>${t('几点开始', 'Start time')}</span><input type="time" name="time" value="${new Date(g.next?.start || g.first).toTimeString().slice(0, 5)}" required></label><label class="field"><span>${t('每次多长', 'Duration')}</span><select name="minutes">${[...new Set([15, 20, 30, 45, 60, 90, g.minutes])].sort((a, b) => a - b).map((m) => `<option value="${m}"${m === g.minutes ? ' selected' : ''}>${minutesWords(m)}</option>`).join('')}</select></label></div><label class="field"><span>${t('从哪天开始采用新时间', 'Use the new schedule from')}</span><input type="date" name="startDate" min="${phoneDate(Date.now())}" value="${phoneDate(g.next?.start || Date.now())}" required></label><p class="hint">${esc(viewerTz)}</p><p class="form-error" data-error hidden></p><button class="btn btn-water" type="submit">${t('保存聚会时间', 'Save meeting schedule')}</button></form>` : ''}
 ${r.progress ? (() => {
   const pg = r.progress;
   const opt2 = pg.afterFrom && pg.afterFrom > pg.from;
@@ -693,6 +711,20 @@ ${owner ? `<form class="form owner-form" data-edit novalidate><h3 class="sub-h3"
         $('[data-notify]', body).addEventListener('change', async (e) => {
           const x = await api(`/api/dazi/${g.id}/notify`, { body: { on: e.target.checked } });
           toast(x.ok ? (e.target.checked ? t('提醒打开了', 'Reminders on') : t('提醒关掉了', 'Reminders off')) : x.error);
+        });
+        const attendanceForm = $('[data-attendance]', body);
+        attendanceForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const x = await api(`/api/dazi/${g.id}/attendance`, { body: attendanceBody(attendanceForm) });
+          if (x.ok) { toast(t('参加日已保存；已下载的日历请重新导入', 'Attendance days saved; reimport downloaded calendars')); load(); }
+          else { const er = $('[data-error]', attendanceForm); er.textContent = x.error; er.hidden = false; }
+        });
+        const scheduleForm = $('[data-schedule]', body);
+        if (scheduleForm) scheduleForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const x = await api(`/api/dazi/${g.id}/manage`, { body: { action: 'schedule', days: $$('input[name="scheduleDay"]:checked', scheduleForm).map((d) => Number(d.value)), time: scheduleForm.time.value, minutes: Number(scheduleForm.minutes.value), startDate: scheduleForm.startDate.value, tz: viewerTz } });
+          if (x.ok) { toast(t(`从第 ${x.from} 次起采用新时间`, `New schedule starts at session ${x.from}`)); load(); }
+          else { const er = $('[data-error]', scheduleForm); er.textContent = x.error; er.hidden = false; }
         });
         const pf = $('[data-progress]', body);
         if (pf) {

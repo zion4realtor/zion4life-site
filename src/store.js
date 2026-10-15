@@ -75,7 +75,7 @@ const SCHEMA = [
 ];
 
 // Columns added after the tables first went live.
-const ADDED = [['user', 'tz', "TEXT NOT NULL DEFAULT ''"], ['dz', 'legs', "TEXT NOT NULL DEFAULT '[]'"], ['user', 'country', "TEXT NOT NULL DEFAULT ''"]];
+const ADDED = [['dz', 'schedules', "TEXT NOT NULL DEFAULT '[]'"], ['dz_member', 'attendance_days', 'TEXT'], ['dz_member', 'attendance_tz', "TEXT NOT NULL DEFAULT ''"], ['user', 'tz', "TEXT NOT NULL DEFAULT ''"], ['dz', 'legs', "TEXT NOT NULL DEFAULT '[]'"], ['user', 'country', "TEXT NOT NULL DEFAULT ''"]];
 
 export function migrate(sql) {
   for (const q of SCHEMA) sql.exec(q);
@@ -101,13 +101,13 @@ export function groupOf(r) {
     id: r.id, kind: r.kind, lang: r.lang, title: r.title, intro: r.intro, tz: r.tz, days: parse(r.days, []), time: r.time,
     minutes: r.minutes, startDate: r.start_date, plan: parse(r.plan, {}), venue: parse(r.venue, {}), visibility: r.visibility,
     join: r.join_mode, invite: r.invite, max: r.max_members, status: r.status, owner: r.owner, created: r.created,
-    legs: parse(r.legs || '[]', []),
+    legs: parse(r.legs || '[]', []), schedules: parse(r.schedules || '[]', []),
   };
 }
 function membersOf(sql, gid, withSig = false) {
-  return rows(sql, `SELECT m.uid, m.role, m.status, m.signed, m.notify, m.created${withSig ? ', m.sig' : ''}, u.name, u.ids, u.ids_public
+  return rows(sql, `SELECT m.uid, m.role, m.status, m.signed, m.notify, m.attendance_days, m.attendance_tz, m.created${withSig ? ', m.sig' : ''}, u.name, u.ids, u.ids_public
     FROM dz_member m JOIN user u ON u.id = m.uid WHERE m.gid = ? AND m.status = 'active' ORDER BY m.role = 'owner' DESC, m.created`, gid)
-    .map((r) => ({ uid: r.uid, role: r.role, name: r.name, ids: r.ids_public ? parse(r.ids, []) : [], signed: r.signed, notify: !!r.notify, joined: r.created, ...(withSig ? { sig: r.sig } : {}) }));
+    .map((r) => ({ uid: r.uid, role: r.role, name: r.name, ids: r.ids_public ? parse(r.ids, []) : [], signed: r.signed, notify: !!r.notify, attendanceDays: parse(r.attendance_days, null), attendanceTz: r.attendance_tz, joined: r.created, ...(withSig ? { sig: r.sig } : {}) }));
 }
 
 export const OPS = {
@@ -328,9 +328,10 @@ export const OPS = {
   dzActive(sql) {
     return rows(sql, "SELECT * FROM dz WHERE status = 'active'").map(groupOf);
   },
-  dzUpdate(sql, { id, title, intro, venue, plan, legs, max, visibility, join, status }) {
+  dzUpdate(sql, { id, title, intro, venue, plan, legs, schedules, max, visibility, join, status }) {
     const set = (col, v) => sql.exec(`UPDATE dz SET ${col} = ? WHERE id = ?`, v, id);
     if (legs != null) set('legs', JSON.stringify(legs));
+    if (schedules != null) set('schedules', JSON.stringify(schedules));
     if (title != null) set('title', title);
     if (intro != null) set('intro', intro);
     if (venue != null) set('venue', JSON.stringify(venue));
@@ -345,7 +346,7 @@ export const OPS = {
     return first(sql, 'SELECT gid, uid, role, status, signed, notify, created FROM dz_member WHERE gid = ? AND uid = ?', gid, uid);
   },
   // Join with a signature. Refuses a full group; someone who left or declined may come back.
-  dzJoin(sql, { gid, uid, sig, now = Date.now() }) {
+  dzJoin(sql, { gid, uid, sig, attendanceDays = null, attendanceTz = '', now = Date.now() }) {
     const g = first(sql, 'SELECT max_members FROM dz WHERE id = ?', gid);
     const old = first(sql, 'SELECT status FROM dz_member WHERE gid = ? AND uid = ?', gid, uid);
     if (old?.status === 'active') return { ok: false, reason: 'exists' };
@@ -354,6 +355,7 @@ export const OPS = {
     if (n >= g.max_members) return { ok: false, reason: 'full' };
     sql.exec(`INSERT INTO dz_member (gid, uid, role, status, sig, signed, created) VALUES (?, ?, 'member', 'active', ?, ?, ?)
       ON CONFLICT (gid, uid) DO UPDATE SET status = 'active', sig = excluded.sig, signed = excluded.signed, created = excluded.created`, gid, uid, sig, now, now);
+    sql.exec('UPDATE dz_member SET attendance_days = ?, attendance_tz = ? WHERE gid = ? AND uid = ?', attendanceDays === null ? null : JSON.stringify(attendanceDays), attendanceTz, gid, uid);
     return { ok: true };
   },
   dzDecline(sql, { gid, uid, name, now = Date.now() }) {
@@ -374,6 +376,10 @@ export const OPS = {
   },
   dzSetMember(sql, { gid, uid, status }) {
     sql.exec("UPDATE dz_member SET status = ? WHERE gid = ? AND uid = ? AND role != 'owner'", status, gid, uid);
+    return { ok: true };
+  },
+  dzAttendance(sql, { gid, uid, days, tz }) {
+    sql.exec('UPDATE dz_member SET attendance_days = ?, attendance_tz = ? WHERE gid = ? AND uid = ?', days === null ? null : JSON.stringify(days), tz, gid, uid);
     return { ok: true };
   },
   dzNotify(sql, { gid, uid, on }) {
@@ -409,8 +415,8 @@ export const OPS = {
   },
   // Members to email for a group: active, reminders on, with their account language.
   dzMailList(sql, { gid }) {
-    return rows(sql, `SELECT u.id, u.email, u.name, u.lang, u.tz FROM dz_member m JOIN user u ON u.id = m.uid
-      WHERE m.gid = ? AND m.status = 'active' AND m.notify = 1`, gid);
+    return rows(sql, `SELECT u.id, u.email, u.name, u.lang, u.tz, m.attendance_days, m.attendance_tz FROM dz_member m JOIN user u ON u.id = m.uid
+      WHERE m.gid = ? AND m.status = 'active' AND m.notify = 1`, gid).map((r) => ({ ...r, attendanceDays: parse(r.attendance_days, null), attendanceTz: r.attendance_tz }));
   },
   dzSentClaim(sql, { gid, n, now = Date.now() }) {
     if (first(sql, 'SELECT 1 AS x FROM dz_sent WHERE gid = ? AND n = ?', gid, n)) return { ok: false };
