@@ -3,7 +3,7 @@ title: Drip Shepherding · October 16, 2026
 summary: Drip Shepherding · October 16, 2026
 date: 2026-10-16
 type: article
-tags: breathe
+tags: breathe, feelings, eat
 ---
 ## Daily Manna
 

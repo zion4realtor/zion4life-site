@@ -229,7 +229,7 @@ function loadPairs(dir) {
 const articles = loadPairs('articles')
   .filter((a) => !a.meta.hidden)
   .map((a) => {
-    const tags = splitTags(a.meta.tags);
+    const tags = [...new Set([...splitTags(a.meta.tags), ...(/^diguan-muyang-\d{4}-\d{2}-\d{2}$/.test(a.slug) ? ['breathe', 'feelings', 'eat'] : [])])];
     for (const t of tags) if (!TAG[t]) throw new Error(`content/articles/${a.slug}: unknown tag "${t}" (add it to content/tags.json)`);
     return {
       kind: a.meta.type === 'page' ? 'page' : 'article', slug: a.slug, date: String(a.meta.date || ''), tags, sample: !!a.meta.sample,
@@ -547,7 +547,7 @@ ${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).joi
     const mysteryPdf = lang === 'zh'
       ? { file: '/files/mystery-of-human-life.zh.pdf', pages: ['/files/mystery-zh-1.jpg', '/files/mystery-zh-2.jpg'] }
       : { file: '/files/mystery-of-human-life.en.pdf', pages: ['/files/mystery-en-1.jpg', '/files/mystery-en-2.jpg'] };
-    const related = items.filter((x) => x !== a && x.tags.some((t) => a.tags.includes(t))).slice(0, 4);
+    const related = items.filter((x) => x !== a && !x.sample && (dripShepherding ? /^diguan-muyang-/.test(x.slug) : x.tags.some((t) => a.tags.includes(t)))).slice(0, 4);
     emit(lang, `/a/${a.slug}/`, {
       title: c.title,
       desc: mystery ? c.title : c.summary || plain(c.html).slice(0, 90),
@@ -564,9 +564,10 @@ ${dripShepherding ? `<section class="drip-page" ${dripAudio ? `data-date="${a.da
 <div class="drip-subscribe"><button type="button" class="btn btn-line btn-sm" data-sub="tag:breathe" data-on="${lang === 'zh' ? '已订阅滴灌牧养' : 'Subscribed to Drip Shepherding'}" data-off="${lang === 'zh' ? '订阅滴灌牧养' : 'Subscribe to Drip Shepherding'}">${lang === 'zh' ? '订阅滴灌牧养' : 'Subscribe to Drip Shepherding'}</button><span class="hint">${lang === 'zh' ? '订阅后，新内容会通知到“我的”。' : 'New content updates arrive in “Me”.'}</span></div>
 ${dripAudio ? dripListen(lang) : ''}
 <a class="drip-image-link" href="${dripImage}" target="_blank" rel="noopener" aria-label="${lang === 'zh' ? '打开整页图片' : 'Open full page image'}"><img src="${dripImage}" alt="${esc(c.title)}" fetchpriority="high"></a>
-<a class="btn btn-line drip-download" href="${dripImage}" download>${lang === 'zh' ? '下载整页图片' : 'Download full page image'}</a>
 </section>
-<section class="talk" data-talk="a:${a.slug}"></section>` : mystery ? `<section class="mystery-pdf" aria-label="${esc(c.title)}">
+${shareBox(lang, L.shareArticle, U(lang, `/a/${a.slug}/`), c.title)}
+<section class="talk" data-talk="a:${a.slug}"></section>
+${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}` : mystery ? `<section class="mystery-pdf" aria-label="${esc(c.title)}">
 <div class="mystery-pdf-actions"><a class="btn btn-water" href="${mysteryPdf.file}" target="_blank" rel="noopener">${lang === 'zh' ? '打开 PDF 阅读' : 'Open PDF'}</a><a class="btn btn-line" href="${mysteryPdf.file}" download>${lang === 'zh' ? '下载 PDF' : 'Download PDF'}</a></div>
 <div class="mystery-doc-pages">${mysteryPdf.pages.map((src, i) => `<a href="${mysteryPdf.file}" target="_blank" rel="noopener" aria-label="${lang === 'zh' ? `打开 PDF 第 ${i + 1} 页` : `Open PDF page ${i + 1}`}"><img src="${src}" alt="${esc(c.title)} — ${lang === 'zh' ? `第 ${i + 1} 页` : `page ${i + 1}`}" loading="lazy"></a>`).join('')}</div>
 </section>` : `<div class="prose"${c.fallback ? ` lang="${lang === 'zh' ? 'en' : 'zh-CN'}"` : ''}>${c.html}</div>

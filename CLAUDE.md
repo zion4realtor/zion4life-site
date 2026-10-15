@@ -42,3 +42,5 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
 
 - Site-wide rule: only registered, signed-in users may leave messages, prayers, replies, or questions/suggestions. Enforce this in the API as well as the UI; public messages remain readable by visitors.
 - 滴灌牧养 image articles use paired Chinese/English pages, the tag:breathe subscription and per-article comments. From October 16, 2026, put the narration bar above each image: Chinese transcript contains only Chinese, English uses Aura 2 Helena with no device-voice fallback. Publish updates and verify production pages and recording status.
+
+- Drip Shepherding uses the standard article layout with the supplied image as its body: subscription aligned right above narration, then image, sharing, member-only comments (private option labelled 私聊版主), and other drip article cards. No image-download button. Each drip article belongs to breathe, feelings, and eat. The xinli-luan sample has been removed.
