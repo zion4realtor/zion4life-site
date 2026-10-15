@@ -204,3 +204,38 @@
   // the estimate shows from the start; the day can change when the page swaps in today's 呼吸
   load().then(function () { show(0); timeEl.textContent = t('约 ', 'about ') + Math.max(1, Math.round(totalSecs() / 60)) + t(' 分钟', ' min'); }).catch(function () {});
 })();
+
+
+// Make the earlier-day archive easy to discover on long prayer pages.
+(function () {
+  'use strict';
+  var archive = document.getElementById('archive');
+  var article = document.querySelector('.hx');
+  var kicker = document.querySelector('.hx-kicker');
+  if (!archive || !article || !kicker) return;
+  var en = document.documentElement.lang === 'en';
+  var count = archive.querySelectorAll('li:not([hidden])').length;
+  var topLink = document.createElement('a');
+  topLink.className = 'hx-archive-kicker';
+  topLink.href = '#archive';
+  topLink.innerHTML = en ? '<span>Earlier prayers</span><span class="hx-archive-count">' + count + '</span><span aria-hidden="true">↓</span>' : '<span>往期祷告</span><span class="hx-archive-count">' + count + ' 篇</span><span aria-hidden="true">↓</span>';
+  topLink.setAttribute('aria-label', en ? 'Jump to earlier prayer burdens' : '跳转到往期祷告负担');
+  kicker.appendChild(topLink);
+  var floatLink = document.createElement('a');
+  floatLink.className = 'hx-archive-fab';
+  floatLink.href = '#archive';
+  floatLink.hidden = true;
+  floatLink.textContent = en ? 'Earlier prayers ↓' : '往期祷告 ↓';
+  floatLink.setAttribute('aria-label', en ? 'Jump to earlier prayer burdens' : '跳转到往期祷告负担');
+  document.body.appendChild(floatLink);
+  var archiveVisible = false;
+  var threshold = 120;
+  function update() { floatLink.hidden = archiveVisible || window.scrollY < threshold; }
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) { archiveVisible = entries[0].isIntersecting; update(); }, { rootMargin: '0px 0px -24px 0px' });
+    observer.observe(archive);
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
