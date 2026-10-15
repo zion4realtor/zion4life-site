@@ -5,9 +5,9 @@
   var zh = document.documentElement.lang !== 'en';
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---- visit counts: Google Analytics through our own /api/hit (src/analytics.js), so nothing
-  // loads from Google and visitors in mainland China are counted too. window.ygTrack(name, params)
-  // records an action (the names are listed in src/analytics.js). ----
+  // ---- visit counts: use Google's async tag for page views (so GA can derive city from the
+  // request IP), and our Worker for custom events and as a fallback when Google is unreachable.
+  // The same pseudonymous client ID joins both streams. ----
   var track = (function () {
     var mem = {};
     function get(k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] || null; } }
@@ -19,15 +19,58 @@
     var fresh = !(last.length === 2 && now - Number(last[1]) < 30 * 60000);
     var sid = fresh ? String(Math.floor(now / 1000)) : last[0];
     var off = /^\/(en\/)?admin\//.test(location.pathname);
+    var mode = 'pending';
+    var queue = [];
+    var tagId = 'G-VP8BKCZ3TE';
+    function safePageLocation(value) {
+      try {
+        var u = new URL(value);
+        if (u.origin !== location.origin) return location.origin + location.pathname;
+        var q = new URLSearchParams();
+        u.searchParams.forEach(function (v, k) { if (/^utm_(source|medium|campaign|term|content|id)$/.test(k)) q.set(k, v.slice(0, 60)); });
+        return u.origin + u.pathname + (q.toString() ? '?' + q.toString() : '');
+      } catch (e) { return location.origin + location.pathname; }
+    }
+    function safeReferrer(value) {
+      try {
+        var u = new URL(value);
+        return u.origin === location.origin ? u.origin + u.pathname : u.origin + '/';
+      } catch (e) { return ''; }
+    }
+    function sendWorker(body) {
+      try {
+        if (navigator.sendBeacon && navigator.sendBeacon('/api/hit', new Blob([JSON.stringify(body)], { type: 'text/plain' }))) return;
+      } catch (e) {}
+      try { fetch('/api/hit', { method: 'POST', body: JSON.stringify(body), keepalive: true }).catch(function () {}); } catch (e) {}
+    }
+    function pageView(body) {
+      window.gtag('event', 'page_view', {
+        page_location: safePageLocation(body.loc),
+        page_title: body.title,
+        page_referrer: safeReferrer(body.ref),
+        language: body.lang,
+        session_id: Number(body.sid),
+        engagement_time_msec: 1
+      });
+    }
+    function deliver(body) {
+      if (mode === 'pending') { queue.push(body); return; }
+      if (mode === 'google') {
+        var pageViews = body.e.filter(function (ev) { return ev.n === 'page_view'; });
+        pageViews.forEach(function () { pageView(body); });
+        var custom = body.e.filter(function (ev) { return ev.n !== 'page_view'; });
+        // Keep the Worker’s first-visit source event, but never send a second page_view.
+        if (custom.length || body.ns) sendWorker(Object.assign({}, body, { e: custom, campaign_only: !custom.length && !!body.ns }));
+        return;
+      }
+      sendWorker(body);
+    }
     function send(events) {
+      var body = { cid: cid, sid: sid, ns: fresh ? 1 : 0, loc: location.href, ref: document.referrer, title: document.title, lang: navigator.language || '', scr: screen.width + 'x' + screen.height, e: events };
       if (off) return;
-      var body = JSON.stringify({ cid: cid, sid: sid, ns: fresh ? 1 : 0, loc: location.href, ref: document.referrer, title: document.title, lang: navigator.language || '', scr: screen.width + 'x' + screen.height, e: events });
       fresh = false;
       set('yg_sid', sid + '.' + Date.now());
-      try {
-        if (navigator.sendBeacon && navigator.sendBeacon('/api/hit', new Blob([body], { type: 'text/plain' }))) return;
-      } catch (e) {}
-      try { fetch('/api/hit', { method: 'POST', body: body, keepalive: true }).catch(function () {}); } catch (e) {}
+      deliver(JSON.parse(body));
     }
     send([{ n: 'page_view' }]);
     window.addEventListener('pageshow', function (e) { if (e.persisted) send([{ n: 'page_view' }]); });
@@ -39,6 +82,35 @@
       shown = 0;
       if (spent >= 1000) { send([{ n: 'time_on_page', ms: spent }]); spent = 0; }
     });
+    if (!off) {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+      window.gtag('js', new Date());
+      window.gtag('config', tagId, {
+        send_page_view: false,
+        client_id: cid,
+        page_location: safePageLocation(location.href),
+        page_referrer: safeReferrer(document.referrer)
+      });
+      function fallback() {
+        if (mode !== 'pending') return;
+        mode = 'worker';
+        clearTimeout(timeout);
+        queue.splice(0).forEach(sendWorker);
+      }
+      var timeout = setTimeout(fallback, 3500);
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(tagId);
+      script.onload = function () {
+        if (mode !== 'pending') return;
+        mode = 'google';
+        clearTimeout(timeout);
+        queue.splice(0).forEach(deliver);
+      };
+      script.onerror = fallback;
+      document.head.appendChild(script);
+    }
     return function (name, params) { send([{ n: name, p: params || {} }]); };
   })();
   window.ygTrack = track;
