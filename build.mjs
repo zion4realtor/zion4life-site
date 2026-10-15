@@ -297,7 +297,7 @@ const sampleTag = (x, lang) => (x.sample ? `<span class="tag-s">${S[lang].sample
 const json = (id, data) => `<script type="application/json" id="${id}">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 const urls = [];
 
-function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scripts = [], only = false, head = '', wide = false }) {
+function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scripts = [], only = false, head = '', styles = [], wide = false }) {
   const L = S[lang];
   const name = site[lang].name;
   const full = title ? `${title}｜${name}` : `${name}｜zion4life.faith`;
@@ -336,6 +336,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 ${head}
 <link rel="stylesheet" href="${FONT}">
 <link rel="stylesheet" href="${CSS}">
+${styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
 </head>
 <body>
 <header class="topbar"><div class="wrap topbar-in">
@@ -796,18 +797,27 @@ for (const lang of LANGS) {
     ids: Object.fromEntries(Object.entries(IDENTITIES).map(([k, v]) => [k, v[lang === 'en' ? 1 : 0]])),
   });
 
-  // the plaza: a scene of tables with seats; no title on top
+  // The courtyard is presentation only; group, covenant and calendar flows stay shared.
   emit(lang, '/dazi/', {
     title: L.plazaT,
     desc: L.plazaP,
     tab: 'dazi',
     scripts: [DAZI_JS],
+    styles: [`/css/plaza.css?v=${ver('css/plaza.css')}`],
     body: `<section class="plaza-page" data-page="plaza">
-<h1 class="vh">${esc(D.plazaH)}</h1>
+<section class="plaza-hero"><h1>${esc(D.plazaH)}</h1>
+<p>${lang === 'zh' ? '约上两三个人，定好时间，一起坚持。<br>一张桌，就是一组同行的搭子。' : 'Gather a few friends, choose a time, and keep going together.<br>Each table is a group of companions.'}</p>
+<details><summary>${lang === 'zh' ? '怎么参与？材料和提醒在哪里？' : 'How do I join, find readings, and get reminders?'}</summary>
+<p>${lang === 'zh' ? '选一张桌，看看一起读什么、何时相聚、在哪里见面。登录后，在“搭子的约”上签名加入，就有了固定同行的伙伴。' : 'Choose a table to see what the group reads, when it meets, and how to meet. Sign in and sign the group’s covenant to join.'}</p>
+<p>${lang === 'zh' ? '网站按小组进度提供当次读物或链接。到约定时间，通过电话、微信、Zoom 等约好的方式相聚；时间会按每个人的手机自动换算。' : 'The site provides readings or links for each session. Meet through the agreed phone call, WeChat, Zoom, or other service. Times automatically display in each person’s local time zone.'}</p>
+<p>${lang === 'zh' ? '加入后，可在小组“日历”中订阅或下载日历。添加到手机日历并开启提醒后，可从提醒中的链接打开当次材料。提醒方式取决于手机和日历设置。' : 'After joining, subscribe to or download the group calendar from its Calendar tab. Add it to your phone calendar and enable reminders; the event link opens that session’s reading. Alerts depend on your phone and calendar settings.'}</p>
+</details></section>
 <div class="plaza-top"><p class="plaza-count" data-count>${esc(L.loading)}</p>
-<div class="kinds" role="group" data-kinds><button type="button" data-kind="" aria-pressed="true">${esc(D.all)}</button>${Object.entries(GROUP_KINDS).map(([k, v]) => `<button type="button" data-kind="${k}" aria-pressed="false"><span class="ki">${v.icon}</span>${esc(v[lang])}</button>`).join('')}</div></div>
+<div class="kinds" role="group" data-kinds><button type="button" data-kind="" aria-pressed="true">${esc(D.all)}</button>${Object.entries(GROUP_KINDS).map(([k, v]) => `<button type="button" data-kind="${k}" aria-pressed="false"><span class="ki">${v.icon}</span>${esc(v[lang])}</button>`).join('')}</div>
+<div class="plaza-tools"><input type="search" data-plaza-search aria-label="${lang === 'zh' ? '搜索搭子' : 'Search groups'}" placeholder="${lang === 'zh' ? '搜索名字或读物' : 'Search names or readings'}"><label><input type="checkbox" data-plaza-vacant>${lang === 'zh' ? '只看空位' : 'Open seats'}</label></div></div>
 <div class="mine-strip" data-mine hidden><h2>${esc(D.mine)}</h2><div class="mine-row" data-mine-row></div></div>
 <div class="plaza" data-plaza aria-live="polite"></div>
+<dialog class="table-popup" data-table-popup aria-labelledby="plaza-popup-title"><button type="button" class="popup-close" data-popup-close aria-label="${lang === 'zh' ? '关闭说明' : 'Close details'}">×</button><div data-popup-body></div></dialog>
 <a class="fab" href="${U(lang, '/dazi/new/')}"><span aria-hidden="true">＋</span>${esc(D.fab)}</a>
 ${config}
 </section>`,
@@ -824,6 +834,7 @@ ${config}
 <a class="back" href="${U(lang, '/dazi/')}">← ${esc(L.plazaT)}</a>
 <h1 class="page-title">${esc(L.newT)}</h1>
 <p class="page-lead">${esc(D.newLead)}</p>
+<details class="new-group-guide"><summary>${lang === 'zh' ? '发起后，网站怎样帮助大家同行？' : 'How does the site help your group after you start?'}</summary><p>${lang === 'zh' ? '设定好读物、进度、时间和见面方式，签名立约后，把邀请链接发给伙伴。网站会按进度提供每次的材料或链接，并按每位成员的手机显示当地时间。加入后，可提醒伙伴订阅小组日历、开启提醒；聚会安排有变化时，也请及时通知大家。' : 'Choose your reading, pace, meeting time, and meeting method. After signing the covenant, share the invitation link with your companions. The site provides each session’s reading or link and shows times in each member’s local time zone. Encourage members to subscribe to the group calendar and enable reminders, and let everyone know when arrangements change.'}</p></details>
 <form class="form" data-new novalidate>
 <fieldset><legend>${esc(D.s1)}</legend><div class="kind-pick">
 ${Object.entries(GROUP_KINDS).map(([k, v], i) => `<label class="kind-opt" style="--tint:var(--t-${v.tint})"><input type="radio" name="kind" value="${k}"${i ? '' : ' checked'}><span class="ki">${v.icon}</span><span><b>${esc(v[lang])}</b><small>${esc(v.about[lang])}</small></span></label>`).join('')}

@@ -82,54 +82,133 @@
   }
   const seatsOf = (members) => members.map((m) => ({ i: [...m.name][0] || '·', c: m.c, me: m.me }));
 
-  // ---------- the plaza ----------
-  const DECOS = [
-    '<svg viewBox="0 0 80 96"><ellipse cx="40" cy="90" rx="22" ry="5" fill="var(--shadow)"/><rect x="36" y="58" width="8" height="32" rx="3" fill="var(--trunk)"/><circle cx="40" cy="40" r="26" fill="var(--leaf)"/><circle cx="28" cy="50" r="16" fill="var(--leaf2)"/><circle cx="54" cy="48" r="15" fill="var(--leaf2)"/></svg>',
-    '<svg viewBox="0 0 60 96"><ellipse cx="30" cy="91" rx="12" ry="4" fill="var(--shadow)"/><rect x="28" y="22" width="4" height="68" rx="2" fill="var(--lamp)"/><path d="M20 22h20l-4-10H24z" fill="var(--lamp)"/><circle cx="30" cy="26" r="9" fill="var(--glow)"/></svg>',
-    '<svg viewBox="0 0 110 60"><ellipse cx="55" cy="54" rx="44" ry="5" fill="var(--shadow)"/><rect x="12" y="22" width="86" height="8" rx="3" fill="var(--bench)"/><rect x="12" y="34" width="86" height="7" rx="3" fill="var(--bench)"/><rect x="20" y="40" width="5" height="14" fill="var(--bench2)"/><rect x="85" y="40" width="5" height="14" fill="var(--bench2)"/></svg>',
-    '<svg viewBox="0 0 110 70"><ellipse cx="55" cy="58" rx="50" ry="10" fill="var(--bed)"/><circle cx="30" cy="48" r="8" fill="var(--flower1)"/><circle cx="48" cy="44" r="7" fill="var(--flower2)"/><circle cx="66" cy="47" r="8" fill="var(--flower1)"/><circle cx="82" cy="50" r="6" fill="var(--flower3)"/><circle cx="40" cy="54" r="6" fill="var(--flower3)"/><circle cx="74" cy="56" r="6" fill="var(--flower2)"/></svg>',
-    '<svg viewBox="0 0 100 80"><ellipse cx="50" cy="66" rx="42" ry="10" fill="var(--shadow)"/><ellipse cx="50" cy="60" rx="38" ry="12" fill="var(--pool-edge)"/><ellipse cx="50" cy="58" rx="31" ry="8" fill="var(--pool)"/><path d="M50 56V30" stroke="var(--pool-edge)" stroke-width="4"/><path d="M50 30c-6 0-10 4-12 10M50 30c6 0 10 4 12 10M50 26c0-6 0-10 0-12" stroke="var(--pool)" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
-  ];
+  // ---------- the plaza: presentation over the existing read-only group APIs ----------
   function spot(g) {
-    const k = CFG.kinds[g.kind] || {};
-    const nx = g.next;
-    const meta = nx ? `${nx.live ? `<b class="live">${t('正在进行', 'On now')}</b>` : esc(when(nx.start))}` : g.finished ? t('已读完', 'Finished') : '';
-    const badges = [g.lang === 'en' ? 'EN' : '中文'];
-    if (g.join === 'invite') badges.push(`🔒 ${t('邀请制', 'Invite only')}`);
-    if (g.seats.length >= g.max) badges.push(t('满了', 'Full'));
-    return `<a class="spot${nx && nx.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" style="--tint:${tintOf(g.kind)}">
-${table(g.kind, g.seats, g.max, false)}
-<span class="spot-kind">${esc(k.name || '')}</span>
-<span class="spot-title">${esc(g.title)}</span>
-<span class="spot-meta">${meta}${nx && nx.reading ? ` · ${esc(nx.reading)}` : ''}</span>
-<span class="spot-badges">${badges.map((b) => `<span>${esc(b)}</span>`).join('')}</span></a>`;
+    return `<a class="spot${g.next?.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" data-plaza-group="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.title)}" style="--tint:${tintOf(g.kind)}">
+${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span></a>`;
   }
   function plaza() {
     const box = $('[data-plaza]');
     const count = $('[data-count]');
+    const search = $('[data-plaza-search]');
+    const vacant = $('[data-plaza-vacant]');
+    const popup = $('[data-table-popup]');
+    const popupBody = $('[data-popup-body]');
+    const memberCache = new Map();
+    const memberRequests = new Map();
+    const names = new Map();
+    let groups = [], pageIndex = 1, loadVersion = 0, selected = null, lastFocus = null;
     let kind = new URLSearchParams(location.search).get('kind') || '';
     if (!CFG.kinds[kind]) kind = '';
-    const load = async () => {
-      $$('[data-kind]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-kind') === kind)));
-      const r = await api(`/api/dazi/plaza${kind ? `?kind=${kind}` : ''}`);
-      if (!r.ok) { box.innerHTML = `<p class="form-error">${esc(r.error)}</p>`; return; }
-      const gs = r.groups;
-      count.textContent = gs.length ? t(`此刻，广场上有 ${gs.length} 组搭子`, `${gs.length} buddy ${gs.length > 1 ? 'groups' : 'group'} on the plaza right now`) : t('广场上还空着，第一桌由你来摆', 'The plaza is empty. Set out the first table');
-      const parts = [];
-      const list = gs.length ? gs.map(spot) : [0, 1, 2].map((i) => `<a class="spot is-empty" href="${pre}/dazi/new/${kind ? `?kind=${kind}` : ''}" style="--tint:${tintOf(kind || ['bible', 'pray', 'feed'][i])}">${table(kind || ['bible', 'pray', 'feed'][i], [], [4, 3, 5][i], false)}<span class="spot-title">${t('空着的桌子', 'An empty table')}</span><span class="spot-meta">${t('点这里发起一个搭子', 'Tap to start a group here')}</span></a>`);
-      list.forEach((html, i) => {
-        parts.push(html);
-        if (i % 3 === 1) parts.push(`<span class="deco" aria-hidden="true">${DECOS[(i * 2 + 1) % DECOS.length]}</span>`);
+    const pageSize = () => window.matchMedia('(min-width: 620px)').matches ? 9 : 6;
+    // Names already public on /g/<id>. Do not modify the card API or any membership data.
+    const readMembers = (g) => {
+      if (memberCache.has(g.id)) return Promise.resolve(memberCache.get(g.id));
+      if (!memberRequests.has(g.id)) {
+        const request = api(`/api/dazi/${g.id}`).then((r) => {
+          if (r.ok && r.group?.members) {
+            memberCache.set(g.id, r.group.members);
+            return r.group.members;
+          }
+          return null;
+        }).catch(() => null).finally(() => memberRequests.delete(g.id));
+        memberRequests.set(g.id, request);
+      }
+      return memberRequests.get(g.id);
+    };
+    const labelChairs = (node, g, members) => {
+      if (!node.isConnected) return;
+      $$('.seat:not(.free):not(.more)', node).forEach((seat, i) => {
+        const name = members?.[i]?.name || g.seats[i]?.i || '·';
+        const label = document.createElement('span');
+        label.className = 'member-name';
+        label.textContent = name;
+        seat.replaceChildren(label);
+        seat.title = name;
+        seat.setAttribute('aria-label', t(`${name} 已入座`, `${name}, seated`));
       });
-      if (list.length % 2) parts.push(`<span class="deco" aria-hidden="true">${DECOS[list.length % DECOS.length]}</span>`);
-      box.innerHTML = `<div class="plaza-grid">${parts.join('')}</div>`;
+      $$('.seat.free', node).forEach((seat) => seat.setAttribute('aria-label', t('空椅，虚位以待', 'An open chair awaits a companion')));
+      if (members) names.set(g.id, members.map((m) => m.name).join(' '));
+    };
+    const popupContent = (g, members) => {
+      const nx = g.next;
+      const meta = nx ? `${nx.live ? `<b>${t('正在进行', 'On now')}</b> · ` : ''}${esc(when(nx.start))}` : g.finished ? t('已读完', 'Finished') : t('时间见搭子的约', 'See the covenant for the schedule');
+      const memberText = members?.length ? `<p class="popup-members">${esc(members.map((m) => m.name).join(' · '))}</p>` : '';
+      popupBody.innerHTML = `<span class="popup-kind">${esc(CFG.kinds[g.kind]?.name || '')}</span>
+<h2 id="plaza-popup-title">${esc(g.title)}</h2>
+<div class="popup-meta">${meta}<br>${esc(g.minutes)} ${t('分钟', 'min')} · ${g.lang === 'en' ? 'English' : '中文'}${nx?.reading ? `<br>${esc(nx.reading)}` : ''}</div>
+<p>${esc(g.planText || '')}</p>
+<p class="popup-occupancy">${g.seats.length} / ${g.max} ${t('人', 'members')} · ${g.seats.length >= g.max ? t('已满员', 'Full') : t(`余 ${g.max - g.seats.length} 席`, `${g.max - g.seats.length} open seats`)}${g.join === 'invite' ? ` · ${t('邀请制', 'Invitation only')}` : ''}</p>${memberText}
+<a class="popup-link" href="${pre}/g/${g.id}">${t('查看搭子的约 · 前往小组', 'View the covenant · Open group')}</a>
+<p class="popup-note">${t('在小组页查看最新安排、读物及加入方式。已加入的组员可使用原有日历、资料和进度功能。', 'Open the group for the latest arrangements, readings, and joining details. Members can use the existing calendar, files, and progress features there.')}</p>`;
+    };
+    const openTable = (g, trigger) => {
+      selected = g.id;
+      lastFocus = trigger;
+      popupContent(g, memberCache.get(g.id));
+      popup.showModal();
+      readMembers(g).then((members) => {
+        if (members && popup.open && selected === g.id) popupContent(g, members);
+      });
+    };
+    $('[data-popup-close]').addEventListener('click', () => popup.close());
+    popup.addEventListener('click', (event) => {
+      if (event.target !== popup) return;
+      const r = popup.getBoundingClientRect();
+      if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) popup.close();
+    });
+    popup.addEventListener('close', () => { selected = null; if (lastFocus?.isConnected) lastFocus.focus({ preventScroll: true }); });
+    const render = () => {
+      const q = search.value.trim().toLocaleLowerCase();
+      const filtered = groups.filter((g) => (!vacant.checked || g.seats.length < g.max) && (!q || `${g.title} ${g.planText} ${g.next?.reading || ''} ${names.get(g.id) || ''}`.toLocaleLowerCase().includes(q)));
+      const limit = pageSize(), pages = Math.max(1, Math.ceil(filtered.length / limit));
+      pageIndex = Math.min(pageIndex, pages);
+      const visible = filtered.slice((pageIndex - 1) * limit, pageIndex * limit);
+      count.textContent = groups.length ? t(`此刻，广场上有 ${groups.length} 组搭子`, `${groups.length} buddy ${groups.length === 1 ? 'group' : 'groups'} on the plaza right now`) : t('广场上还空着，第一桌由你来摆', 'The plaza is empty. Set out the first table');
+      if (q || vacant.checked) count.textContent += t(` · 找到 ${filtered.length} 组`, ` · ${filtered.length} found`);
+      const empty = groups.length ? t('暂时没有符合条件的搭子，换一个搜索条件试试。', 'No groups match. Try a different search or filter.') : `<a href="${pre}/dazi/new/${kind ? `?kind=${encodeURIComponent(kind)}` : ''}">${t('摆一张新桌，邀请伙伴同行', 'Set a new table and invite your companions')}</a>`;
+      box.innerHTML = `<div class="plaza-grid">${visible.length ? visible.map(spot).join('') : `<p class="plaza-empty">${empty}</p>`}</div>
+<p class="plaza-legend">${t('椅子上的名字是组员 · 空椅虚位以待', 'Names mark companions · Open chairs await you')}</p>
+<nav class="plaza-pager" aria-label="${t('广场分页', 'Plaza pages')}"><button type="button" data-plaza-prev${pageIndex === 1 ? ' disabled' : ''}>${t('上一页', 'Previous')}</button><span>${pageIndex} / ${pages}</span><button type="button" data-plaza-next${pageIndex === pages ? ' disabled' : ''}>${t('下一页', 'Next')}</button></nav>`;
+      const stepPage = (step) => {
+        pageIndex += step;
+        render();
+        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        $(step > 0 ? '[data-plaza-prev]' : '[data-plaza-next]', box)?.focus({ preventScroll: true });
+      };
+      $('[data-plaza-prev]', box).addEventListener('click', () => stepPage(-1));
+      $('[data-plaza-next]', box).addEventListener('click', () => stepPage(1));
+      visible.forEach((g) => {
+        const node = $(`[data-plaza-group="${g.id}"]`, box);
+        labelChairs(node, g, memberCache.get(g.id));
+        node.addEventListener('click', (event) => {
+          if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          openTable(g, node);
+        });
+        readMembers(g).then((members) => { if (members) labelChairs(node, g, members); });
+      });
+    };
+    const load = async () => {
+      const version = ++loadVersion;
+      $$('[data-kind]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-kind') === kind)));
+      const r = await api(`/api/dazi/plaza${kind ? `?kind=${encodeURIComponent(kind)}` : ''}`);
+      if (version !== loadVersion) return;
+      if (!r.ok) { box.innerHTML = `<p class="form-error">${esc(r.error)}</p>`; return; }
+      groups = r.groups;
+      pageIndex = 1;
+      render();
     };
     $$('[data-kind]').forEach((b) => b.addEventListener('click', () => {
       kind = b.getAttribute('data-kind');
-      history.replaceState(null, '', kind ? `?kind=${kind}` : location.pathname);
+      history.replaceState(null, '', kind ? `?kind=${encodeURIComponent(kind)}` : location.pathname);
       load();
     }));
+    search.addEventListener('input', () => { pageIndex = 1; render(); });
+    vacant.addEventListener('change', () => { pageIndex = 1; render(); });
+    window.matchMedia('(min-width: 620px)').addEventListener('change', () => { pageIndex = 1; render(); });
     load();
+    // Keep the existing signed-in user's strip and its destinations.
     const mine = async () => {
       const r = await api('/api/dazi/mine');
       if (!r.ok || !r.groups.length) return;

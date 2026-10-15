@@ -854,3 +854,8 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .voices { list-style: none; margin: 16px 0; padding: 0; display: grid; gap: 10px; }
 .voices li { display: grid; gap: 6px; padding: 12px 14px; border-radius: 16px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
 .voices audio { width: 100%; }
+
+/* Explanation only: the existing initiation form and behavior are unchanged. */
+.new-group-guide { padding: 12px 14px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--sky2); font-size: 13px; line-height: 1.8; }
+.new-group-guide summary { cursor: pointer; color: var(--water-ink); }
+.new-group-guide p { margin: 10px 0 0; }
