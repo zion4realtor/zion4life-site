@@ -97,8 +97,11 @@ test('/api/hit: silent without settings, forwards to Google with them, ignores b
   }
 });
 
-test('every page sends its visit to /api/hit and loads nothing from Google', () => {
+test('every page loads the async Google tag for city-aware page views with a Worker fallback', () => {
   const js = fs.readFileSync(path.join(ROOT, 'static/js/site.js'), 'utf8');
+  assert.match(js, /https:\/\/www\.googletagmanager\.com\/gtag\/js/);
+  assert.match(js, /send_page_view: false/);
+  assert.match(js, /window\.gtag\('event', 'page_view'/);
   assert.match(js, /sendBeacon\('\/api\/hit'/);
-  assert.doesNotMatch(js, /google-analytics|googletagmanager|gtag\(/);
+  assert.match(js, /script\.onerror = fallback/);
 });

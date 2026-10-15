@@ -1,9 +1,6 @@
-// Google Analytics 4 without loading anything from Google on the page.
-// Every page sends a small beacon to /api/hit (our own site, so it works in mainland China);
-// this Worker forwards it to GA4's Measurement Protocol from Cloudflare, outside China.
-// Turned on by two settings: GA_MEASUREMENT_ID ("G-…", in wrangler.jsonc vars) and
-// GA_API_SECRET (a Secret Zion sets in the Cloudflare dashboard). Without both, hits are dropped.
-// No IP address is sent: the visitor's country, region and city come from Cloudflare.
+// Google Analytics 4 Measurement Protocol for custom events and the no-Google fallback.
+// Normal page views use gtag.js when it loads; the site falls back here when Google is blocked.
+// This Worker does not forward visitor IP addresses; its location fields come from Cloudflare.
 // Query strings never reach Google (they hold 搭子 invite codes) except utm_* tags.
 
 const MP = 'https://www.google-analytics.com/mp/collect';
@@ -57,13 +54,6 @@ export async function handleHit(request, env, ctx, url) {
     return done();
   }
   if (!hits.length) return done();
-  // Temporary sampled diagnostic: only booleans, never city, IP, or client ID.
-  if (Math.random() < 0.05) {
-    console.info('[ga_geo_probe]', JSON.stringify({
-      cf_city_present: typeof cf.city === 'string' && cf.city.trim().length > 0,
-      ga_city_present: hits.some((hit) => typeof hit.user_location?.city === 'string' && hit.user_location.city.length > 0),
-    }));
-  }
   const endpoint = `${MP}?measurement_id=${encodeURIComponent(id)}&api_secret=${encodeURIComponent(secret)}`;
   const send = async () => {
     // campaign_details (where the visit came from) goes first, so it applies to the page view
@@ -106,7 +96,7 @@ export function buildHits(b, { ua = '', cf = {}, host, now = Date.now() }) {
     for (const k of EVENTS[ev.n]) if (s100(p[k])) params[k] = s100(p[k]);
     events.push({ name: ev.n, params: prune(params) });
   }
-  if (!events.length) return [];
+  if (!events.length && !(b.campaign_only && b.ns)) return [];
   const base = { client_id: cid, user_location: where(cf), device: device(ua, lang, b.scr) };
   prune(base);
   const out = [];
@@ -114,7 +104,7 @@ export function buildHits(b, { ua = '', cf = {}, host, now = Date.now() }) {
     const src = source(loc.url, b.ref, ua, host);
     if (src) out.push({ ...base, timestamp_micros: now * 1000 - 1000, events: [{ name: 'campaign_details', params: src }] });
   }
-  out.push({ ...base, timestamp_micros: now * 1000, events });
+  if (events.length) out.push({ ...base, timestamp_micros: now * 1000, events });
   return out;
 }
 
