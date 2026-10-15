@@ -196,16 +196,35 @@
   // ---------- 留言 ----------
   function talk(section) {
     const target = section.getAttribute('data-talk');
-    section.innerHTML = `<h2 class="sec-h">${t('留言', 'Messages')}</h2>
+    const prayer = target.startsWith('huxi:');
+    section.innerHTML = `<h2 class="sec-h">${prayer ? t('留下你的祷告', 'Leave your prayer') : t('留言', 'Messages')}</h2>
 <form class="talk-form" novalidate>
-<textarea name="body" maxlength="2000" rows="3" placeholder="${t('想说什么，写在这里', 'Write here')}"></textarea>
-<div class="talk-row"><label class="check small"><input type="checkbox" name="priv"><span>${t('只给管理员看', 'Only for the managers')}</span></label>
+<textarea name="body" maxlength="2000" rows="3" placeholder="${prayer ? t('把你的祷告写在这里……', 'Write your prayer here…') : t('想说什么，写在这里', 'Write here')}"></textarea>
+<div class="talk-row">${prayer ? '<span></span>' : `<label class="check small"><input type="checkbox" name="priv"><span>${t('只给管理员看', 'Only for the managers')}</span></label>`}
 <button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div>
 <p class="form-error" data-error hidden></p></form>
 <div class="talk-list" data-list><p class="muted">${t('正在载入……', 'Loading…')}</p></div>`;
     const form = $('.talk-form', section);
     const list = $('[data-list]', section);
     const err = $('[data-error]', form);
+    const gatePrayerInput = (textarea) => {
+      if (!prayer) return;
+      let prompting = false;
+      textarea.addEventListener('focus', async () => {
+        if (prompting) return;
+        prompting = true;
+        try {
+          const m = await me();
+          if (!m.user) {
+            textarea.blur();
+            await requireLogin(t('登录或注册后，就可以留下你的祷告。', 'Sign in or sign up to leave your prayer.'));
+            textarea.focus();
+          }
+        } catch (_) { /* the sign-in sheet was closed */ }
+        prompting = false;
+      });
+    };
+    gatePrayerInput($('textarea', form));
     async function load() {
       const r = await api(`/api/talk?target=${encodeURIComponent(target)}`);
       if (!r.ok) { list.innerHTML = ''; return; }
@@ -213,10 +232,10 @@
       const badge = (b) => (b === 'self' ? `<span class="badge">${t('本人', 'In person')}</span>` : b === 'manager' ? `<span class="badge">${t('管理员', 'Manager')}</span>` : '');
       const one = (c, root) => `<div class="msg${root ? '' : ' reply'}"><p class="msg-h"><b>${esc(c.name)}</b>${badge(c.badge)}${!c.pub && root ? `<span class="priv">${t('只给管理员看', 'Managers only')}</span>` : ''}<time>${esc(ago(c.created))}</time></p>
 <p class="msg-b">${esc(c.body).replace(/\n/g, '<br>')}</p>
-<p class="msg-a">${root && c.canReply ? `<button type="button" class="link-btn" data-reply="${c.id}">${t('回复', 'Reply')}</button>` : ''}${c.mine || r.moderator ? `<button type="button" class="link-btn danger" data-hide="${c.id}">${t('删除', 'Remove')}</button>` : ''}</p></div>`;
+<p class="msg-a">${root && c.canReply ? `<button type="button" class="link-btn" data-reply="${c.id}">${t('回复', 'Reply')}</button>` : ''}${c.mine || r.moderator ? `<button type="button" class="link-btn danger" data-hide="${c.id}">${prayer ? t('隐藏', 'Hide') : t('删除', 'Remove')}</button>` : ''}</p></div>`;
       list.innerHTML = r.comments.map((c) => `<div class="thread">${one(c, true)}${c.replies.map((x) => one(x, false)).join('')}</div>`).join('');
       $$('[data-hide]', list).forEach((b) => b.addEventListener('click', async () => {
-        if (!confirm(t('删除这条留言？', 'Remove this message?'))) return;
+        if (!confirm(prayer ? t('隐藏这条祷告留言？', 'Hide this prayer comment?') : t('删除这条留言？', 'Remove this message?'))) return;
         const x = await api(`/api/talk/${b.getAttribute('data-hide')}/hide`, { body: {} });
         if (x.ok) load(); else toast(x.error);
       }));
@@ -226,10 +245,11 @@
         if ($('.reply-form', thread)) return;
         const f = el(`<form class="talk-form reply-form"><textarea name="body" rows="2" maxlength="2000" placeholder="${t('回复…', 'Reply…')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('回复', 'Reply')}</button></div></form>`);
         thread.appendChild(f);
+        gatePrayerInput($('textarea', f));
         f.body.focus();
         f.addEventListener('submit', async (e) => {
           e.preventDefault();
-          await requireLogin(t('登录以后就能回复。', 'Sign in to reply.'));
+          try { await requireLogin(t('登录或注册后，就可以回复。', 'Sign in or sign up to reply.')); } catch (_) { return; }
           const x = await api('/api/talk', { body: { target, body: f.body.value, replyTo: id } });
           if (x.ok) load(); else toast(x.error);
         });
@@ -242,7 +262,8 @@
       try { await requireLogin(t('登录以后就能留言。', 'Sign in to leave a message.')); } catch (x) { return; }
       const btn = $('button[type=submit]', form);
       btn.disabled = true;
-      const r = await api('/api/talk', { body: { target, body: form.body.value, pub: !form.priv.checked } });
+      const priv = $('input[name="priv"]', form);
+      const r = await api('/api/talk', { body: { target, body: form.body.value, pub: !priv || !priv.checked } });
       btn.disabled = false;
       if (!r.ok) { err.textContent = r.error; err.hidden = false; return; }
       form.reset();
@@ -645,7 +666,7 @@ ${r.sent.length ? `<div class="adm-sent">${r.sent.slice(0, 8).map((x) => `<div c
 <form class="adm-form" data-add-mgr><select name="tag">${r.tags.map((x) => `<option value="${x.id}">${esc(x.zh)}</option>`).join('')}</select><input name="email" type="email" placeholder="对方注册用的邮箱"><button class="btn btn-water btn-sm" type="submit">任命</button></form>
 ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>「${esc(tagName[x.tag] || x.tag)}」${esc(x.name)}（${esc(x.email)}）</span><button class="link-btn danger" data-del-mgr="${x.tag}|${x.uid}">取消</button></div>`).join('') : '<p class="muted">还没有任命管理员。</p>'}</section>
 <section class="adm" id="adm-asks"><h2 class="sec-h">大家发来的问题 <small>${r.asks.length}</small></h2>${r.asks.length ? r.asks.slice(0, 50).map((a) => `<div class="adm-row"><p>${esc(a.message).replace(/\n/g, '<br>')}</p><p class="muted">${esc(a.name || '没留称呼')} · ${a.reply ? `<a href="mailto:${esc(a.reply)}">${esc(a.reply)}</a>` : '没留邮箱'} · ${esc(d(a.created))} · ${a.mailed ? '已发到邮箱' : '没发邮件'}</p></div>`).join('') : '<p class="muted">还没有。</p>'}</section>
-<section class="adm" id="adm-talk"><h2 class="sec-h">最近的留言</h2>${r.talk.map((c) => `<div class="adm-row inline"><span><b>${esc(c.name)}</b>${c.pub ? '' : '（只给管理员）'}：${esc(c.body.slice(0, 120))} <span class="muted">${esc(c.target)}</span></span><button class="link-btn danger" data-talk-hide="${c.id}">删除</button></div>`).join('') || '<p class="muted">还没有。</p>'}</section>
+<section class="adm" id="adm-talk"><h2 class="sec-h">最近的留言</h2>${r.talk.map((c) => `<div class="adm-row inline"><span><b>${esc(c.name)}</b>${c.pub ? '' : '（只给管理员）'}：${esc(c.body.slice(0, 120))} <span class="muted">${esc(c.target)}</span></span><button class="link-btn danger" data-talk-hide="${c.id}">${c.target.startsWith('huxi:') ? '隐藏' : '删除'}</button></div>`).join('') || '<p class="muted">还没有。</p>'}</section>
 <section class="adm" id="adm-posts"><h2 class="sec-h">管理员发的文章和视频</h2>${r.posts.map((p) => `<div class="adm-row inline"><span><a href="/x/${p.id}/">${esc(p.title)}</a> · ${esc(p.author)} · ${p.status === 'live' ? '在线' : '已撤下'}</span>${p.status === 'live' ? `<button class="link-btn danger" data-post="${p.id}" data-st="removed">撤下</button>` : `<button class="link-btn" data-post="${p.id}" data-st="live">恢复</button>`}</div>`).join('') || '<p class="muted">还没有。</p>'}</section>`;
       const post = async (path, body) => {
         const x = await api(path, { body });
