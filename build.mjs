@@ -564,7 +564,9 @@ ${dripShepherding ? `<section class="drip-page" ${dripAudio ? `data-date="${a.da
 ${dripAudio ? dripListen(lang) : ''}
 <a class="drip-image-link" href="${dripImage}" target="_blank" rel="noopener" aria-label="${lang === 'zh' ? '打开整页图片' : 'Open full page image'}"><img src="${dripImage}" alt="${esc(c.title)}" fetchpriority="high"></a>
 <a class="btn btn-line drip-download" href="${dripImage}" download>${lang === 'zh' ? '下载整页图片' : 'Download full page image'}</a>
-</section>` : mystery ? `<section class="mystery-pdf" aria-label="${esc(c.title)}">
+</section>
+<div class="tag-tools"><button type="button" class="btn btn-line btn-sm" data-sub="tag:breathe" data-on="${lang === 'zh' ? '已订阅滴灌牧养' : 'Subscribed to Drip Shepherding'}" data-off="${lang === 'zh' ? '订阅滴灌牧养' : 'Subscribe to Drip Shepherding'}">${lang === 'zh' ? '订阅滴灌牧养' : 'Subscribe to Drip Shepherding'}</button><span class="hint">${lang === 'zh' ? '订阅后，新内容会通知到“我的”。' : 'New content updates arrive in “Me”.'}</span></div>
+<section class="talk" data-talk="a:${a.slug}"></section>` : mystery ? `<section class="mystery-pdf" aria-label="${esc(c.title)}">
 <div class="mystery-pdf-actions"><a class="btn btn-water" href="${mysteryPdf.file}" target="_blank" rel="noopener">${lang === 'zh' ? '打开 PDF 阅读' : 'Open PDF'}</a><a class="btn btn-line" href="${mysteryPdf.file}" download>${lang === 'zh' ? '下载 PDF' : 'Download PDF'}</a></div>
 <div class="mystery-doc-pages">${mysteryPdf.pages.map((src, i) => `<a href="${mysteryPdf.file}" target="_blank" rel="noopener" aria-label="${lang === 'zh' ? `打开 PDF 第 ${i + 1} 页` : `Open PDF page ${i + 1}`}"><img src="${src}" alt="${esc(c.title)} — ${lang === 'zh' ? `第 ${i + 1} 页` : `page ${i + 1}`}" loading="lazy"></a>`).join('')}</div>
 </section>` : `<div class="prose"${c.fallback ? ` lang="${lang === 'zh' ? 'en' : 'zh-CN'}"` : ''}>${c.html}</div>

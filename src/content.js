@@ -91,10 +91,9 @@ export async function handleContent(request, env, db, url, now, lang) {
       mine: !!user && c.uid === user.id,
       badge: mgrOf.has(c.uid) ? (personTag ? 'self' : 'manager') : null,
     });
-    const prayer = target.startsWith('huxi:');
     const roots = list.filter((c) => !c.reply_to && visible(c)).map((c) => ({
       ...view(c), replies: list.filter((r) => r.reply_to === c.id).map(view),
-      canReply: (prayer || !!user) && (c.pub || moderator || c.uid === user.id),
+      canReply: !!user && !!(c.pub || moderator || c.uid === user.id),
     }));
     return json({ ok: true, comments: roots.reverse(), moderator, signedIn: !!user });
   }

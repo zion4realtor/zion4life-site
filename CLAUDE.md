@@ -39,3 +39,6 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
   fallback go through `/api/hit` (`src/analytics.js`). The tag shares the site's client ID and
   sends sanitized page URLs. New actions: add the name to `EVENTS` there and call `window.ygTrack`.
 - Before pushing: `node build.mjs && node --test`. Pushing to `main` deploys.
+
+- Site-wide rule: only registered, signed-in users may leave messages, prayers, replies, or questions/suggestions. Enforce this in the API as well as the UI; public messages remain readable by visitors.
+- 滴灌牧养 image articles use paired Chinese/English pages, the tag:breathe subscription and per-article comments. From October 16, 2026, put the narration bar above each image: Chinese transcript contains only Chinese, English uses Aura 2 Helena with no device-voice fallback. Publish updates and verify production pages and recording status.

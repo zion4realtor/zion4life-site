@@ -198,6 +198,7 @@
     const target = section.getAttribute('data-talk');
     const prayer = target.startsWith('huxi:');
     section.innerHTML = `<h2 class="sec-h">${prayer ? t('留下你的祷告', 'Leave your prayer') : t('留言', 'Messages')}</h2>
+<p class="hint">${t('留言和回复仅限已注册并登录的用户。', 'Sign in or create an account to leave a message or reply.')}</p>
 <form class="talk-form" novalidate>
 <textarea name="body" maxlength="2000" rows="3" placeholder="${prayer ? t('把你的祷告写在这里……', 'Write your prayer here…') : t('想说什么，写在这里', 'Write here')}"></textarea>
 <div class="talk-row">${prayer ? '<span></span>' : `<label class="check small"><input type="checkbox" name="priv"><span>${t('只给管理员看', 'Only for the managers')}</span></label>`}
@@ -207,8 +208,7 @@
     const form = $('.talk-form', section);
     const list = $('[data-list]', section);
     const err = $('[data-error]', form);
-    const gatePrayerInput = (textarea) => {
-      if (!prayer) return;
+    const gateCommentInput = (textarea) => {
       let prompting = false;
       textarea.addEventListener('focus', async () => {
         if (prompting) return;
@@ -217,14 +217,14 @@
           const m = await me();
           if (!m.user) {
             textarea.blur();
-            await requireLogin(t('登录或注册后，就可以留下你的祷告。', 'Sign in or sign up to leave your prayer.'));
+            await requireLogin(prayer ? t('登录或注册后，就可以留下你的祷告。', 'Sign in or sign up to leave your prayer.') : t('登录或注册后，就可以留言或回复。', 'Sign in or sign up to leave a message or reply.'));
             textarea.focus();
           }
         } catch (_) { /* the sign-in sheet was closed */ }
         prompting = false;
       });
     };
-    gatePrayerInput($('textarea', form));
+    gateCommentInput($('textarea', form));
     async function load() {
       const r = await api(`/api/talk?target=${encodeURIComponent(target)}`);
       if (!r.ok) { list.innerHTML = ''; return; }
@@ -245,7 +245,7 @@
         if ($('.reply-form', thread)) return;
         const f = el(`<form class="talk-form reply-form"><textarea name="body" rows="2" maxlength="2000" placeholder="${t('回复…', 'Reply…')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('回复', 'Reply')}</button></div></form>`);
         thread.appendChild(f);
-        gatePrayerInput($('textarea', f));
+        gateCommentInput($('textarea', f));
         f.body.focus();
         f.addEventListener('submit', async (e) => {
           e.preventDefault();

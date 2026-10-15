@@ -10,6 +10,8 @@ test('October 16 drip pages pair images and language-specific narration; older p
     assert.ok(html.indexOf('data-audio ') < html.indexOf('<img src="/files/drip-'));
     assert.ok(html.includes(`drip-shepherding-2026-10-16-${lang}.jpg`));
     assert.ok(html.includes('data-audio-kind="diguan"'));
+    assert.ok(html.includes('data-sub="tag:breathe"'));
+    assert.ok(html.includes('data-talk="a:diguan-muyang-2026-10-16"'));
     assert.ok(html.includes(`${prefix ? '' : '/en'}/a/diguan-muyang-2026-10-16/`));
     assert.ok(!fs.readFileSync(`dist/${prefix}a/diguan-muyang-2026-10-14/index.html`, 'utf8').includes('data-audio '));
   }

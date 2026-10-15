@@ -759,3 +759,29 @@ test('attendance preferences survive storage restart and only the member can set
   assert.equal((await call(`/api/dazi/${id}/attendance`,{cookie:member,body:{attendanceDays:null,attendanceTz:'UTC'}})).body.ok,true);
   assert.equal((await call(`/api/dazi/${id}`,{cookie:member})).body.me.attendanceDays,null);
 });
+
+
+test('all comments and replies require a registered session; drip subscriptions use the existing tag', async () => {
+  const targets = ['tag:breathe', 'tag:lgh', 'a:diguan-muyang-2026-10-16', 'a:rensheng-aomi', 'v:fule-rensheng', 'huxi:2026-10-15'];
+  for (const target of targets) {
+    assert.equal((await call('/api/talk', { body: { target, body: 'Anonymous message' } })).status, 401, target);
+    assert.equal((await call('/api/talk', { body: { target, body: 'Anonymous reply', replyTo: 'fake' } })).status, 401, target);
+  }
+  assert.equal((await call('/api/ask', { body: { message: 'Anonymous question' } })).status, 401);
+  assert.equal((await call('/api/subs', { body: { topic: 'tag:breathe', on: true } })).status, 401);
+  const cookie = await signIn('drip-reader@example.com', 'Drip reader');
+  const topic = 'tag:breathe';
+  assert.ok((await call('/api/subs', { body: { topic, on: true }, cookie })).body.topics.includes(topic));
+  assert.ok(!(await call('/api/subs', { body: { topic, on: false }, cookie })).body.topics.includes(topic));
+  for (const target of ['a:diguan-muyang-2026-10-16', 'huxi:2026-10-15']) {
+    assert.equal((await call('/api/talk', { body: { target, body: 'Registered comment' }, cookie })).body.ok, true);
+    const visitor = (await call('/api/talk?target=' + target)).body;
+    assert.equal(visitor.comments[0].canReply, false);
+    const own = (await call('/api/talk?target=' + target, { cookie })).body;
+    assert.equal(own.comments[0].canReply, true);
+    assert.equal((await call('/api/talk', { body: { target, body: 'Registered reply', replyTo: own.comments[0].id }, cookie })).body.ok, true);
+    assert.equal((await call('/api/talk?target=' + target)).body.comments[0].replies.length, 1);
+  }
+  await call('/api/auth/logout', { body: {}, cookie });
+  assert.equal((await call('/api/talk', { body: { target: targets[0], body: 'Expired session' }, cookie })).status, 401);
+});
