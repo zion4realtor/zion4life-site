@@ -15,7 +15,7 @@ export async function siteData(env, url) {
       return null;
     }
   };
-  const [tags, items, feed] = await Promise.all([get('/data/tags.json'), get('/data/items.json'), get('/data/feed.json')]);
+  const [tags, items, feed, huxi] = await Promise.all([get('/data/tags.json'), get('/data/items.json'), get('/data/feed.json'), get('/data/huxi.json')]);
   cache = {
     at: Date.now(),
     tags: tags || [],
@@ -23,6 +23,7 @@ export async function siteData(env, url) {
     item: Object.fromEntries((items || []).map((i) => [i.key, i])),
     feed: Object.fromEntries((feed || []).map((f) => [f.n, { zh: f.zh.title, en: f.en.title }])),
     feedCount: (feed || []).length,
+    huxi: new Set((huxi || []).map((p) => p.date)),
   };
   return cache;
 }
@@ -37,6 +38,7 @@ async function targetTags(db, data, target) {
     const p = await db('postGet', { id });
     return p && p.status === 'live' ? p.tags : null;
   }
+  if (type === 'huxi') return /^\d{4}-\d{2}-\d{2}$/.test(id) && data.huxi.has(id) ? [] : null;
   return null;
 }
 
@@ -89,9 +91,10 @@ export async function handleContent(request, env, db, url, now, lang) {
       mine: !!user && c.uid === user.id,
       badge: mgrOf.has(c.uid) ? (personTag ? 'self' : 'manager') : null,
     });
+    const prayer = target.startsWith('huxi:');
     const roots = list.filter((c) => !c.reply_to && visible(c)).map((c) => ({
       ...view(c), replies: list.filter((r) => r.reply_to === c.id).map(view),
-      canReply: !!user && (c.pub || moderator || c.uid === user.id),
+      canReply: (prayer || !!user) && (c.pub || moderator || c.uid === user.id),
     }));
     return json({ ok: true, comments: roots.reverse(), moderator, signedIn: !!user });
   }
@@ -114,6 +117,7 @@ export async function handleContent(request, env, db, url, now, lang) {
       replyTo = root.id;
       pub = !!root.pub;
     }
+    // Prayer comments and replies are stored only as comments; they do not create inbox or email notifications.
     await db('talkAdd', { id: randomId(10), target, uid: user.id, body, pub, replyTo, now });
     return json({ ok: true });
   }
