@@ -895,3 +895,6 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .group-files .file-name small{font-size:13px}
 #group-files-title{scroll-margin-top:120px}
 @media(max-width:480px){.group-files .files li{grid-template-columns:44px minmax(0,1fr) auto;gap:8px}.group-files .file-ic,.group-files .file-thumb{width:44px;height:44px}.group-files [data-del-file]{grid-column:3}.group-files .file-up .hint{flex-basis:100%;font-size:14px}}
+
+.drip-subscribe { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin: 0 0 12px; text-align: right; }
+.drip-subscribe .btn { max-width: 100%; white-space: normal; }

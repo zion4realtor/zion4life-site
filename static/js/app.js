@@ -201,7 +201,7 @@
 <p class="hint">${t('留言和回复仅限已注册并登录的用户。', 'Sign in or create an account to leave a message or reply.')}</p>
 <form class="talk-form" novalidate>
 <textarea name="body" maxlength="2000" rows="3" placeholder="${prayer ? t('把你的祷告写在这里……', 'Write your prayer here…') : t('想说什么，写在这里', 'Write here')}"></textarea>
-<div class="talk-row">${prayer ? '<span></span>' : `<label class="check small"><input type="checkbox" name="priv"><span>${t('只给管理员看', 'Only for the managers')}</span></label>`}
+<div class="talk-row">${prayer ? '<span></span>' : `<label class="check small"><input type="checkbox" name="priv"><span>${t('私聊版主', 'Message moderators privately')}</span></label>`}
 <button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div>
 <p class="form-error" data-error hidden></p></form>
 <div class="talk-list" data-list><p class="muted">${t('正在载入……', 'Loading…')}</p></div>`;
@@ -230,7 +230,7 @@
       if (!r.ok) { list.innerHTML = ''; return; }
       if (!r.comments.length) { list.innerHTML = `<p class="muted talk-empty">${t('还没有人留言。', 'No messages yet.')}</p>`; return; }
       const badge = (b) => (b === 'self' ? `<span class="badge">${t('本人', 'In person')}</span>` : b === 'manager' ? `<span class="badge">${t('管理员', 'Manager')}</span>` : '');
-      const one = (c, root) => `<div class="msg${root ? '' : ' reply'}"><p class="msg-h"><b>${esc(c.name)}</b>${badge(c.badge)}${!c.pub && root ? `<span class="priv">${t('只给管理员看', 'Managers only')}</span>` : ''}<time>${esc(ago(c.created))}</time></p>
+      const one = (c, root) => `<div class="msg${root ? '' : ' reply'}"><p class="msg-h"><b>${esc(c.name)}</b>${badge(c.badge)}${!c.pub && root ? `<span class="priv">${t('私聊版主', 'Private to moderators')}</span>` : ''}<time>${esc(ago(c.created))}</time></p>
 <p class="msg-b">${esc(c.body).replace(/\n/g, '<br>')}</p>
 <p class="msg-a">${root && c.canReply ? `<button type="button" class="link-btn" data-reply="${c.id}">${t('回复', 'Reply')}</button>` : ''}${c.mine || r.moderator ? `<button type="button" class="link-btn danger" data-hide="${c.id}">${prayer ? t('隐藏', 'Hide') : t('删除', 'Remove')}</button>` : ''}</p></div>`;
       list.innerHTML = r.comments.map((c) => `<div class="thread">${one(c, true)}${c.replies.map((x) => one(x, false)).join('')}</div>`).join('');
