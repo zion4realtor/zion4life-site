@@ -188,6 +188,11 @@ keeps them across deploys):
   sign-in codes, reminders, invitations. Without it sign-in is closed and says so.
   `FROM_EMAIL_ADDRESS` (`有光 <light@zion4life.faith>`) and `ADMIN_EMAILS` are set in
   `wrangler.jsonc`; the AI binding (`AI`) records 呼吸.
+- WeChat sharing on the English 呼吸 pages: set `WX_APP_ID` as a Worker variable and
+  `WX_APP_SECRET` as a Worker Secret. In the WeChat Official Account platform, add
+  `zion4life.faith` under “JS接口安全域名”. The JS-SDK signer runs in the Worker; the
+  secret is never sent to browsers. Until both settings are in place, normal link sharing
+  remains available and the SDK enhancement stays inactive.
 - light@zion4life.faith: Cloudflare Email Routing forwards it to Zion's Hotmail (until he
   chooses a mailbox; see the notes he was sent).
 - Optional for the question box: `ASK_MAIL` (send_email binding), `ASK_FROM`, `ASK_TO`.
@@ -196,11 +201,14 @@ keeps them across deploys):
 
 ## Visit counts (Google Analytics)
 
-Pages load nothing from Google. `static/js/site.js` sends each page view, the visible time on
-the page and a few actions (`window.ygTrack`) to our own `/api/hit`; `src/analytics.js`
-forwards them from Cloudflare to GA4's Measurement Protocol, so visitors in mainland China are
-counted too. Query strings are dropped (they hold 搭子 invite codes) except `utm_*` tags; no IP
-address is sent (country, region and city come from Cloudflare); `/admin/` is not counted.
+`static/js/site.js` loads the Google tag asynchronously for page views so GA4 can derive
+approximate city from the connection IP. It disables the tag's automatic page view and sends
+one sanitized page view itself; this prevents duplicates with the Worker. Custom actions and
+visible time still go through our own `/api/hit` to GA4's Measurement Protocol, joined to the
+same pseudonymous client ID. If Google is blocked or does not load promptly, the Worker records
+page views as a fallback, so visitors in mainland China are still counted. Query strings are
+dropped (they hold 搭子 invite codes) except `utm_*` tags. The Worker does not forward IP
+addresses; fallback location comes from Cloudflare. `/admin/` is not counted.
 
 - Turn it on: `GA_MEASUREMENT_ID` ("G-…") in `wrangler.jsonc` vars, and the Secret
   `GA_API_SECRET` (GA → Admin → Data streams → the web stream → Measurement Protocol API
@@ -214,8 +222,9 @@ address is sent (country, region and city come from Cloudflare); `/admin/` is no
 
 ## Mainland China
 
-- Load nothing from Google, YouTube thumbnails or public CDNs on page load
-  (`tests/build.test.js` checks). Fonts are self-hosted: LXGW WenKai GB split by
+- The Google tag loads asynchronously for city-aware page views; if it is blocked or slow, the
+  Worker fallback still records traffic. YouTube thumbnails and public CDNs are not loaded on
+  page load (`tests/build.test.js` checks). Fonts are self-hosted: LXGW WenKai GB split by
   unicode-range (SIL OFL); body text uses the phone's system font.
 - Videos load only when tapped.
 - Keep a neutral backup domain ready to point at the same Worker.
