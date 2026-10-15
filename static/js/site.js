@@ -306,11 +306,21 @@
       var el;
       if (s.type === 'file') {
         el = document.createElement('video');
+        if (s.poster) el.poster = s.poster;
         el.src = s.url;
         el.controls = true;
         el.autoplay = true;
         el.setAttribute('playsinline', '');
         el.setAttribute('preload', 'metadata');
+        (s.subtitles || []).forEach(function (sub) {
+          var caption = document.createElement('track');
+          caption.kind = 'subtitles';
+          caption.src = sub.url;
+          caption.srclang = sub.lang;
+          caption.label = sub.label || sub.lang;
+          caption.default = sub.lang.split('-')[0] === (player.hasAttribute('data-short') ? 'en' : (zh ? 'zh' : 'en'));
+          el.appendChild(caption);
+        });
       } else {
         el = document.createElement('iframe');
         el.src = embed(s);
@@ -320,6 +330,27 @@
       }
       start.hidden = true;
       player.appendChild(el);
+      if (s.type === 'file' && player.hasAttribute('data-short')) {
+        var watch = player.closest('.short-watch');
+        var captionLanguage = watch.getAttribute('data-caption-choice') || 'en';
+        function selectCaptions() {
+          Array.from(el.textTracks).forEach(function (t) { t.mode = t.language.split('-')[0] === captionLanguage ? 'showing' : 'disabled'; });
+        }
+        watch.querySelectorAll('[data-caption]').forEach(function (button) {
+          button.onclick = function () {
+            captionLanguage = button.getAttribute('data-caption');
+            watch.setAttribute('data-caption-choice', captionLanguage);
+            watch.querySelectorAll('[data-caption]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === button)); });
+            selectCaptions();
+          };
+        });
+        el.addEventListener('loadedmetadata', function () {
+          selectCaptions();
+          try { var saved = Number(localStorage.getItem('yg-video-' + player.dataset.short)); if (saved > 0 && saved < el.duration - 3) el.currentTime = saved; } catch (e) {}
+        }, {once:true});
+        el.addEventListener('timeupdate', function () { try { localStorage.setItem('yg-video-' + player.dataset.short, String(el.currentTime)); } catch (e) {} });
+        el.addEventListener('error', function () { var n = watch.querySelector('.short-note'); n.textContent = zh ? '暂时没播出来，请刷新后重试。' : 'Unable to play. Please refresh and try again.'; n.hidden = false; });
+      }
       track('play_video', { line: s.label || s.type });
       lineBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.getAttribute('data-line')) === i)); });
     }
@@ -335,4 +366,22 @@
       });
     });
   });
+  // Subtitle buttons also work before playback starts.
+  document.querySelectorAll('.short-watch').forEach(function (watch) {
+    watch.querySelectorAll('[data-caption]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var lang = button.getAttribute('data-caption');
+        watch.setAttribute('data-caption-choice', lang);
+        watch.querySelectorAll('[data-caption]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === button)); });
+        var video = watch.querySelector('video');
+        if (video) Array.from(video.textTracks).forEach(function (track) { track.mode = track.language.split('-')[0] === lang ? 'showing' : 'disabled'; });
+      });
+    });
+  });
+  window.ygSortHomeFresh = function () {
+    var container=document.querySelector('[data-home-fresh-sections]');
+    if (!container) return;
+    Array.from(container.children).map(function(node,index){return {node:node,index:index,time:Number(node.dataset.updated)||0};}).sort(function(a,b){return b.time-a.time||a.index-b.index;}).forEach(function(x){container.appendChild(x.node);});
+  };
+  window.ygSortHomeFresh();
 })();

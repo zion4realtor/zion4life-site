@@ -1,11 +1,105 @@
 [
   {
+    "slug": "meaning-of-life",
+    "minutes": 2,
+    "seconds": 95.36,
+    "date": "2026-10-15",
+    "tags": [
+      "lgh",
+      "goodnews",
+      "newfriends",
+      "feelings"
+    ],
+    "spotlight": true,
+    "zh": {
+      "title": "日子像钟摆，来回都是无聊？",
+      "summary": "上班觉得空，放假又无聊。李光弘用一个钟摆的比喻，聊聊我们到底在为什么而活。"
+    },
+    "en": {
+      "title": "Is Life Just Back and Forth?",
+      "summary": "Work feels empty. Time off gets boring. Livingstone Lee asks whether life has to swing between the two."
+    },
+    "poster": "/video/meaning-of-life.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/meaning-of-life.mp4",
+        "poster": "/video/meaning-of-life.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/meaning-of-life.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/meaning-of-life.zh.vtt"
+      }
+    ]
+  },
+  {
+    "slug": "more-than-material",
+    "minutes": 4,
+    "seconds": 211.2,
+    "date": "2026-10-15",
+    "tags": [
+      "lgh",
+      "goodnews",
+      "newfriends",
+      "feelings"
+    ],
+    "spotlight": true,
+    "zh": {
+      "title": "吃穿不愁，心里还缺什么？",
+      "summary": "生活的需要，不只有吃饱和过好。李光弘从人的内在需要，聊到信仰带来的另一种可能。"
+    },
+    "en": {
+      "title": "What Are We Still Missing?",
+      "summary": "Food, comfort and a good life matter. But what about the needs we cannot see? A conversation about our inner life and faith."
+    },
+    "poster": "/video/more-than-material.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/more-than-material.mp4",
+        "poster": "/video/more-than-material.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/more-than-material.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/more-than-material.zh.vtt"
+      }
+    ]
+  },
+  {
     "slug": "fule-rensheng",
     "minutes": 120,
     "date": "2026-10-12",
-    "tags": ["goodnews", "lgh", "life"],
-    "zh": { "title": "福乐的人生", "summary": "一篇完整的信息，讲人生的意义和真正的福乐从哪里来。" },
-    "en": { "title": "The Blessed Life", "summary": "A full-length message on the meaning of life and where real happiness comes from." },
+    "tags": [
+      "goodnews",
+      "lgh",
+      "life"
+    ],
+    "zh": {
+      "title": "福乐的人生",
+      "summary": "一篇完整的信息，讲人生的意义和真正的福乐从哪里来。"
+    },
+    "en": {
+      "title": "The Blessed Life",
+      "summary": "A full-length message on the meaning of life and where real happiness comes from."
+    },
     "sources": [],
     "sample": true
   },
@@ -13,9 +107,18 @@
     "slug": "jianzheng-xuesheng-1",
     "minutes": 8,
     "date": "2026-10-12",
-    "tags": ["stories", "students"],
-    "zh": { "title": "一位大学生的故事", "summary": "示例占位：一位同学讲自己在校园里的经历。" },
-    "en": { "title": "A student's story", "summary": "Sample: a university student talks about what happened on campus." },
+    "tags": [
+      "stories",
+      "students"
+    ],
+    "zh": {
+      "title": "一位大学生的故事",
+      "summary": "示例占位：一位同学讲自己在校园里的经历。"
+    },
+    "en": {
+      "title": "A student's story",
+      "summary": "Sample: a university student talks about what happened on campus."
+    },
     "sources": [],
     "sample": true
   },
@@ -23,9 +126,18 @@
     "slug": "jianzheng-geren-1",
     "minutes": 6,
     "date": "2026-10-11",
-    "tags": ["stories", "family"],
-    "zh": { "title": "一个家庭的改变", "summary": "示例占位：一位妈妈讲家里这几年的变化。" },
-    "en": { "title": "A family changed", "summary": "Sample: a mother talks about how her family changed over the years." },
+    "tags": [
+      "stories",
+      "family"
+    ],
+    "zh": {
+      "title": "一个家庭的改变",
+      "summary": "示例占位：一位妈妈讲家里这几年的变化。"
+    },
+    "en": {
+      "title": "A family changed",
+      "summary": "Sample: a mother talks about how her family changed over the years."
+    },
     "sources": [],
     "sample": true
   }

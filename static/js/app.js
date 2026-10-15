@@ -312,6 +312,9 @@
   if (homeGrid) {
     api('/api/posts?latest-by-tag=1').then(function (r) {
       if (!r.ok || !r.latest) return;
+      var freshVideo=document.querySelector('[data-home-fresh="videos"]');
+      if(freshVideo) freshVideo.dataset.updated=String(Math.max(Number(freshVideo.dataset.updated)||0,Number(r.latest.lgh)||0));
+      window.ygSortHomeFresh && window.ygSortHomeFresh();
       var tiles = $$('[data-home-tag]', homeGrid).map(function (tile, index) {
         var published = Number(tile.getAttribute('data-home-updated')) || 0;
         var managed = Number(r.latest[tile.getAttribute('data-home-tag')]) || 0;
@@ -344,6 +347,12 @@
     api('/api/dazi/plaza').then(function (r) {
       if (!r.ok) return;
       var groups = Array.isArray(r.groups) ? r.groups : [];
+      var communitySection = document.querySelector('[data-home-fresh="community"]');
+      if (communitySection) {
+        var groupUpdated = Math.max(Number(r.latestPublished)||0,...groups.map(function(g) { var n=g.updated||g.created||0; return typeof n==='number'?n:(Date.parse(n)||0); }));
+        communitySection.dataset.updated = String(Math.max(Number(communitySection.dataset.updated)||0,groupUpdated));
+        window.ygSortHomeFresh && window.ygSortHomeFresh();
+      }
       var daziCard = $('[data-dazi-count]') && $('[data-dazi-count]').closest('.dazi-tile');
       var count = daziCard && $('[data-dazi-count]', daziCard);
       var countline = daziCard && $('[data-dazi-countline]', daziCard);
