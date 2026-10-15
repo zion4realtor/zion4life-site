@@ -236,3 +236,7 @@ node --test             # build + tests
 - Joining members may choose a subset of meeting weekdays in their phone’s time zone; the selection can be changed under Settings → My attendance days. Existing members and those selecting every day follow the entire group schedule. Personal reminders, calendar downloads, subscriptions and new invitation attachments respect that selection. The group’s reading progress is shared and is not slowed by individual attendance.
 - Initiators can change meeting weekdays, start time and duration from a future effective date under Settings → Change the meeting schedule. Revisions start at the next unstarted session, preserve old session IDs/check-ins/readings and post a group notification. Subscribed calendars update using stable session UIDs and a revision sequence; previously downloaded files must be imported again.
 - SQLite migrations add `dz.schedules`, `dz_member.attendance_days` and `dz_member.attendance_tz` without replacing existing rows. A null attendance selection means all days.
+
+### Drip Shepherding image pages and membership
+
+Drip image pages provide a `tag:breathe` subscription and per-article comments shared by the Chinese and English pages. Only registered, signed-in users may post comments, prayers, replies, questions, or suggestions; visitors can read public comments. Both the UI and API enforce this rule.
