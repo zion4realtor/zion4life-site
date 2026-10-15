@@ -28,6 +28,8 @@ export default {
         return Response.json({ ok: false, error: en ? 'Something went wrong on the server. Please try again.' : '服务器出了点问题，请稍后再试' }, { status: 500 });
       }
     }
+    // Old cached group shells linked to /g/ without an ID. Recover to the plaza.
+    if (/^\/(en\/)?g\/?$/.test(p)) return Response.redirect(`${url.origin}${p.startsWith('/en/') ? '/en' : ''}/dazi/`, 302);
     let m;
     if ((m = p.match(/^(\/en)?\/g\/([a-z0-9]{8})(?:\/(\d{1,5}|now))?\/?$/))) return groupPage(request, env, url, m[1] ? 'en' : 'zh', m[2], m[3]);
     if ((m = p.match(/^(\/en)?\/x\/([a-z0-9]{10})\/?$/))) return postPage(request, env, url, m[1] ? 'en' : 'zh', m[2]);
@@ -41,7 +43,14 @@ export default {
 
 async function shell(env, url, request, path) {
   const res = await env.ASSETS.fetch(new Request(new URL(path, url), request));
-  return res.ok ? res.text() : null;
+  if (!res.ok) return null;
+  const html = await res.text();
+  // The stored shells are /g/ and /x/. Language links must use the requested
+  // resource URL instead, retaining its ID, session and invitation/tab parameters.
+  const resource = url.pathname.replace(/^\/en(?=\/|$)/, '') || '/';
+  return html.replace(/(<a\b[^>]*\bhref=")[^"]*("[^>]*\bdata-lang="(zh|en)"[^>]*>)/g,
+    (_, before, after, lang) => `${before}${esc(`${lang === 'en' ? '/en' : ''}${resource}${url.search}`)}${after}`);
+
 }
 function fill(html, { title, desc, canonical }) {
   if (title) {

@@ -310,6 +310,30 @@ test('tag managers post articles and videos into their tag; the Worker renders t
   assert.equal(parseVideo('https://evil.example.com/x'), null);
 });
 
+test('language switches retain group IDs, sessions and invite parameters; bare shells recover', async () => {
+  const owner = await signIn('language-owner@example.com', '语言测试');
+  const created = await call('/api/dazi', { body: groupBody(), cookie: owner });
+  assert.equal(created.body.ok, true);
+  const id = created.body.id;
+  const href = (html, lang) => html.match(new RegExp(`href="([^"]*)"[^>]*data-lang="${lang}"`))?.[1];
+  for (const prefix of ['', '/en']) {
+    for (const suffix of ['', '/2', '/2?i=invite-token&tab=cal']) {
+      const response = await call(`${prefix}/g/${id}${suffix}`);
+      assert.equal(response.status, 200);
+      const escapedSuffix = suffix.replace(/&/g, '&amp;');
+      assert.equal(href(response.body, 'zh'), `/g/${id}${escapedSuffix}`);
+      assert.equal(href(response.body, 'en'), `/en/g/${id}${escapedSuffix}`);
+    }
+    const missing = await call(`${prefix}/g/`);
+    assert.equal(missing.status, 302);
+    assert.equal(new URL(missing.headers.get('location')).pathname, `${prefix}/dazi/`);
+  }
+  // Manager posts use the same dynamic shell and must keep their IDs, too.
+  const post = await call('/x/abcdefghij?from=friend');
+  assert.equal(href(post.body, 'zh'), '/x/abcdefghij?from=friend');
+  assert.equal(href(post.body, 'en'), '/en/x/abcdefghij?from=friend');
+});
+
 test('搭子: create, plaza, open join with a signature, invite-only, hidden, decline', async () => {
   const owner = await signIn('owner@example.com', '老陈');
   const sam = await signIn('sam@example.com', '小山');
