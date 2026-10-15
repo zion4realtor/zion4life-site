@@ -192,6 +192,16 @@ function huxiSpeech(p, lang) {
   return { hash, chars: chunks.reduce((n, c) => n + c.t.length, 0), chunks };
 }
 
+function dripListen(lang) {
+  const L = S[lang];
+  return `<div class="hx-audio" data-audio data-l-play="${esc(L.listenPlay)}" data-l-pause="${esc(L.listenPause)}">
+<button class="hx-play" type="button" data-play aria-label="${esc(L.listen)}"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z" fill="currentColor"/></svg></button>
+<div class="hx-a-main"><p class="hx-a-top"><b>${esc(L.listen)}</b><span data-time>${lang === 'zh' ? '中文朗读' : 'Aura 2 · Helena'}</span></p>
+<div class="hx-a-bar" data-bar role="slider" aria-label="${esc(L.listen)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><i data-fill></i></div></div>
+<button class="hx-speed" type="button" data-speed aria-label="${esc(L.speed)}">1×</button>
+<p class="hx-a-msg" data-msg hidden></p></div>`;
+}
+
 // ---------- content ----------
 // A piece of writing is <slug>.zh.md and/or <slug>.en.md. Shared fields (date, type, tags, sample) may sit in either.
 function loadPairs(dir) {
@@ -529,10 +539,11 @@ ${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).joi
   for (const a of articles) {
     const c = a[lang];
     const mystery = a.slug === 'rensheng-aomi';
-    const dripShepherding = a.slug === 'diguan-muyang-2026-10-14';
+    const dripShepherding = /^diguan-muyang-\d{4}-\d{2}-\d{2}$/.test(a.slug);
+    const dripAudio = dripShepherding && a.date >= '2026-10-16';
     const dripImage = lang === 'zh'
-      ? '/files/drip-shepherding-2026-10-14-zh.jpg'
-      : '/files/drip-shepherding-2026-10-14-en.jpg';
+      ? `/files/drip-shepherding-${a.date}-zh.jpg`
+      : `/files/drip-shepherding-${a.date}-en.jpg`;
     const mysteryPdf = lang === 'zh'
       ? { file: '/files/mystery-of-human-life.zh.pdf', pages: ['/files/mystery-zh-1.jpg', '/files/mystery-zh-2.jpg'] }
       : { file: '/files/mystery-of-human-life.en.pdf', pages: ['/files/mystery-en-1.jpg', '/files/mystery-en-2.jpg'] };
@@ -542,13 +553,15 @@ ${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).joi
       desc: mystery ? c.title : c.summary || plain(c.html).slice(0, 90),
       tab: 'home',
       noindex: a.sample,
+      scripts: dripAudio ? [HUXI_JS] : [],
       body: `<article class="article${mystery ? ' mystery-article' : ''}${dripShepherding ? ' drip-article' : ''}" style="--tint:${TINTS[TAG[a.tags[0]]?.tint] || TINTS.aqua}">
 <a class="back" href="${U(lang, mystery ? '/' : a.tags[0] ? `/t/${a.tags[0]}/` : '/')}">← ${esc(mystery ? L.home : a.tags[0] ? TAG[a.tags[0]][lang] : L.back)}</a>
 <h1 class="a-title">${esc(c.title)}</h1>
 ${mystery ? '' : `<div class="a-meta">${a.date ? `<time datetime="${a.date}">${esc(dateParts(a.date, lang).full)}</time>` : ''}<span>${esc(L.readMin(a.minutes[lang]))}</span></div>
 <div class="a-tags">${a.tags.map((t) => `<a class="chiplink" style="--tint:${TINTS[TAG[t].tint]}" href="${U(lang, `/t/${t}/`)}">${esc(TAG[t][lang])}</a>`).join('')}</div>`}
 ${c.fallback ? `<p class="note-box">${esc(L.fallback)}</p>` : ''}${a.sample ? `<p class="note-box">${esc(L.sampleNote)}</p>` : ''}
-${dripShepherding ? `<section class="drip-page" aria-label="${esc(c.title)}">
+${dripShepherding ? `<section class="drip-page" ${dripAudio ? `data-date="${a.date}" data-audio-kind="diguan"` : ''} aria-label="${esc(c.title)}">
+${dripAudio ? dripListen(lang) : ''}
 <a class="drip-image-link" href="${dripImage}" target="_blank" rel="noopener" aria-label="${lang === 'zh' ? '打开整页图片' : 'Open full page image'}"><img src="${dripImage}" alt="${esc(c.title)}" fetchpriority="high"></a>
 <a class="btn btn-line drip-download" href="${dripImage}" download>${lang === 'zh' ? '下载整页图片' : 'Download full page image'}</a>
 </section>` : mystery ? `<section class="mystery-pdf" aria-label="${esc(c.title)}">
@@ -712,6 +725,25 @@ for (const lang of LANGS) {
     icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }],
   };
   fs.writeFileSync(path.join(DIST, U(lang, '/huxi/app.webmanifest').slice(1)), JSON.stringify(manifest, null, 2));
+}
+// Image articles keep a separate, language-specific transcript for narration.
+const dripDays = articles.filter((a) => /^diguan-muyang-/.test(a.slug) && a.date >= '2026-10-16');
+writeData('diguan.json', dripDays.map((a) => ({ date: a.date })));
+for (const a of dripDays) {
+  const speech = {};
+  for (const lang of LANGS) {
+    const paragraphs = plain(a[lang].html).split(/\n+/).map((t) => t.trim()).filter(Boolean);
+    if (lang === 'zh' && paragraphs.some((t) => /[A-Za-z]/.test(t))) throw new Error('Chinese drip narration must contain only Chinese: ' + a.slug);
+    const sentences = paragraphs.flatMap((t) => (t.match(lang === 'zh' ? /[^。！？]+[。！？]*|$/g : /[^.!?]+[.!?]*|$/g) || []).filter(Boolean));
+    const chunks = [];
+    for (const t of sentences) {
+      const last = chunks.at(-1);
+      if (last && last.t.length + t.length < (lang === 'zh' ? 260 : 520)) last.t += ' ' + t;
+      else chunks.push({ t, s: [] });
+    }
+    speech[lang] = { chunks, chars: chunks.reduce((n, c) => n + c.t.length, 0), hash: crypto.createHash('sha1').update(JSON.stringify(chunks)).digest('hex') };
+  }
+  writeData(`diguan/${a.date}.speech.json`, speech);
 }
 writeData('huxi.json', huxi.map((p) => ({ date: p.date, zh: { title: p.zh.title }, en: { title: p.en.title } })));
 for (const p of huxi) {

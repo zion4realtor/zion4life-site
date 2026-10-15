@@ -6,6 +6,7 @@
   var bar = document.querySelector('[data-audio]');
   if (!bar) return;
   var art = bar.closest('[data-date]');
+  var kind = art.getAttribute('data-audio-kind') || 'huxi';
   var EN = document.documentElement.lang === 'en';
   var lang = EN ? 'en' : 'zh';
   var t = function (zh, en) { return EN ? en : zh; };
@@ -37,7 +38,7 @@
   }
   function load() {
     if (day && day.date === date()) return Promise.resolve(day);
-    return fetch('/data/huxi/' + date() + '.speech.json').then(function (r) { return r.json(); }).then(function (j) {
+    return fetch('/data/' + kind + '/' + date() + '.speech.json').then(function (r) { return r.json(); }).then(function (j) {
       var s = j[lang];
       var weights = s.chunks.map(function (c) { return c.t.length; });
       day = { date: date(), chunks: s.chunks, weights: weights, total: weights.reduce(function (a, b) { return a + b; }, 0) };
@@ -132,9 +133,9 @@
     if (!listened && window.ygTrack) { listened = true; window.ygTrack('listen_audio'); }
     return load().then(function () {
       if (mode) return;
-      return fetch('/api/audio/huxi/' + day.date + '/' + lang + '.json').then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (r) {
+      return fetch('/api/audio/' + kind + '/' + day.date + '/' + lang + '.json').then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (r) {
         if (r && r.ready && r.parts.length === day.chunks.length) { mode = 'rec'; parts = r.parts; }
-        else if ('speechSynthesis' in window) {
+        else if (!(kind === 'diguan' && EN) && 'speechSynthesis' in window) {
           mode = 'voice';
           say(t('录音还在准备中，先用手机自带的声音读给你听。', 'The recording is still being made; your phone’s own voice reads it for now.'));
         } else {

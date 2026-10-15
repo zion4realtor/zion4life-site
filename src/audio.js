@@ -44,7 +44,7 @@ function audioResponse(request, buf, cache) {
 const KEEP_DAYS = 30;
 const PER_RUN = 8; // pieces recorded per cron run (every 5 minutes; each takes a few seconds)
 
-const keyOf = (date, lang) => `a:huxi/${date}/${lang}`;
+const keyOf = (date, lang, kind = 'huxi') => `a:${kind}/${date}/${lang}`;
 const chinaDate = (ms) => new Date(ms + 8 * 3600000).toISOString().slice(0, 10);
 const addDays = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 
@@ -60,17 +60,17 @@ async function asset(env, url, p) {
 export async function handleAudio(request, env, db, url) {
   if (request.method !== 'GET') return fail('Not found', 404);
   let m;
-  if ((m = url.pathname.match(/^\/api\/audio\/huxi\/(\d{4}-\d{2}-\d{2})\/(zh|en)\.json$/))) {
-    const a = await db('audioGet', { key: keyOf(m[1], m[2]) });
+  if ((m = url.pathname.match(/^\/api\/audio\/(?:huxi|diguan)\/(\d{4}-\d{2}-\d{2})\/(zh|en)\.json$/))) {
+    const a = await db('audioGet', { key: keyOf(m[1], m[2], url.pathname.split('/')[3]) });
     const ready = !!a && a.done >= a.parts && a.parts > 0;
     const h = a ? a.hash.slice(0, 10) : '';
     return json({
       ok: true, ready, done: a?.done || 0, total: a?.parts || 0,
-      parts: ready ? Array.from({ length: a.parts }, (_, i) => `/api/audio/huxi/${m[1]}/${m[2]}/${h}/${i}.wav`) : [],
+      parts: ready ? Array.from({ length: a.parts }, (_, i) => `/api/audio/${url.pathname.split('/')[3]}/${m[1]}/${m[2]}/${h}/${i}.wav`) : [],
     }, 200, { 'Cache-Control': 'no-store' });
   }
-  if ((m = url.pathname.match(/^\/api\/audio\/huxi\/(\d{4}-\d{2}-\d{2})\/(zh|en)\/([0-9a-f]{10})\/(\d{1,3})\.wav$/))) {
-    const key = keyOf(m[1], m[2]);
+  if ((m = url.pathname.match(/^\/api\/audio\/(?:huxi|diguan)\/(\d{4}-\d{2}-\d{2})\/(zh|en)\/([0-9a-f]{10})\/(\d{1,3})\.wav$/))) {
+    const key = keyOf(m[1], m[2], url.pathname.split('/')[3]);
     const a = await db('audioGet', { key });
     if (!a || a.hash.slice(0, 10) !== m[3]) return fail('Not found', 404);
     const r = await db.get(`${key}/${Number(m[4])}`);
@@ -98,17 +98,21 @@ export async function handleAudio(request, env, db, url) {
 // One cron run: record a few pieces of the latest days, and drop recordings older than 30 days.
 export async function makeAudio(env, db, url, now = Date.now()) {
   if (!env.AI) return null;
-  const days = (await asset(env, url, '/data/huxi.json')) || [];
+  const days = [];
+  for (const kind of ['huxi', 'diguan']) {
+    const list = (await asset(env, url, `/data/${kind}.json`)) || [];
+    days.push(...list.filter((x) => x.date <= addDays(chinaDate(now), 1)).slice(0, 3).map((d) => ({ ...d, kind })));
+  }
   const today = chinaDate(now);
   let budget = PER_RUN;
   let made = 0;
-  for (const d of days.filter((x) => x.date <= addDays(today, 1)).slice(0, 3)) {
-    const speech = await asset(env, url, `/data/huxi/${d.date}.speech.json`);
+  for (const d of days.filter((x) => x.date <= addDays(today, 1))) {
+    const speech = await asset(env, url, `/data/${d.kind}/${d.date}.speech.json`);
     if (!speech) continue;
     for (const lang of ['zh', 'en']) {
       const s = speech[lang];
       if (!s || !s.chunks.length) continue;
-      const key = keyOf(d.date, lang);
+      const key = keyOf(d.date, lang, d.kind);
       const v = lang === 'en' && d.date < EN_AURA2_FROM ? LEGACY_EN_VOICE : VOICE[lang];
       // the text and the voice together: either changing records the day again
       const h = await hash(`${s.hash}|${v.model}|${v.speaker || ''}`);
@@ -134,8 +138,8 @@ export async function makeAudio(env, db, url, now = Date.now()) {
     }
   }
   const oldest = addDays(today, -KEEP_DAYS);
-  for (const a of await db('audioList', { prefix: 'a:huxi/' })) {
-    if (a.key.slice(7, 17) < oldest) await db('audioDrop', { key: a.key });
+  for (const a of [...await db('audioList', { prefix: 'a:huxi/' }), ...await db('audioList', { prefix: 'a:diguan/' })]) {
+    if (a.key.split('/')[1] < oldest) await db('audioDrop', { key: a.key });
   }
   return { made };
 }
