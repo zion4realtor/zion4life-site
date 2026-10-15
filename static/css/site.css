@@ -252,11 +252,11 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .home-path:nth-child(3) { --path-accent: var(--t-sky); }
 .home-path:nth-child(4) { --path-accent: var(--t-lilac); }
 .home-path::before { content: ""; position: absolute; z-index: -1; top: -54px; right: -45px; width: 132px; height: 132px; border: 1px solid color-mix(in srgb, var(--path-accent) 26%, transparent); border-radius: 50%; box-shadow: 0 0 0 12px color-mix(in srgb, var(--paper) 22%, transparent), 0 0 0 13px color-mix(in srgb, var(--path-accent) 15%, transparent), 0 0 0 28px color-mix(in srgb, var(--paper) 16%, transparent); pointer-events: none; }
-.path-heading { position: relative; display: grid; grid-template-columns: 34px minmax(0,1fr); align-items: start; gap: 10px; }
+.path-heading { position: relative; display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: start; gap: 10px; }
 .path-index { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; color: #fff; background: color-mix(in srgb, var(--path-accent) 78%, var(--water-ink)); box-shadow: inset 0 1px 0 rgba(255,255,255,.36); font: 700 11px/1 var(--body); letter-spacing: .03em; }
 .path-heading h3 { margin: 0; color: var(--ink); font-family: var(--body); font-size: clamp(17px, 2.6vw, 21px); font-weight: 750; line-height: 1.3; letter-spacing: .01em; text-wrap: pretty; }
 .path-heading p { margin: 5px 0 0; color: var(--mute); font-size: 13px; line-height: 1.48; }
-.path-total { position: absolute; right: 0; top: 42px; color: var(--water-ink); font-size: 11px; font-weight: 650; white-space: nowrap; }
+.path-total { margin-top: 4px; color: var(--water-ink); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .path-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
 .path-tag { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--path-accent) 22%, var(--line)); border-radius: 999px; color: var(--ink); background: color-mix(in srgb, var(--paper) 86%, var(--path-accent)); font-size: 13px; line-height: 1.25; text-decoration: none; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
 .path-tag:hover { border-color: color-mix(in srgb, var(--t-aqua) 58%, var(--line)); background: color-mix(in srgb, var(--paper) 83%, var(--t-aqua)); }
@@ -288,18 +288,19 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   .home-command .dazi-name { margin-top: 10px; font-size: 26px; }
   .home-command .dazi-latest { margin-top: 6px; padding-top: 0; }
   .home-command .dazi-link { margin-top: auto; padding-top: 8px; }
-  .home-paths { gap: 9px; }
-  .home-path { padding: 16px 14px 14px; border-radius: 17px; }
-  .path-heading { grid-template-columns: 25px minmax(0,1fr); gap: 7px; }
-  .path-total { grid-column: 2; margin-top: -1px; }
-  .path-heading h3 { font-size: 18px; }
-  .path-heading p { font-size: 13px; }
-  .path-tags { gap: 6px; margin-top: 12px; }
-  .path-tag { gap: 5px; min-height: 34px; padding: 5px 8px; font-size: 13px; }
-  .path-tag small { font-size: 11px; }
-  .path-update { grid-template-columns: 1fr 15px; gap: 4px 6px; margin-top: 11px; padding-top: 10px; }
-  .path-update > span:first-child { grid-column: 1; }
-  .path-update b { grid-column: 1; grid-row: 2; font-size: 13px; }
+  .home-paths { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .home-path { padding: 18px 18px 16px; border-radius: 20px; }
+  .path-heading { grid-template-columns: 36px minmax(0,1fr) auto; gap: 10px; }
+  .path-index { width: 36px; height: 36px; border-radius: 12px; }
+  .path-total { margin-top: 5px; font-size: 12px; }
+  .path-heading h3 { font-size: 21px; }
+  .path-heading p { margin-top: 6px; font-size: 15px; line-height: 1.5; }
+  .path-tags { gap: 8px; margin-top: 15px; }
+  .path-tag { gap: 7px; min-height: 42px; padding: 8px 12px; font-size: 15px; }
+  .path-tag small { font-size: 13px; }
+  .path-update { grid-template-columns: minmax(0,1fr) 20px; gap: 5px 8px; margin-top: 14px; padding: 12px 8px 0; }
+  .path-update > span:first-child { grid-column: 1; font-size: 11px; }
+  .path-update b { display: -webkit-box; grid-column: 1; grid-row: 2; overflow: hidden; font-size: 16px; line-height: 1.4; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
   .path-update > span:last-child { grid-column: 2; grid-row: 1 / span 2; }
   .recent-row { grid-template-columns: 62px minmax(0,1fr) 15px; gap: 8px; padding: 13px 12px; }
   .recent-date { font-size: 11px; }
