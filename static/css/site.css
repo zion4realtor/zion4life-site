@@ -814,6 +814,15 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .hx-body .verse.hx-now { background: color-mix(in srgb, var(--water) 9%, var(--paper)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--water) 45%, transparent); }
 .hx-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 26px 0 8px; padding-top: 18px; border-top: 1px solid var(--line); }
 .hx-sub .hint { margin: 0; flex: 1 1 200px; }
+
+.hx-archive-kicker { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--t-aqua) 32%, var(--line)); border-radius: 999px; color: var(--water-ink); background: color-mix(in srgb, var(--paper) 82%, var(--t-aqua)); font-size: 12px; font-weight: 650; line-height: 1.3; text-decoration: none; white-space: nowrap; }
+.hx-archive-kicker > span:first-child { color: var(--ink); }
+.hx-archive-kicker > span:last-child { font-size: 14px; line-height: 1; }
+.hx-archive-count { padding: 2px 8px; border-radius: 999px; background: var(--paper); color: var(--mute); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.hx-archive-fab { position: fixed; right: max(16px, calc(50% - 344px)); bottom: calc(82px + env(safe-area-inset-bottom, 0px)); z-index: 25; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 17px; border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent); border-radius: 999px; color: #fff; background: var(--water); box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--water) 80%, transparent); font-size: 14px; font-weight: 650; text-decoration: none; animation: hxArchiveIn .18s ease-out both; }
+.hx-archive-fab[hidden] { display: none; }
+@keyframes hxArchiveIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+#archive { scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 74px); }
 @media (min-width: 720px) {
   .hx-hero { padding: 40px 40px 36px; }
   .hx-title { font-size: 46px; }
@@ -823,7 +832,7 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   .hx-sec h2 { font-size: 27px; }
   .hx-body .verse { padding: 18px 24px 20px; font-size: 19.5px; }
 }
-@media (prefers-reduced-motion: reduce) { .hx-a-bar i, .hx-body [data-s] { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .hx-a-bar i, .hx-body [data-s] { transition: none; } .hx-archive-fab { animation: none; } }
 
 /* 我的: the unread count on the tab, 消息, subscriptions */
 .tabbar a { position: relative; }
