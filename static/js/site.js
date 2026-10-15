@@ -227,39 +227,60 @@
     });
   }
 
-  // ---- 有问题想问？ ----
+  // ---- 有问题想问？会员登录后才可以展开和提交 ----
   document.querySelectorAll('[data-ask]').forEach(function (form) {
     var err = form.querySelector('[data-error]');
+    var fold = form.closest('.ask-fold');
+    if (fold) {
+      fold.querySelector('summary').addEventListener('click', function (e) {
+        e.preventDefault();
+        var yg = window.YG;
+        if (!yg) return;
+        yg.requireLogin(zh ? '请先登录或注册会员，再向我们提问或反馈。' : 'Please sign in or create an account before asking a question or sending feedback.')
+          .then(function (m) {
+            if (!m.user) return;
+            fold.open = !fold.open;
+            if (fold.open) setTimeout(function () { form.message.focus(); }, 0);
+          }).catch(function () {});
+      });
+    }
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       err.hidden = true;
-      var msg = form.message.value.trim();
-      if (!msg) {
-        err.textContent = zh ? '先写下你想问的。' : 'Write your question first.';
-        err.hidden = false;
-        return;
+      var yg = window.YG;
+      if (!yg) return;
+      yg.requireLogin(zh ? '请先登录或注册会员，再提交问题或建议。' : 'Please sign in or create an account before sending a question or suggestion.')
+        .then(function (m) { if (m.user) send(); }).catch(function () {});
+      function send() {
+        var msg = form.message.value.trim();
+        if (!msg) {
+          err.textContent = zh ? '先写下你想问的。' : 'Write your question first.';
+          err.hidden = false;
+          return;
+        }
+        var btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ message: msg, name: form.name.value, reply: form.reply.value, website: form.website.value, lang: form.getAttribute('data-lang'), page: location.pathname }),
+        }).then(function (r) { return r.json(); }).then(function (r) {
+          btn.disabled = false;
+          if (!r.ok) { err.textContent = r.error; err.hidden = false; return; }
+          track('generate_lead');
+          form.reset();
+          var done = document.createElement('p');
+          done.className = 'ask-done';
+          done.textContent = form.getAttribute('data-done');
+          btn.insertAdjacentElement('afterend', done);
+          setTimeout(function () { done.remove(); }, 6000);
+        }).catch(function () {
+          btn.disabled = false;
+          err.textContent = zh ? '网络有点问题，请稍后再试。' : 'Network problem. Please try again in a moment.';
+          err.hidden = false;
+        });
       }
-      var btn = form.querySelector('button[type="submit"]');
-      btn.disabled = true;
-      fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, name: form.name.value, reply: form.reply.value, website: form.website.value, lang: form.getAttribute('data-lang'), page: location.pathname }),
-      }).then(function (r) { return r.json(); }).then(function (r) {
-        btn.disabled = false;
-        if (!r.ok) { err.textContent = r.error; err.hidden = false; return; }
-        track('generate_lead');
-        form.reset();
-        var done = document.createElement('p');
-        done.className = 'ask-done';
-        done.textContent = form.getAttribute('data-done');
-        btn.insertAdjacentElement('afterend', done);
-        setTimeout(function () { done.remove(); }, 6000);
-      }).catch(function () {
-        btn.disabled = false;
-        err.textContent = zh ? '网络有点问题，请稍后再试。' : 'Network problem. Please try again in a moment.';
-        err.hidden = false;
-      });
     });
   });
 

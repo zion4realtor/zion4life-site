@@ -7,7 +7,7 @@
 //   /api/ask                              有问题想问 box
 //   /api/admin/*                          Zion's management page
 import { store } from './store.js';
-import { json, fail, str, readBody, rateOk, langOf, tr, isEmail } from './util.js';
+import { json, fail, str, readBody, rateOk, langOf, tr } from './util.js';
 import { handleAuth, currentUser, isAdmin, sameOrigin } from './auth.js';
 import { handleContent, siteData } from './content.js';
 import { handleDazi, runReminders as dazReminders } from './dazi.js';
@@ -37,19 +37,17 @@ export async function handleApi(request, env, url, now = Date.now()) {
   if (p === '/api/inbox' || p === '/api/subs') return handleInbox(request, env, db, url, now, lang);
   if (p.startsWith('/api/audio/')) return handleAudio(request, env, db, url, now);
 
-  // 有问题想问？ Stored first (so nothing is lost), then emailed to Zion when mail is set up.
+  // 有问题想问？只有登录会员可以提交；直接调用 API 也必须校验登录状态。
   if (p === '/api/ask' && request.method === 'POST') {
     if (!sameOrigin(request, url)) return fail('Forbidden', 403);
+    const user = await currentUser(db, request);
+    if (!user) return fail(t('请先登录或注册会员，再提交问题或建议。', 'Please sign in or create an account before sending a question or suggestion.'), 401);
     const b = await readBody(request, 20000);
     if (!b || b.website) return fail(t('内容不完整', 'Something is missing'));
     const message = str(b.message, 3000);
     if (!message) return fail(t('先写下你想问的。', 'Write your question first.'));
-    const user = await currentUser(db, request);
-    let reply = str(b.reply, 120);
-    if (reply && !isEmail(reply)) return fail(t('回信邮箱好像不对，可以不填。', 'That email looks wrong. You can leave it empty.'));
-    if (!reply && user) reply = user.email;
     if (!(await rateOk(db, request, 'ask', 10, now))) return fail(t('今天发得太多了，明天再试。', 'Too many today. Please try again tomorrow.'), 429);
-    const ask = { message, name: str(b.name, 40) || user?.name || '', reply, lang, page: str(b.page, 200) };
+    const ask = { message, name: user.name || '', reply: user.email, lang, page: str(b.page, 200) };
     const { id } = await db('askAdd', { ...ask, now });
     if (await sendAsk(env, ask)) await db('askMailed', { id });
     return json({ ok: true });
