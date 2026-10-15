@@ -70,7 +70,7 @@
       if (off) return;
       fresh = false;
       set('yg_sid', sid + '.' + Date.now());
-      deliver(JSON.parse(body));
+      deliver(body);
     }
     send([{ n: 'page_view' }]);
     window.addEventListener('pageshow', function (e) { if (e.persisted) send([{ n: 'page_view' }]); });
