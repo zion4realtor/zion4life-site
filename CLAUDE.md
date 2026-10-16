@@ -17,6 +17,7 @@ Zion Chen's outreach site 有光 (English name Light), zion4life.faith. Read REA
   Exception (Zion's choice): 呼吸 pages' titles and link previews say the day's date and
   活力排祷告负担, then the headline and lede.
 - Kinds of 搭子 live in `src/kinds.js`, one entry each; keep adding kinds there.
+- 中文文案中不要使用“团契”；按语境使用“小排聚会”或“聚会”。
 - Audience is largely in mainland China: nothing may load from Google, YouTube
   thumbnails or public CDNs on page load; videos load on tap; phone first.
 - Design: water tiles on a sky palette, LXGW WenKai for display text, bottom tab bar

@@ -15,7 +15,7 @@
     "shortGroup": "atlanta-hymn",
     "subscribeTag": false,
     "featureLabel": {
-      "zh": "亚特兰大 · 团契唱诗",
+      "zh": "亚特兰大 · 聚会唱诗",
       "en": "ATLANTA · FELLOWSHIP HYMN"
     },
     "featureAction": {
@@ -38,16 +38,16 @@
     "defaultCaption": "off",
     "captionOptions": [],
     "sourceNote": {
-      "zh": "拍摄于亚特兰大的一次团契唱诗。视频保留原样，没有剪切。",
-      "en": "Recorded at a fellowship gathering in Atlanta. The original video is presented without edits."
+      "zh": "拍摄于亚特兰大的一次聚会唱诗。视频保留原样，没有剪切。",
+      "en": "Recorded at a gathering in Atlanta. The original video is presented without edits."
     },
     "zh": {
       "title": "哦,荣耀神圣爱",
-      "summary": "亚特兰大的一次团契唱诗，众人围坐弹唱英文诗歌《O Glorious Divine Love》。"
+      "summary": "亚特兰大的一次聚会唱诗，众人围坐弹唱英文诗歌《O Glorious Divine Love》。"
     },
     "en": {
       "title": "O Glorious Divine Love",
-      "summary": "A fellowship in Atlanta gathers to sing “O Glorious Divine Love,” a hymn celebrating God’s love."
+      "summary": "A gathering in Atlanta to sing “O Glorious Divine Love,” a hymn celebrating God’s love."
     },
     "poster": "/video/o-glorious-divine-love.jpg",
     "sources": [
@@ -212,7 +212,7 @@
   {
     "slug": "lgh-gospel-sharing",
     "minutes": 4,
-    "seconds": 223.87,
+    "seconds": 217.39,
     "date": "2026-10-15",
     "tags": [
       "lgh",
@@ -226,43 +226,72 @@
     "orientation": "portrait",
     "subscribeTag": "lgh",
     "featureLabel": {
-      "zh": "李光弘 · 福音分享",
-      "en": "LIVINGSTONE LEE · GOSPEL MESSAGE"
+      "zh": "李光弘 · 亚特兰大福音分享",
+      "en": "LIVINGSTONE LEE · ATLANTA GOSPEL MESSAGE"
     },
     "featureAction": {
       "zh": "观看分享",
       "en": "Watch the message"
     },
     "shortKicker": {
-      "zh": "李光弘 · 福音分享",
-      "en": "LIVINGSTONE LEE · THE GOSPEL"
+      "zh": "2026年7月28日 · 亚特兰大",
+      "en": "JULY 28, 2026 · ATLANTA"
     },
     "byline": {
-      "zh": "李光弘 · 中文原声",
-      "en": "Livingstone Lee · Original Chinese"
+      "zh": "李光弘 · 中文原声 · 中英文字幕",
+      "en": "Livingstone Lee · Chinese audio · Chinese & English subtitles"
     },
-    "defaultCaption": "off",
-    "captionOptions": [],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
     "sourceNote": {
-      "zh": "李光弘在团契聚集中分享福音。视频保留原始竖屏画幅和完整内容。",
-      "en": "Livingstone Lee shares the gospel at a fellowship gathering. The original portrait framing and full recording are preserved."
+      "zh": "2026年7月28日在亚特兰大拍摄。保留竖屏画幅，并剪去两处明显的停顿和口误。",
+      "en": "Recorded in Atlanta on July 28, 2026. The portrait framing is preserved, with two brief stumbles trimmed."
     },
     "zh": {
-      "title": "李光弘分享福音",
-      "summary": "李光弘在团契聚集中分享福音，邀请人认识耶稣。"
+      "title": "2026年7月28日｜李光弘在亚特兰大分享福音",
+      "summary": "李光弘从宇宙的秩序、人生的追求与《传道书》谈起，分享人在日光之下为何感到虚空，以及福音所带来的盼望。"
     },
     "en": {
-      "title": "Livingstone Lee Shares the Gospel",
-      "summary": "Livingstone Lee shares the gospel at a fellowship gathering and invites people to know Jesus."
+      "title": "Livingstone Lee Shares the Gospel in Atlanta | July 28, 2026",
+      "summary": "Livingstone Lee reflects on the order of the universe, the search for meaning, and Ecclesiastes—asking why life “under the sun” can feel empty and where lasting hope is found."
     },
     "poster": "/video/lgh-gospel.jpg",
-    "downloadPath": "/video/lgh-gospel.mp4",
     "sources": [
       {
         "type": "file",
         "url": "/video/lgh-gospel.mp4",
         "poster": "/video/lgh-gospel.jpg",
         "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "quotes": {
+      "zh": [
+        "“天也空，地也空，人生渺茫在其中。”",
+        "“日光之下是虚空的虚空，如捕风。”"
+      ],
+      "en": [
+        "“Heaven and earth are empty; life is fleeting among them.”",
+        "“Vanity of vanities; all is vanity under the sun, like chasing the wind.”"
+      ]
+    },
+    "downloadable": false,
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/lgh-gospel-sharing.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/lgh-gospel-sharing.en.vtt"
       }
     ]
   },

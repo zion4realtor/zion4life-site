@@ -941,3 +941,5 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .lyrics-more[open] summary{margin-bottom:14px}
 .lyrics-more .lyrics-stanza p:last-child{margin-bottom:0}
 @media(max-width:520px){.banner{min-height:145px;padding:19px 18px 16px;border-radius:19px}.short-watch.is-portrait .short-stage{padding:12px 0}.short-watch.is-portrait .short-stage .player{width:auto;height:min(76svh,760px);max-width:100%;border-radius:0}.hymn-lyrics-panel{margin-inline:-3px;padding:17px 16px}.lyrics-stanza p{font-size:15.5px;line-height:1.9}}
+
+.short-quotes{margin:18px 0 22px;padding:5px 0 5px 16px;border-left:2px solid #84c7bd;color:#f2e7c9;font:italic 17px/1.65 var(--display)}.short-quotes p{margin:8px 0}.short-quotes p+p{color:#d5e2eb;font-size:15px}
