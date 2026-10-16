@@ -821,3 +821,18 @@ test('half-hour reminders honor device language, explicit override, opt-out, and
   OPS.userUpdate(sql,{id:'persist',emailLangAuto:false});migrate(sql);
   assert.equal(OPS.userById(sql,{id:'persist'}).emailLangAuto,false);
 });
+
+test('Zoom join links appear in covenant and half-hour reminders alongside reading links', async () => {
+ const owner=await signIn('zoom-owner@example.com','Host',{deviceLang:'en'});
+ const url='https://us02web.zoom.us/j/12345678901?pwd=Demo%2BPass%3D&omn=456';
+ const date=new Date(Date.now()+86400000).toISOString().slice(0,10);
+ mails=[];
+ const made=await call('/api/dazi',{cookie:owner,body:groupBody({startDate:date,time:'12:00',venue:{type:'zoom',info:`Join Zoom: ${url}`}})});
+ assert.equal(made.body.ok,true,JSON.stringify(made.body));
+ assert.ok(mails.at(-1).html.includes('Join Zoom meeting'));assert.ok(mails.at(-1).text.includes(url));
+ const g=await store(env)('dzGet',{id:made.body.id});const s=session(g,1);mails=[];
+ await runReminders(env,s.start-30*60000);
+ const mail=mails.find(m=>m.to.includes('zoom-owner@example.com'));
+ assert.ok(mail);assert.ok(mail.html.includes('Join Zoom meeting'));assert.ok(mail.text.includes(url));assert.ok(mail.html.includes(`/en/g/${g.id}/1`));
+ assert.ok(mail.html.includes('pwd=Demo%2BPass%3D&amp;omn=456'));
+});

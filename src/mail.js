@@ -27,19 +27,46 @@ export async function sendMail(env, { to, subject, html, text, attachments, repl
   return { ok: r.ok };
 }
 
+// Escape text while keeping ordinary web URLs usable in email clients.
+const webUrls = /https?:\/\/[^\s<>"'，。；、（）]+/gi;
+function urlsIn(text) {
+  return [...String(text || '').matchAll(webUrls)].map(m => ({ at: m.index, url: m[0].replace(/[.,;!?\])}]+$/, '') }));
+}
+export function zoomMeetingLink(info) {
+  for (const { url } of urlsIn(info)) {
+    try {
+      const u = new URL(url);
+      if (!u.username && !u.password && /(^|\.)(zoom\.us|zoom\.com|zoomgov\.com)$/.test(u.hostname) && /^\/(j|w|my)\//.test(u.pathname)) {
+        u.protocol = 'https:';
+        return u.href;
+      }
+    } catch (_) { /* Leave invalid addresses as ordinary text. */ }
+  }
+  return null;
+}
+function emailLine(text) {
+  let out = '', end = 0;
+  for (const { at, url } of urlsIn(text)) {
+    out += esc(text.slice(end, at)) + `<a href="${esc(url)}" style="color:#1f6f99;text-decoration:underline;overflow-wrap:anywhere">${esc(url)}</a>`;
+    end = at + url.length;
+  }
+  return out + esc(text.slice(end));
+}
+
 // One simple, readable layout for every email, in the reader's language.
-export function layout({ lang = 'zh', title, lines, big, button, footer }) {
+export function layout({ lang = 'zh', title, lines, big, button, secondaryButton, footer }) {
   const brand = lang === 'en' ? 'Light · zion4life.faith' : '有光 · zion4life.faith';
   const html = `<!doctype html><html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><body style="margin:0;background:#eaf6ff;padding:24px 12px;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#1b2a38">
 <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:18px;padding:28px 24px">
 <p style="margin:0 0 18px;font-size:14px;font-weight:600;color:#1f6f99">${esc(brand)}</p>
 <h1 style="margin:0 0 16px;font-size:21px;line-height:1.5">${esc(title)}</h1>
 ${big ? `<p style="margin:6px 0 18px;font-size:34px;font-weight:700;letter-spacing:.18em;color:#1b2a38">${esc(big)}</p>` : ''}
-${lines.filter(Boolean).map((l) => `<p style="margin:0 0 12px;font-size:16px;line-height:1.8">${esc(l)}</p>`).join('')}
+${lines.filter(Boolean).map((l) => `<p style="margin:0 0 12px;font-size:16px;line-height:1.8">${emailLine(l)}</p>`).join('')}
 ${button ? `<p style="margin:22px 0 6px"><a href="${esc(button.url)}" style="display:inline-block;background:#2a8fc4;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:999px">${esc(button.label)}</a></p>` : ''}
+${secondaryButton ? `<p style="margin:16px 0 6px"><a href="${esc(secondaryButton.url)}" style="display:inline-block;color:#1f6f99;font-size:16px;text-decoration:underline;padding:8px 0">${esc(secondaryButton.label)}</a></p>` : ''}
 ${footer ? `<p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:#5a6d80">${footer}</p>` : ''}
 </div></body></html>`;
-  const text = [title, '', big || '', ...lines.filter(Boolean), button ? `${button.label}: ${button.url}` : ''].filter((x, i) => x || i === 1).join('\n');
+  const text = [title, '', big || '', ...lines.filter(Boolean), button ? `${button.label}: ${button.url}` : '', secondaryButton ? `${secondaryButton.label}: ${secondaryButton.url}` : ''].filter((x, i) => x || i === 1).join('\n');
   return { html, text };
 }
 

@@ -7,7 +7,7 @@
 import { json, fail, str, randomId, readBody, rateOk, tr, pre, SITE } from './util.js';
 import { currentUser, isAdmin, sameOrigin } from './auth.js';
 import { siteData } from './content.js';
-import { sendMail, layout } from './mail.js';
+import { zoomMeetingLink, sendMail, layout } from './mail.js';
 import {
   KINDS, VENUES, validTimeZone, localDate, addDays, sessionState, session, startedCount, totalSessions, readingFor,
   scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText, weekStarts, planned, scheduleAt, attendsSession, attendanceWeek, daysText,
@@ -162,7 +162,8 @@ async function mailCovenant(env, g, user, owner, ctx, now) {
       user.attendanceDays ? t(`我参加：${daysText(user.attendanceDays, 'zh')}（${user.attendanceTz}）`, `My days: ${daysText(user.attendanceDays, 'en')} (${user.attendanceTz})`) : '',
       t('附件是日历邀请，点“加入日历”，每次开始时手机会提醒你，点开提醒就能看到这次要读的材料。', 'The attachment is a calendar invitation. Add it, and your phone will remind you each time, with a link to that time’s reading.'),
     ],
-    button: { label: t('打开搭子', 'Open the group'), url: groupUrl(g, L) },
+    button: zoomMeetingLink(g.venue.info) ? { label: t('加入 Zoom 会议', 'Join Zoom meeting'), url: zoomMeetingLink(g.venue.info) } : { label: t('打开搭子', 'Open the group'), url: groupUrl(g, L) },
+    secondaryButton: zoomMeetingLink(g.venue.info) ? { label: t('打开搭子', 'Open the group'), url: groupUrl(g, L) } : undefined,
   });
   await sendMail(env, { to: user.email, subject: owner ? t(`「${g.title}」建好了`, `"${g.title}" is ready`) : t(`立约：${g.title}`, `Covenant: ${g.title}`), html, text, attachments: [inviteFile(g, user, L, ctx, now)] });
 }
@@ -196,10 +197,11 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
           lines: [
             t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh', u.tz || g.tz)}，${minutesText((s.end-s.start)/60000, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en', u.tz || g.tz)}, ${minutesText((s.end-s.start)/60000, 'en')}.`),
             t(`这次读：${r.full}`, `This time: ${r.full}`),
-            t(`在哪里见面：${VENUES[g.venue.type].zh}`, `Where: ${VENUES[g.venue.type].en}`),
+            t(`在哪里见面：${VENUES[g.venue.type].zh}${g.venue.info ? `（${g.venue.info}）` : ''}`, `Where: ${VENUES[g.venue.type].en}${g.venue.info ? ` (${g.venue.info})` : ''}`),
             t('读完回来点“打卡”，也可以写几句心得。', 'When you finish, come back to check in and jot a few notes.'),
           ],
-          button: { label: t('打开这次的材料', 'Open this time’s reading'), url: groupUrl(g, L, s.n) },
+          button: zoomMeetingLink(g.venue.info) ? { label: t('加入 Zoom 会议', 'Join Zoom meeting'), url: zoomMeetingLink(g.venue.info) } : { label: t('打开这次的材料', 'Open this time’s reading'), url: groupUrl(g, L, s.n) },
+          secondaryButton: zoomMeetingLink(g.venue.info) ? { label: t('打开这次的材料', 'Open this time’s reading'), url: groupUrl(g, L, s.n) } : undefined,
           footer: t('不想收到这个搭子的邮件？打开搭子，在“设置”里关掉提醒。', 'No more emails from this group? Open it and turn reminders off in Settings.'),
         });
         await sendMail(env, { to: u.email, subject: t(`【有光】聚会提醒：${g.title} · ${r.full}`, `[Light] Meeting reminder: ${g.title} · ${r.full}`), html, text });
