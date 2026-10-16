@@ -9,7 +9,17 @@ export async function serveVideo(request, env) {
   if (asset.status !== 200) return asset;
   const out = new Headers(asset.headers);
   out.set('Accept-Ranges', 'bytes');
-  const size = Number(out.get('Content-Length'));
+  let size = Number(out.get('Content-Length'));
+  // The binding may omit this header even though the edge adds it to responses.
+  // Use build-time lengths rather than buffering a whole video into memory.
+  if (!Number.isSafeInteger(size) || size <= 0) {
+    const manifest = await env.ASSETS.fetch(new Request(new URL('/data/video-sizes.json', request.url)));
+    if (manifest.ok) {
+      const sizes = await manifest.json();
+      size = sizes[new URL(request.url).pathname];
+      if (Number.isSafeInteger(size) && size > 0) out.set('Content-Length', String(size));
+    }
+  }
   if (request.method === 'HEAD') { await asset.body?.cancel(); return new Response(null, { status: 200, headers: out }); }
   const range = request.headers.get('Range');
   const validator = request.headers.get('If-Range');

@@ -20,3 +20,11 @@ test('MP4 byte ranges: Safari probe, seeking, open and suffix ranges, invalid ra
   }
   const r=await serveVideo(new Request('https://example.com/video/test.mp4',{method:'HEAD'}),fixture());assert.equal(r.headers.get('Accept-Ranges'),'bytes');assert.equal(await r.text(),'');
 });
+
+test('MP4 ranges use build manifest when the asset binding omits Content-Length', async () => {
+  const env={ASSETS:{fetch:async request=>new URL(request.url).pathname==='/data/video-sizes.json'
+    ? Response.json({'/video/test.mp4':bytes.length})
+    : new Response(bytes,{headers:{'Content-Type':'video/mp4'}})}};
+  const r=await serveVideo(new Request('https://example.com/video/test.mp4',{headers:{Range:'bytes=0-1'}}),env);
+  assert.equal(r.status,206);assert.equal(r.headers.get('Content-Range'),'bytes 0-1/10');assert.equal(await r.text(),'01');
+});

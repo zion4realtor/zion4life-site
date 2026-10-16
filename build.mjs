@@ -968,6 +968,15 @@ fs.writeFileSync(path.join(DIST, '404.html'), page({
 <p class="btn-row"><a class="btn btn-water" href="/">${S.zh.home}</a><a class="btn btn-line" href="/en/">${S.en.home}</a></p></section>`,
 }));
 
+// Exact video lengths for byte ranges when the asset binding omits Content-Length.
+const videoSizes = {};
+const videoDir = path.join(STATIC, 'video');
+if (fs.existsSync(videoDir)) for (const name of fs.readdirSync(videoDir)) {
+  if (name.endsWith('.mp4')) videoSizes[`/video/${name}`] = fs.statSync(path.join(videoDir, name)).size;
+}
+fs.mkdirSync(path.join(DIST, 'data'), { recursive: true });
+fs.writeFileSync(path.join(DIST, 'data/video-sizes.json'), JSON.stringify(videoSizes));
+
 // sitemap + robots
 fs.writeFileSync(path.join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
