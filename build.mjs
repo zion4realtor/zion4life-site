@@ -244,6 +244,8 @@ const videos = readJSON('videos.json').map((v) => {
 }).sort((a, b) => String(b.date).localeCompare(String(a.date)));
 const items = [...articles, ...videos].sort((a, b) => String(b.date).localeCompare(String(a.date)));
 const itemsOf = (tagId) => items.filter((i) => i.tags.includes(tagId));
+const homeItems = items.filter((i) => !i.tagOnly);
+const homeItemsOf = (tagId) => homeItems.filter((i) => i.tags.includes(tagId));
 
 // 呼吸 days: a headline (title), a lede, then ## sections (verses as > quotes, the burden,
 // the ministry with ### headings and (source) lines). huxiHtml() shapes them for reading;
@@ -485,20 +487,21 @@ for (const lang of LANGS) {
     const pathHTML = pathDefs.map((group, index) => {
       const pathTags = group.tags.map((id) => {
         const tag = tagMap.get(id);
-        const list = itemsOf(id);
+        const list = homeItemsOf(id);
         const lastDate = list[0]?.date || '';
         const timestamp = lastDate ? Date.parse(`${lastDate}T00:00:00Z`) : 0;
         return `<a class="path-tag" href="${U(lang, `/t/${id}/`)}" data-home-tag="${id}" data-home-static-count="${list.length}" data-home-updated="${timestamp}"><span>${esc(tag[lang])}</span><small data-home-count>${list.length}</small></a>`;
       }).join('');
-      const groupItems = group.tags.flatMap((id) => itemsOf(id).map((it) => ({ ...it, homeTag: id }))).sort((a, b) => b.date.localeCompare(a.date));
+      const groupItems = group.tags.flatMap((id) => homeItemsOf(id).map((it) => ({ ...it, homeTag: id }))).sort((a, b) => b.date.localeCompare(a.date));
       const latest = groupItems[0];
       const count = group.tags.length;
       const recentTitle = latest ? latest[lang].title : (lang === 'zh' ? '内容正在整理中' : 'New content is on the way');
       return `<section class="home-path" data-home-path="${group.id}" data-path-updated="${latest ? Date.parse(`${latest.date}T00:00:00Z`) : 0}"><div class="path-heading"><span class="path-index">${String(index + 1).padStart(2, '0')}</span><div><h3>${group.title}</h3><p>${group.note}</p></div><span class="path-total">${count} ${lang === 'zh' ? '个主题' : (count === 1 ? 'topic' : 'topics')}</span></div><div class="path-tags">${pathTags}</div><a class="path-update" href="${latest ? itemHref(latest, lang) : U(lang, `/t/${group.tags[0]}/`)}" data-path-link><span>${lang === 'zh' ? '最近上新' : 'LATEST'}</span><b data-path-summary>${esc(recentTitle)}</b><span aria-hidden="true">↗</span></a></section>`;
     }).join('');
     const featuredVideos = videos.filter(v => v.spotlight);
-    const spotlight = `<section class="lgh-feature" data-home-fresh="videos" data-updated="${Math.max(0,...featuredVideos.map(v => Date.parse(v.publishedAt || v.date) || 0))}" aria-labelledby="lgh-feature-title"><div class="lgh-feature-heading"><span class="lgh-eyebrow">${lang === 'zh' ? '李光弘 · 人生不止 KPI' : 'LIVINGSTONE LEE · MORE TO LIFE'}</span><h2 id="lgh-feature-title">${lang === 'zh' ? '忙着生活，也别忘了自己。' : 'There’s more to life than keeping up.'}</h2><p>${lang === 'zh' ? '从一个小问题开始，听见生活的另一种可能。' : 'A small question. A different way to see everyday life.'}</p></div><div class="lgh-feature-grid">${featuredVideos.map((v,i) => `<a class="lgh-film" href="${U(lang, `/v/${v.slug}/`)}"><div class="lgh-film-image"><img src="${v.poster}" alt="${lang === 'zh' ? '李光弘讲话画面' : 'Livingstone Lee speaking'}" width="540" height="360"><span class="lgh-film-play">${ICON.play}</span><span class="lgh-duration">${Math.floor(v.seconds/60)}:${String(Math.round(v.seconds%60)).padStart(2,'0')}</span></div><div class="lgh-film-copy"><span>${lang === 'zh' ? '福乐人生 · 精选片段' : 'THE BLESSED LIFE · EXCERPT'} ${String(i+1).padStart(2,'0')}</span><h3>${esc(v[lang].title)}</h3><p>${esc(v[lang].summary)}</p><b>${lang === 'zh' ? '听这一段' : 'Watch this moment'} ↗</b></div></a>`).join('')}</div><a class="lgh-more" href="${U(lang, '/t/lgh/')}">${lang === 'zh' ? '认识李光弘，看看更多内容' : 'Meet Livingstone Lee and explore more'} →</a></section>`;
-    const recentItems = items.slice(0, 4).map((it) => {
+    const hasHymnFeature = featuredVideos.some(v => v.lyricsUrl);
+    const spotlight = `<section class="lgh-feature" data-home-fresh="videos" data-updated="${Math.max(0,...featuredVideos.map(v => Date.parse(v.publishedAt || v.date) || 0))}" aria-labelledby="lgh-feature-title"><div class="lgh-feature-heading"><span class="lgh-eyebrow">${hasHymnFeature ? (lang === 'zh' ? '精选 · 故事与诗歌' : 'FEATURED · STORIES & SONGS') : (lang === 'zh' ? '李光弘 · 人生不止 KPI' : 'LIVINGSTONE LEE · MORE TO LIFE')}</span><h2 id="lgh-feature-title">${hasHymnFeature ? (lang === 'zh' ? '在故事与歌声里，遇见生命的盼望。' : 'Stories and songs for a life of hope.') : (lang === 'zh' ? '忙着生活，也别忘了自己。' : 'There’s more to life than keeping up.')}</h2><p>${hasHymnFeature ? (lang === 'zh' ? '听见真实的人生，也在诗歌中感受爱。' : 'Real-life reflections and a hymn about divine love.') : (lang === 'zh' ? '从一个小问题开始，听见生活的另一种可能。' : 'A small question. A different way to see everyday life.')}</p></div><div class="lgh-feature-grid">${featuredVideos.map((v,i) => `<a class="lgh-film" href="${U(lang, `/v/${v.slug}/`)}"><div class="lgh-film-image"><img src="${v.poster}" alt="${esc(v.featureLabel?.[lang] || (lang === 'zh' ? '李光弘讲话画面' : 'Livingstone Lee speaking'))}" width="540" height="360"><span class="lgh-film-play">${ICON.play}</span><span class="lgh-duration">${Math.floor(v.seconds/60)}:${String(Math.round(v.seconds%60)).padStart(2,'0')}</span></div><div class="lgh-film-copy"><span>${esc(v.featureLabel?.[lang] || (lang === 'zh' ? '福乐人生 · 精选片段' : 'THE BLESSED LIFE · EXCERPT'))} ${String(i+1).padStart(2,'0')}</span><h3>${esc(v[lang].title)}</h3><p>${esc(v[lang].summary)}</p><b>${esc(v.featureAction?.[lang] || (lang === 'zh' ? '听这一段' : 'Watch this moment'))} ↗</b></div></a>`).join('')}</div><a class="lgh-more" href="${U(lang, hasHymnFeature ? '/t/songs/' : '/t/lgh/')}">${hasHymnFeature ? (lang === 'zh' ? '继续浏览粮仓内容' : 'Explore more from the Granary') : (lang === 'zh' ? '认识李光弘，看看更多内容' : 'Meet Livingstone Lee and explore more')} →</a></section>`;
+    const recentItems = homeItems.slice(0, 4).map((it) => {
       const tag = tagMap.get(it.tags[0]);
       const c = it[lang];
       return `<a class="recent-row" href="${itemHref(it, lang)}"><span class="recent-date">${esc(it.date)}</span><span class="recent-text"><b>${esc(c.title)}</b><small>${esc(c.summary || tag?.[lang] || '')}</small></span><span class="recent-kind">${it.kind === 'video' ? (lang === 'zh' ? '视频' : 'VIDEO') : (lang === 'zh' ? '文章' : 'READ')}<i aria-hidden="true">↗</i></span></a>`;
@@ -554,7 +557,7 @@ ${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).joi
     const mysteryPdf = lang === 'zh'
       ? { file: '/files/mystery-of-human-life.zh.pdf', pages: ['/files/mystery-zh-1.jpg', '/files/mystery-zh-2.jpg'] }
       : { file: '/files/mystery-of-human-life.en.pdf', pages: ['/files/mystery-en-1.jpg', '/files/mystery-en-2.jpg'] };
-    const related = items.filter((x) => x !== a && !x.sample && (dripShepherding ? /^diguan-muyang-/.test(x.slug) : x.tags.some((t) => a.tags.includes(t)))).slice(0, 4);
+    const related = items.filter((x) => !x.tagOnly && x !== a && !x.sample && (dripShepherding ? /^diguan-muyang-/.test(x.slug) : x.tags.some((t) => a.tags.includes(t)))).slice(0, 4);
     emit(lang, `/a/${a.slug}/`, {
       title: c.title,
       desc: mystery ? c.title : c.summary || plain(c.html).slice(0, 90),
@@ -589,14 +592,28 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
   for (const v of videos) {
     const c = v[lang];
     const sources = v.sources.map((s, i) => ({ ...s, ...(s.type === 'file' ? { subtitles: s.subtitles || v.subtitles || [] } : {}), label: s.label || (lang === 'zh' ? `线路${i + 1}` : `Line ${i + 1}`) }));
-    if (v.spotlight) {
-      const group = videos.filter(x => x.spotlight);
-      const i = group.indexOf(v), next = group[(i+1)%group.length];
+    if (v.short || v.spotlight) {
+      const group = v.shortGroup ? videos.filter(x => x.shortGroup === v.shortGroup) : [v];
+      const i = group.indexOf(v), next = group.length > 1 ? group[(i+1)%group.length] : null;
+      const backTag = v.tags[0];
+      const subscribeTag = v.subscribeTag === false ? '' : (v.subscribeTag || (v.spotlight ? 'lgh' : ''));
+      const captionOptions = v.captionOptions || ['en', 'zh', 'off'];
+      const defaultCaption = typeof v.defaultCaption === 'object' ? v.defaultCaption[lang] : (v.defaultCaption || 'en');
+      const captionLabel = (key) => key === 'en' ? 'English' : key === 'zh' ? '中文' : (lang === 'zh' ? '关' : 'Off');
+      const shortKicker = v.shortKicker?.[lang] || (lang === 'zh' ? '福乐人生 · 精选片段' : 'THE BLESSED LIFE · EXCERPT');
+      const byline = v.byline?.[lang] || (lang === 'zh' ? '李光弘 · 中文原声 · 英文字幕' : 'Livingstone Lee · Chinese audio · English subtitles');
+      const sourceNote = v.sourceNote?.[lang] || (lang === 'zh' ? '选自李光弘1998年《福乐人生》。保留原始录像画幅和中文原声。中文原声保留；英文字幕由本站根据讲述内容翻译、校订。' : 'From The Blessed Life, a 1998 talk by Livingstone Lee. Original picture format and Chinese audio preserved. English subtitles translated and edited for Light.');
+      const downloadPath = v.downloadPath || (v.shortGroup === 'livingstone-lee' ? `/video/${v.slug}-share.mp4` : '');
+      const download = downloadPath ? `<div class="video-download"><a class="btn btn-line" href="${downloadPath}" download>${lang === 'zh' ? '保存视频' : 'Save video'}</a><p>${lang === 'zh' ? '下载后可以从手机相册或文件中转发。' : 'Download, then share it from Photos or Files.'}</p></div>` : '';
+      const subscribe = subscribeTag ? `<div class="video-subscribe drip-subscribe"><button type="button" class="btn btn-line btn-sm" data-sub="tag:${subscribeTag}" data-on="${lang === 'zh' ? '已订阅' : 'Subscribed'}" data-off="${lang === 'zh' ? '订阅更新' : 'Subscribe to updates'}">${lang === 'zh' ? '订阅更新' : 'Subscribe to updates'}</button><span class="hint">${lang === 'zh' ? '新内容上架，在“我的”里通知你。' : 'New content updates arrive in “Me”.'}</span></div>` : '';
+      const nextLink = next ? `<a class="short-next" href="${U(lang,`/v/${next.slug}/`)}"><span>${lang === 'zh' ? '接着听下一段' : 'UP NEXT'}<b>${esc(next[lang].title)}</b></span><span>→</span></a>` : '';
+      const captionControls = captionOptions.length ? `<div class="short-captions" role="group" aria-label="${lang === 'zh' ? '字幕选择' : 'Subtitles'}"><span>${lang === 'zh' ? '字幕' : 'Subtitles'}</span>${captionOptions.map((key) => `<button type="button" data-caption="${key}" aria-pressed="${String(key === defaultCaption)}">${captionLabel(key)}</button>`).join('')}</div>` : '';
+      const hymnLinks = v.lyricsUrl ? `<section class="hymn-links" aria-label="${lang === 'zh' ? '歌词和完整诗歌' : 'Lyrics and full hymn'}"><h2>${lang === 'zh' ? '歌词' : 'Lyrics'}</h2><a class="hymn-lyrics" href="${v.lyricsUrl[lang]}" target="_blank" rel="noopener noreferrer">${lang === 'zh' ? '查看中文歌词 · hymnal.net' : 'Read the English lyrics · hymnal.net'} <span aria-hidden="true">↗</span></a><a class="hymn-full" href="${v.fullSongUrl}" target="_blank" rel="noopener noreferrer">${lang === 'zh' ? '想要听整首' : 'Listen to the full hymn'} <span aria-hidden="true">↗</span></a></section>` : '';
       emit(lang, `/v/${v.slug}/`, { title:c.title, desc:c.summary, tab:'home',
-        body:`<div class="video-subscribe drip-subscribe"><button type="button" class="btn btn-line btn-sm" data-sub="tag:lgh" data-on="${lang==='zh'?'已订阅李光弘':'Subscribed to Livingstone Lee'}" data-off="${lang==='zh'?'订阅李光弘':'Subscribe to Livingstone Lee'}">${lang==='zh'?'订阅李光弘':'Subscribe to Livingstone Lee'}</button><span class="hint">${lang==='zh'?'新内容上架，在“我的”里通知你。':'New content updates arrive in “Me”.'}</span></div><article class="short-watch"><div class="short-top"><a href="${U(lang,'/t/lgh/')}">← ${lang === 'zh' ? '李光弘' : 'Livingstone Lee'}</a><span>${lang === 'zh' ? '福乐人生 · 精选片段' : 'THE BLESSED LIFE · EXCERPT'} · ${i+1}/${group.length}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster}" alt="" width="540" height="360"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，听这一段' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}</div></div><div class="short-copy"><div class="short-byline">${lang === 'zh' ? '李光弘 · 中文原声 · 英文字幕' : 'Livingstone Lee · Chinese audio · English subtitles'}</div><h1>${esc(c.title)}</h1><div class="short-captions" role="group" aria-label="${lang === 'zh' ? '字幕选择' : 'Subtitles'}"><span>${lang === 'zh' ? '字幕' : 'Subtitles'}</span><button type="button" data-caption="en" aria-pressed="true">English</button><button type="button" data-caption="zh" aria-pressed="false">中文</button><button type="button" data-caption="off" aria-pressed="false">${lang === 'zh' ? '关' : 'Off'}</button></div><p class="short-summary">${esc(c.summary)}</p>${shareBox(lang,lang==='zh'?'有共鸣？发给一个你想到的人。':'Someone came to mind? Send them this moment.',U(lang,`/v/${v.slug}/`),c.title)}<div class="video-download"><a class="btn btn-line" href="/video/${v.slug}-share.mp4" download="zion4life-${v.slug}.mp4">${lang==='zh'?'保存带字幕视频':'Save subtitled video'}</a><p>${lang==='zh'?'下载后，在微信聊天里点「＋」，选择相册或文件发送。视频自带英文字幕和 zion4life.faith 标志。':'Download, then send from Photos or Files in your chat app. English subtitles and the zion4life.faith mark stay with the video.'}</p></div><a class="short-next" href="${U(lang,`/v/${next.slug}/`)}"><span>${lang==='zh'?'接着听下一段':'UP NEXT'}<b>${esc(next[lang].title)}</b></span><span>→</span></a><details class="short-source"><summary>${lang==='zh'?'这段从哪里来？':'About this excerpt'}</summary><p>${lang==='zh'?'选自李光弘1998年《福乐人生》。保留原始录像画幅和中文原声。':'From The Blessed Life, a 1998 talk by Livingstone Lee. Original picture format and Chinese audio preserved.'}</p><p>${lang==='zh'?'中文原声保留；英文字幕由本站根据讲述内容翻译、校订。':'Original Chinese audio. English subtitles translated and edited for Light.'}</p></details><div class="short-note" role="status" hidden></div></div></article><section class="talk video-talk" data-talk="v:${v.slug}"></section>` });
+        body:`${subscribe}<article class="short-watch" data-caption-choice="${defaultCaption}"><div class="short-top"><a href="${U(lang,`/t/${backTag}/`)}">← ${esc(TAG[backTag]?.[lang] || L.back)}</a><span>${esc(shortKicker)}${group.length > 1 ? ` · ${i+1}/${group.length}` : ''}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster || sources[0]?.poster || ''}" alt="" width="540" height="360"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，播放视频' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}</div></div><div class="short-copy"><div class="short-byline">${esc(byline)}</div><h1>${esc(c.title)}</h1>${captionControls}<p class="short-summary">${esc(c.summary)}</p>${hymnLinks}${shareBox(lang,lang === 'zh' ? '想分享这段视频？' : 'Want to share this video?',U(lang,`/v/${v.slug}/`),c.title)}${download}<details class="short-source"><summary>${lang === 'zh' ? '关于这段视频' : 'About this video'}</summary><p>${esc(sourceNote)}</p></details>${nextLink}<div class="short-note" role="status" hidden></div></div></article><section class="talk video-talk" data-talk="v:${v.slug}"></section>` });
       continue;
     }
-    const related = items.filter((x) => x !== v && x.tags.some((t) => v.tags.includes(t))).slice(0, 4);
+    const related = items.filter((x) => !x.tagOnly && x !== v && x.tags.some((t) => v.tags.includes(t))).slice(0, 4);
     emit(lang, `/v/${v.slug}/`, {
       title: c.title,
       desc: c.summary || c.title,
@@ -730,7 +747,7 @@ function writeData(rel, data) {
   fs.writeFileSync(file, JSON.stringify(data));
 }
 writeData('tags.json', TAGS);
-writeData('items.json', items.map((i) => ({ key: `${i.kind === 'video' ? 'v' : 'a'}:${i.slug}`, tags: i.tags, date: i.date, zh: i.zh.title, en: i.en.title })));
+writeData('items.json', homeItems.map((i) => ({ key: `${i.kind === 'video' ? 'v' : 'a'}:${i.slug}`, tags: i.tags, date: i.date, zh: i.zh.title, en: i.en.title })));
 writeData('bible.json', BOOKS.map((b) => ({ n: b.n, zh: b.zh, en: b.en, ch: b.chapters })));
 writeData('feed.json', feed.map((p) => ({ n: p.n, sample: p.sample, zh: { title: p.zh.title }, en: { title: p.en.title } })));
 for (const p of feed) writeData(`feed/${p.n}.json`, { n: p.n, sample: p.sample, zh: { title: p.zh.title, html: p.zh.html }, en: { title: p.en.title, html: p.en.html } });

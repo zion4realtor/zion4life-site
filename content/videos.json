@@ -1,5 +1,65 @@
 [
   {
+    "slug": "o-glorious-divine-love",
+    "minutes": 2,
+    "seconds": 121.51,
+    "date": "2026-10-15",
+    "tags": [
+      "songs",
+      "students",
+      "feelings",
+      "newfriends"
+    ],
+    "short": true,
+    "spotlight": true,
+    "shortGroup": "atlanta-hymn",
+    "subscribeTag": false,
+    "featureLabel": {
+      "zh": "亚特兰大 · 团契唱诗",
+      "en": "ATLANTA · FELLOWSHIP HYMN"
+    },
+    "featureAction": {
+      "zh": "欣赏诗歌",
+      "en": "Watch the hymn"
+    },
+    "lyricsUrl": {
+      "zh": "https://www.hymnal.net/en/hymn/ns/141c?gb=1",
+      "en": "https://www.hymnal.net/en/hymn/ns/141"
+    },
+    "fullSongUrl": "https://soundcloud.com/user-132341707/o-glorious-divine-love",
+    "shortKicker": {
+      "zh": "亚特兰大 · 一同唱诗",
+      "en": "ATLANTA · SINGING TOGETHER"
+    },
+    "byline": {
+      "zh": "亚特兰大 · 英文诗歌",
+      "en": "Atlanta · English hymn"
+    },
+    "defaultCaption": "off",
+    "captionOptions": [],
+    "sourceNote": {
+      "zh": "拍摄于亚特兰大的一次团契唱诗。视频保留原样，没有剪切。",
+      "en": "Recorded at a fellowship gathering in Atlanta. The original video is presented without edits."
+    },
+    "zh": {
+      "title": "哦，神圣的爱！",
+      "summary": "亚特兰大的一次团契唱诗，众人围坐弹唱英文诗歌《O Glorious Divine Love》。"
+    },
+    "en": {
+      "title": "O Glorious Divine Love!",
+      "summary": "A fellowship in Atlanta gathers to sing “O Glorious Divine Love,” a hymn celebrating God’s love."
+    },
+    "poster": "/video/o-glorious-divine-love.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/o-glorious-divine-love.mp4",
+        "poster": "/video/o-glorious-divine-love.jpg",
+        "label": "English original"
+      }
+    ]
+  },
+  {
     "slug": "meaning-of-life",
     "minutes": 2,
     "seconds": 95.36,
@@ -11,6 +71,7 @@
       "feelings"
     ],
     "spotlight": true,
+    "shortGroup": "livingstone-lee",
     "zh": {
       "title": "日子像钟摆，来回都是无聊？",
       "summary": "上班觉得空，放假又无聊。李光弘用一个钟摆的比喻，聊聊我们到底在为什么而活。"
@@ -53,6 +114,7 @@
       "feelings"
     ],
     "spotlight": true,
+    "shortGroup": "livingstone-lee",
     "zh": {
       "title": "吃穿不愁，心里还缺什么？",
       "summary": "生活的需要，不只有吃饱和过好。李光弘从人的内在需要，聊到信仰带来的另一种可能。"
