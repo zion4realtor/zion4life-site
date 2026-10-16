@@ -95,5 +95,12 @@
     "zh": "唱诗",
     "en": "Hymns",
     "tint": "sky"
+  },
+  {
+    "id": "video",
+    "zh": "视频",
+    "en": "Videos",
+    "tint": "sky",
+    "size": "wide"
   }
 ]

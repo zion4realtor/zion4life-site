@@ -332,5 +332,80 @@
     },
     "sources": [],
     "sample": true
+  },
+  {
+    "slug": "one-flyer-one-family",
+    "minutes": 4,
+    "seconds": 253.9,
+    "date": "2026-10-16",
+    "tags": [
+      "goodnews",
+      "lgh",
+      "video",
+      "stories"
+    ],
+    "short": true,
+    "spotlight": true,
+    "shortGroup": "one-flyer-family",
+    "subscribeTag": "video",
+    "downloadable": false,
+    "featureLabel": {
+      "zh": "李光弘 · 有光的故事",
+      "en": "LIVINGSTONE LEE · STORIES OF LIGHT"
+    },
+    "featureAction": {
+      "zh": "听这一段",
+      "en": "Watch this moment"
+    },
+    "shortKicker": {
+      "zh": "有光的故事 · 李光弘",
+      "en": "STORIES OF LIGHT · LIVINGSTONE LEE"
+    },
+    "byline": {
+      "zh": "李光弘 · 中文原声 · 中英文字幕",
+      "en": "Livingstone Lee · Chinese audio · English subtitles"
+    },
+    "defaultCaption": {
+      "zh": "en",
+      "en": "en"
+    },
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "sourceNote": {
+      "zh": "选自《福音(12)「救命仙『單』 ─ 一張福音單張的傳奇」》，李光弘弟兄2020年5月26日讲于花莲。原片时间 00:34:58.400–00:39:12.300。保留中文原声与原始横屏画幅；字幕为本站整理的样片稿。",
+      "en": "From “Gospel (12): The Life-Saving Leaflet — The Story of a Gospel Tract,” a talk by Livingstone Lee in Hualien on May 26, 2020. Source time 00:34:58.400–00:39:12.300. Original Chinese audio and landscape framing are preserved; captions are an edited sample."
+    },
+    "zh": {
+      "title": "一张福音单张，怎样走进一个家庭？",
+      "summary": "一张在公交车上收下的福音单张，被母亲发现后，让一家四口一起去听福音。李光弘回忆这段改变家庭方向的往事。"
+    },
+    "en": {
+      "title": "How One Flyer Reached a Family",
+      "summary": "A leaflet accepted on a bus was found by a mother—and led a family of four to hear the gospel together. Livingstone Lee recalls the moment that changed his family’s direction."
+    },
+    "poster": "/video/one-flyer-one-family.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/one-flyer-one-family.mp4",
+        "poster": "/video/one-flyer-one-family.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/one-flyer-one-family.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/one-flyer-one-family.zh.vtt"
+      }
+    ]
   }
 ]
