@@ -42,11 +42,11 @@
       "en": "Recorded at a fellowship gathering in Atlanta. The original video is presented without edits."
     },
     "zh": {
-      "title": "哦，神圣的爱！",
+      "title": "哦,荣耀神圣爱",
       "summary": "亚特兰大的一次团契唱诗，众人围坐弹唱英文诗歌《O Glorious Divine Love》。"
     },
     "en": {
-      "title": "O Glorious Divine Love!",
+      "title": "O Glorious Divine Love",
       "summary": "A fellowship in Atlanta gathers to sing “O Glorious Divine Love,” a hymn celebrating God’s love."
     },
     "poster": "/video/o-glorious-divine-love.jpg",
@@ -57,7 +57,71 @@
         "poster": "/video/o-glorious-divine-love.jpg",
         "label": "English original"
       }
-    ]
+    ],
+    "orientation": "portrait",
+    "lyrics": {
+      "zh": [
+        [
+          "自久未创世界以先，",
+          "祢心就渴望一配偶；",
+          "彼此为居所，荣耀安排；",
+          "与我永世联属。"
+        ],
+        [
+          "不知祢心所愿，我犯罪当诛灭；",
+          "而祢流宝血使我得释。",
+          "赐我祢生命，使我亲近祢；",
+          "奇妙爱！我两永世合为一。"
+        ],
+        [
+          "哦，荣耀神圣爱！我如何测度，",
+          "比天空更高，比洋海更深;",
+          "冲破死权势，和撒旦国度；",
+          "无何与比拟，祢爱情于我，",
+          "如此热烈深挚，如此温柔真实;",
+          "我深深爱祢,主。"
+        ],
+        [
+          "我给祢我心，我命与我魂，",
+          "无论是苦楚，或喜乐来临，",
+          "祢无限恩典，我放下所有，",
+          "建造祢召会，祢荣耀新妇。",
+          "使祢心得满足，我们互为居所，",
+          "在永世里。"
+        ]
+      ],
+      "en": [
+        [
+          "Since long before the world began,",
+          "In Your heart You longed for a Bride;",
+          "’Tis mutual dwelling, Your glorious plan;",
+          "With me e’er to abide."
+        ],
+        [
+          "Not knowing Your heart,",
+          "I sinned and thus should die;",
+          "Yet You shed Your blood to set me free.",
+          "You gave me Your life, to me drew nigh;",
+          "Wondrous love! We two one forever will be."
+        ],
+        [
+          "O glorious divine love! How can I fathom,",
+          "Higher than the sky, deeper than the sea;",
+          "It crushes death’s pow’r and Satan’s kingdom;",
+          "Nothing can compare with Your love to me",
+          "So fervid and so deep, so gentle and so true;",
+          "I’m in love, Lord, with You."
+        ],
+        [
+          "I give You my heart, my life and my soul,",
+          "Come suffering or joy whatever betide.",
+          "By Your boundless grace, I’ll lay down my all",
+          "To build up Your church, Your glorious Bride;",
+          "Your heart to satisfy, mutual abode we’ll be",
+          "In eternity."
+        ]
+      ]
+    }
   },
   {
     "slug": "meaning-of-life",
