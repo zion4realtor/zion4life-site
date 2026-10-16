@@ -318,7 +318,9 @@
           caption.src = sub.url;
           caption.srclang = sub.lang;
           caption.label = sub.label || sub.lang;
-          caption.default = sub.lang.split('-')[0] === (player.hasAttribute('data-short') ? 'en' : (zh ? 'zh' : 'en'));
+          var captionOwner = player.closest('.short-watch');
+          var defaultLanguage = captionOwner ? captionOwner.getAttribute('data-caption-choice') || 'en' : (zh ? 'zh' : 'en');
+          caption.default = sub.lang.split('-')[0] === defaultLanguage;
           el.appendChild(caption);
         });
       } else {
