@@ -210,24 +210,61 @@
     ]
   },
   {
-    "slug": "fule-rensheng",
-    "minutes": 120,
-    "date": "2026-10-12",
+    "slug": "lgh-gospel-sharing",
+    "minutes": 4,
+    "seconds": 223.87,
+    "date": "2026-10-15",
     "tags": [
-      "goodnews",
       "lgh",
+      "goodnews",
+      "newfriends",
       "life"
     ],
+    "short": true,
+    "spotlight": true,
+    "shortGroup": "livingstone-lee",
+    "orientation": "portrait",
+    "subscribeTag": "lgh",
+    "featureLabel": {
+      "zh": "李光弘 · 福音分享",
+      "en": "LIVINGSTONE LEE · GOSPEL MESSAGE"
+    },
+    "featureAction": {
+      "zh": "观看分享",
+      "en": "Watch the message"
+    },
+    "shortKicker": {
+      "zh": "李光弘 · 福音分享",
+      "en": "LIVINGSTONE LEE · THE GOSPEL"
+    },
+    "byline": {
+      "zh": "李光弘 · 中文原声",
+      "en": "Livingstone Lee · Original Chinese"
+    },
+    "defaultCaption": "off",
+    "captionOptions": [],
+    "sourceNote": {
+      "zh": "李光弘在团契聚集中分享福音。视频保留原始竖屏画幅和完整内容。",
+      "en": "Livingstone Lee shares the gospel at a fellowship gathering. The original portrait framing and full recording are preserved."
+    },
     "zh": {
-      "title": "福乐的人生",
-      "summary": "一篇完整的信息，讲人生的意义和真正的福乐从哪里来。"
+      "title": "李光弘分享福音",
+      "summary": "李光弘在团契聚集中分享福音，邀请人认识耶稣。"
     },
     "en": {
-      "title": "The Blessed Life",
-      "summary": "A full-length message on the meaning of life and where real happiness comes from."
+      "title": "Livingstone Lee Shares the Gospel",
+      "summary": "Livingstone Lee shares the gospel at a fellowship gathering and invites people to know Jesus."
     },
-    "sources": [],
-    "sample": true
+    "poster": "/video/lgh-gospel.jpg",
+    "downloadPath": "/video/lgh-gospel.mp4",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/lgh-gospel.mp4",
+        "poster": "/video/lgh-gospel.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ]
   },
   {
     "slug": "jianzheng-xuesheng-1",
