@@ -316,10 +316,10 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 /* banners (top of tag, 呼吸, 搭子, 我的 pages) */
 .page { padding-block: 6px 28px; }
 .back { display: inline-block; padding: 4px 0; font-size: 15px; text-decoration: none; }
-.banner { position: relative; overflow: hidden; margin: 6px 0 14px; padding: 18px 18px 16px; border-radius: 24px; background: linear-gradient(165deg, color-mix(in srgb, var(--tint, var(--t-aqua)) 18%, var(--mix)), color-mix(in srgb, var(--tint, var(--t-aqua)) 50%, var(--mix))); }
+.banner { position: relative; overflow: hidden; margin: 6px 0 14px; min-height:150px; display:flex; flex-direction:column; justify-content:flex-end; padding:22px; border-radius:24px; color:#fff; background:linear-gradient(90deg,rgba(12,29,42,.78),rgba(12,29,42,.12)),linear-gradient(0deg,rgba(12,29,42,.48),transparent 72%),var(--banner-image) center 48%/cover,linear-gradient(165deg,color-mix(in srgb,var(--tint,var(--t-aqua)) 18%,var(--mix)),color-mix(in srgb,var(--tint,var(--t-aqua)) 50%,var(--mix))); box-shadow:0 10px 28px rgba(23,48,66,.13); }
 .banner h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.25; letter-spacing: 0.05em; text-wrap: balance; }
 .banner h1:lang(en) { letter-spacing: 0.01em; }
-.banner p { margin: 2px 0 0; color: var(--mute); font-size: 14.5px; }
+.banner p { margin:4px 0 0; color:rgba(255,255,255,.88); font-size:14.5px; }
 .banner .mascot { position: absolute; right: 16px; bottom: -14px; width: 64px; height: auto; opacity: .95; }
 
 /* chips */
@@ -333,6 +333,8 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 @media (min-width: 620px) { .cards { grid-template-columns: 1fr 1fr; } }
 .card { display: block; min-width: 0; overflow: hidden; border-radius: 20px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); color: inherit; text-decoration: none; }
 .card-body { padding: 14px 16px 16px; }
+.card-thumb { margin:0; }
+.card-thumb img,.poster>img { display:block;width:100%;height:100%;object-fit:cover; }
 .kind { display: inline-block; padding: 0 9px; border-radius: 999px; font-size: 12px; line-height: 22px; background: color-mix(in srgb, var(--tint, var(--t-aqua)) 20%, var(--paper)); }
 .card h2, .card h3 { margin: 8px 0 4px; font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1.4; letter-spacing: 0.03em; text-wrap: balance; }
 .card p { margin: 0; color: var(--mute); font-size: 15px; line-height: 1.7; }
@@ -926,3 +928,16 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .video-subscribe{margin:8px 0 16px}.video-talk{margin:22px 0}.video-download{margin:0 0 18px}.video-download .btn{width:100%;min-height:46px;background:#203e52;color:#e5f1f7;box-shadow:inset 0 0 0 1px #496779;font-size:14px}.video-download p{font-size:12px;line-height:1.7;color:#a9bfce;margin:8px 0}.video-talk textarea{font-size:16px}
 
 .hymn-links{display:grid;gap:10px;margin:20px 0 8px;padding:17px;border:1px solid #456071;border-radius:16px;background:#173344}.hymn-links h2{margin:0 0 2px;font-size:14px;font-weight:600;color:#f4f7fa}.hymn-links a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:10px 13px;border-radius:11px;color:#e7f5fb;text-decoration:none}.hymn-links .hymn-lyrics{border:1px solid #456071;background:#102b3b}.hymn-links .hymn-full{background:#c8e8f4;color:#143b51;font-weight:600}.hymn-links a span{font-size:18px}
+
+.short-watch.is-portrait .short-stage{display:flex;justify-content:center;min-height:0;padding:18px;background:radial-gradient(ellipse at center,#1b3547,#06111a 72%)}
+.short-watch.is-portrait .short-stage .player{flex:none;width:min(100%,450px);height:min(76svh,790px);aspect-ratio:9/16;max-height:none;min-height:0;margin:0 auto;border-radius:16px;box-shadow:0 16px 48px #0006}
+.short-watch.is-portrait .short-stage .player-start .poster img{object-fit:contain;background:#05090c}
+.hymn-lyrics-panel{margin:20px 0 8px;padding:19px 20px 16px;border:1px solid #456071;border-radius:17px;background:#173344;color:#f4f7fa}
+.hymn-lyrics-panel h2{margin:0 0 13px;font:500 19px/1.4 var(--display);color:#fff}
+.lyrics-stanza p{margin:0 0 15px;color:#eef5f8;font-size:16px;line-height:1.9}
+.lyrics-more{margin-top:8px;border-top:1px solid #456071;padding-top:11px}
+.lyrics-more summary{display:inline-flex;align-items:center;min-height:42px;padding:0 15px;border-radius:999px;background:#c8e8f4;color:#143b51;font-weight:600;cursor:pointer;list-style:none}
+.lyrics-more summary::-webkit-details-marker{display:none}
+.lyrics-more[open] summary{margin-bottom:14px}
+.lyrics-more .lyrics-stanza p:last-child{margin-bottom:0}
+@media(max-width:520px){.banner{min-height:145px;padding:19px 18px 16px;border-radius:19px}.short-watch.is-portrait .short-stage{padding:12px 0}.short-watch.is-portrait .short-stage .player{width:auto;height:min(76svh,760px);max-width:100%;border-radius:0}.hymn-lyrics-panel{margin-inline:-3px;padding:17px 16px}.lyrics-stanza p{font-size:15.5px;line-height:1.9}}
