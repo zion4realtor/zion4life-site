@@ -26,6 +26,18 @@
   let viewerTz = '';
   try { viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* ignore */ }
 
+  // Keep venue URLs tappable without interpreting any supplied HTML.
+  function venueText(info) {
+    const text = String(info || '');
+    let html = '', end = 0;
+    for (const m of text.matchAll(/https?:\/\/[^\s<>"'，。；、（）]+/gi)) {
+      const url = m[0].replace(/[.,;!?\])}]+$/, '');
+      html += esc(text.slice(end, m.index)) + `<a class="venue-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`;
+      end = m.index + url.length;
+    }
+    return html + esc(text.slice(end));
+  }
+
   // ---------- times, always in this phone's own time zone ----------
   const WK = EN ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['日', '一', '二', '三', '四', '五', '六'];
   const monFirst = (a, b) => ((a + 6) % 7) - ((b + 6) % 7);
@@ -530,7 +542,7 @@ ${g.intro ? `<p class="g-intro">${esc(g.intro)}</p>` : ''}</div>`;
 <dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}${g.first > Date.now() ? t(`，${esc(when(g.first))} 第一次`, `; first time ${esc(when(g.first))}`) : ''}</small></dd>
 ${member && r.me.attendanceDays ? `<dt>${t('我参加', 'My days')}</dt><dd>${esc(daysWords(r.me.attendanceDays))}<small>${esc(r.me.attendanceTz || viewerTz)}</small></dd>` : ''}
 <dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}${(g.later || []).map((l) => `<small>${t(`第 ${l.from} 次起：`, `From time ${l.from}: `)}${esc(l.text)}</small>`).join('')}</dd>
-<dt>${t('在哪里', 'Where')}</dt><dd><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${member && g.venue.info ? `<small class="venue-info">${esc(g.venue.info)}</small>` : ''}</dd>
+<dt>${t('在哪里', 'Where')}</dt><dd><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${member && g.venue.info ? `<small class="venue-info">${venueText(g.venue.info)}</small>` : ''}</dd>
 ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.total ? ` / ${g.total}` : ''} 次`, `${g.done}${g.total ? ` of ${g.total}` : ''} so far`)}</dd>` : ''}
 </dl></section>`;
       // now / next
@@ -615,7 +627,7 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
           if (!body.isConnected) return;
           if (!b.ok) { body.innerHTML = `<p class="form-error">${esc(b.error)}</p>`; return; }
           $('[data-board-count]', root).textContent = t(`${b.posts.length} 条留言`, `${b.posts.length} messages`);
-          body.innerHTML = `<div class="talk-list">${b.posts.length ? b.posts.map((p) => `<div class="msg"><p class="msg-h"><span class="seat static sm" style="--seat:${COLORS[p.c]}">${esc([...p.name][0] || '·')}</span><b>${esc(p.name)}</b><time>${esc(ago(p.created))}</time></p><p class="msg-b">${esc(p.body).replace(/\n/g, '<br>')}</p>${p.mine || b.canDelete ? `<p class="msg-a"><button type="button" class="link-btn danger" data-del="${p.id}">${t('删除', 'Remove')}</button></p>` : ''}</div>`).join('') : `<p class="muted">${t('还没有人说话。', 'Nothing here yet.')}</p>`}</div><section class="board-compose"><h3>${t('留句话给搭子们', 'Leave a message')}</h3><form class="talk-form" data-board><textarea name="body" rows="3" maxlength="1000" placeholder="${t('跟搭子们说点什么', 'Say something to your buddies')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div></form></section>`;
+          body.innerHTML = `<div class="talk-list">${b.posts.length ? b.posts.map((p) => `<div class="msg"><p class="msg-h"><span class="seat static sm" style="--seat:${COLORS[p.c]}">${esc([...p.name][0] || '·')}</span><b>${esc(p.name)}</b><time>${esc(ago(p.created))}</time></p>${p.noteN ? `<p class="group-note-source"><a href="${pre}/g/${g.id}/${p.noteN}">${t(`第 ${p.noteN} 次 · 阅读心得`, `Time ${p.noteN} · Reading note`)} →</a></p>` : ''}<p class="msg-b">${esc(p.body).replace(/\n/g, '<br>')}</p>${!p.noteN && (p.mine || b.canDelete) ? `<p class="msg-a"><button type="button" class="link-btn danger" data-del="${p.id}">${t('删除', 'Remove')}</button></p>` : ''}</div>`).join('') : `<p class="muted">${t('还没有人说话。', 'Nothing here yet.')}</p>`}</div><section class="board-compose"><h3>${t('留句话给搭子们', 'Leave a message')}</h3><form class="talk-form" data-board><textarea name="body" rows="3" maxlength="1000" placeholder="${t('跟搭子们说点什么', 'Say something to your buddies')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div></form></section>`;
           const f = $('[data-board]', body);
           f.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -818,11 +830,11 @@ ${owner ? `<form class="form owner-form" data-edit novalidate><h3 class="sub-h3"
 <div class="sess-head" style="--tint:${tintOf(g.kind)}"><p class="sess-kind"><span class="ki">${k.icon || ''}</span>${esc(k.name || '')} · ${t(`第 ${ss.n} 次`, `Time ${ss.n}`)}${g.total ? ` / ${g.total}` : ''}</p>
 <h1 class="sess-title">${esc(r.full || r.text)}</h1>
 <p class="sess-when">${esc(when(ss.start))}</p>
-<p class="sess-venue"><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${g.venue.info ? ` · ${esc(g.venue.info)}` : ''}</p></div>
+<p class="sess-venue"><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${g.venue.info ? ` · ${venueText(g.venue.info)}` : ''}</p></div>
 <section class="reading-card" data-reading><p class="muted">${t('正在载入……', 'Loading…')}</p></section>
 ${s.files ? `<p class="files-line"><a class="btn btn-line btn-sm" href="${pre}/g/${g.id}?tab=files#group-files-title">📎 ${t(`组里的资料（${s.files}）`, `Group files (${s.files})`)}</a></p>` : ''}
 <section class="my-note"><h2 class="sub-h3">${t('心得', 'My notes')}</h2>
-<textarea data-note rows="4" maxlength="3000" placeholder="${t('读的时候有什么感觉、有什么问题，写在这里。搭子们看得到。', 'What touched you, what you wonder about. Your buddies can read it.')}">${esc(mine.note || '')}</textarea>
+<textarea data-note rows="4" maxlength="3000" placeholder="${t('写下心得或问题，保存后也会显示在本组留言区。', 'Write your thoughts or questions. Saved notes also appear in this group’s conversation.')}">${esc(mine.note || '')}</textarea>
 <p class="hint" data-saved></p></section>
 <div class="checkin-bar">${!s.open ? `<p class="muted">${t('还没到时间，开始前两个小时可以打卡。', 'Not yet. Check-in opens two hours before it starts.')}</p>` : mine.done ? `<p class="done-line">✓ ${mine.late ? t('补卡了', 'Made up') : t('打卡了', 'Checked in')} · ${esc(ago(mine.done))}</p><button type="button" class="link-btn" data-undo>${t('撤销', 'Undo')}</button>` : `<button type="button" class="btn btn-water btn-block" data-done>${t(`${k.verb || '读'}完了，打卡`, 'Done, check in')}</button>`}</div>
 <section class="more"><h2 class="sub-h3">${t('搭子们这一次', 'Buddies this time')}</h2><ul class="people">${s.others.map((o) => `<li><span class="seat static" style="--seat:${COLORS[o.c]}">${esc([...o.name][0] || '·')}</span><span class="pname"><b>${esc(o.name)}</b>${o.me ? `<em>${t('我', 'Me')}</em>` : ''}<small class="${o.done ? (o.late ? 'late' : 'on') : 'miss'}">${o.done ? (o.late ? t('补卡了', 'made up') : t('打卡了', 'checked in')) : t('还没打卡', 'not yet')}</small>${o.note && !o.me ? `<span class="their-note">${esc(o.note).replace(/\n/g, '<br>')}</span>` : ''}</span></li>`).join('')}</ul></section>
@@ -832,7 +844,7 @@ ${s.files ? `<p class="files-line"><a class="btn btn-line btn-sm" href="${pre}/g
       let timer;
       const save = async () => {
         const x = await api(`/api/dazi/${g.id}/s/${ss.n}`, { body: { note: note.value } });
-        $('[data-saved]', root).textContent = x.ok ? t('已保存', 'Saved') : x.error;
+        $('[data-saved]', root).textContent = x.ok ? t('已保存，同步显示在本组留言区', 'Saved and shared in the group conversation') : x.error;
       };
       note.addEventListener('input', () => { clearTimeout(timer); $('[data-saved]', root).textContent = ''; timer = setTimeout(save, 900); });
       note.addEventListener('blur', () => { clearTimeout(timer); save(); });

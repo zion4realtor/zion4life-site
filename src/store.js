@@ -409,7 +409,15 @@ export const OPS = {
     return { ok: true };
   },
   dzBoard(sql, { gid, limit = 200 }) {
-    return rows(sql, 'SELECT b.id, b.uid, b.body, b.created, u.name FROM dz_board b JOIN user u ON u.id = b.uid WHERE b.gid = ? ORDER BY b.created DESC LIMIT ?', gid, limit);
+    // Notes stay in their original check-in row: edits and clears immediately
+    // update the conversation, including notes written before this feature.
+    return rows(sql, `SELECT id, uid, body, created, name, noteN FROM (
+      SELECT b.id, b.uid, b.body, b.created, u.name, NULL AS noteN, 0 AS source_order
+      FROM dz_board b JOIN user u ON u.id = b.uid WHERE b.gid = ?
+      UNION ALL
+      SELECT 'note:' || c.uid || ':' || c.n, c.uid, c.note, c.updated, u.name, c.n, 1
+      FROM dz_check c JOIN user u ON u.id = c.uid WHERE c.gid = ? AND trim(c.note) != ''
+    ) ORDER BY created DESC, source_order, id DESC LIMIT ?`, gid, gid, limit);
   },
   dzBoardDel(sql, { id, gid }) {
     sql.exec('DELETE FROM dz_board WHERE id = ? AND gid = ?', id, gid);

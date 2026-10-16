@@ -851,3 +851,27 @@ test('only owner can manually remind an imminent meeting, accepted count is accu
  const again=await call(`/api/dazi/${id}/remind`,{cookie:owner,body:{n:1}});assert.equal(again.body.alreadySent,true);assert.equal(mails.length,2);
  assert.equal((await call(`/api/dazi/${id}/remind`,{cookie:owner,body:{n:2}})).body.ok,false);
 });
+
+test('session notes appear once in the private group conversation, including old notes, edits and clears', async()=>{
+ const owner=await signIn('note-owner@example.com','Host');
+ const member=await signIn('note-member@example.com','Writer');
+ const outsider=await signIn('note-outsider@example.com','Outsider');
+ const made=await call('/api/dazi',{cookie:owner,body:groupBody()});const id=made.body.id;
+ await call(`/api/dazi/${id}/join`,{cookie:member,body:{sig:SIG}});
+ const me=(await call('/api/me',{cookie:member})).body.user;
+ await store(env)('dzCheckPut',{gid:id,uid:me.id,n:1,note:'Existing note before the change',now:Date.now()-1000});
+ let board=(await call(`/api/dazi/${id}/board`,{cookie:owner})).body;
+ assert.equal(board.posts.filter(p=>p.noteN===1).length,1);assert.equal(board.posts[0].name,'Writer');assert.equal(board.posts[0].body,'Existing note before the change');
+ const originalId=board.posts[0].id;
+ for(const text of ['Edited note','Edited note','New final note']) assert.equal((await call(`/api/dazi/${id}/s/1`,{cookie:member,body:{note:text}})).body.ok,true);
+ board=(await call(`/api/dazi/${id}/board`,{cookie:owner})).body;
+ assert.equal(board.posts.filter(p=>p.noteN===1).length,1);assert.equal(board.posts[0].id,originalId);assert.equal(board.posts[0].body,'New final note');
+ await call(`/api/dazi/${id}/board`,{cookie:member,body:{body:'Ordinary message'}});
+ board=(await call(`/api/dazi/${id}/board`,{cookie:owner})).body;assert.equal(board.posts.length,2);assert.ok(board.posts.some(p=>!p.noteN&&p.body==='Ordinary message'));
+ const other=(await call('/api/dazi',{cookie:owner,body:groupBody({title:'Other group'})})).body.id;
+ assert.equal((await call(`/api/dazi/${other}/board`,{cookie:owner})).body.posts.length,0,'no cross-group notes');
+ assert.equal((await call(`/api/dazi/${id}/board`)).status,401);
+ assert.equal((await call(`/api/dazi/${id}/board`,{cookie:outsider})).status,403);
+ await call(`/api/dazi/${id}/s/1`,{cookie:member,body:{note:'   '}});
+ board=(await call(`/api/dazi/${id}/board`,{cookie:owner})).body;assert.equal(board.posts.length,1);assert.equal(board.posts[0].body,'Ordinary message');
+});

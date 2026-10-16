@@ -442,7 +442,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
   if (action === 'board') {
     if (method === 'GET') {
       const list = await db('dzBoard', { gid: g.id });
-      return json({ ok: true, posts: list.map((x) => ({ id: x.id, name: x.name, body: x.body, created: x.created, mine: x.uid === user.id, c: colorOf(x.uid) })), canDelete: isOwner || admin });
+      return json({ ok: true, posts: list.map((x) => ({ id: x.id, name: x.name, body: x.body, created: x.created, noteN: x.noteN || null, mine: x.uid === user.id, c: colorOf(x.uid) })), canDelete: isOwner || admin });
     }
     if (method === 'POST' && !arg) {
       const b = (await readBody(request, 10000)) || {};

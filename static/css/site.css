@@ -954,3 +954,7 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .me-light-line{font:400 22px/1.5 var(--display);color:#ffedc4;margin:0 0 10px}
 .me-light-description{font-size:15px;line-height:1.75;color:#dbe9ed;margin:0;max-width:285px}
 @media(max-width:520px){.me-light-banner{min-height:254px;border-radius:20px}.me-light-copy{max-width:83%;padding:26px 22px}.me-light-scene{object-position:65% center}.me-light-copy h1{font-size:34px}.me-light-line{font-size:21px}.me-light-description{font-size:15px;max-width:220px}.me-light-eyebrow{font-size:11px;margin-bottom:13px}}
+
+/* Tappable venue links and reading notes in the member-only conversation. */
+.venue-link{color:var(--water-ink);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere;word-break:break-word}
+.group-note-source{margin:8px 0 0;font-size:14px;line-height:1.6}.group-note-source a{color:var(--water-ink);text-decoration:none}.group-note-source a:hover{text-decoration:underline}

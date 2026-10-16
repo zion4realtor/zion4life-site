@@ -242,3 +242,5 @@ node --test             # build + tests
 Drip image pages provide a `tag:breathe` subscription and per-article comments shared by the Chinese and English pages. Only registered, signed-in users may post comments, prayers, replies, questions, or suggestions; visitors can read public comments. Both the UI and API enforce this rule.
 
 - Email language defaults to the language last reported by the signed-in device (Chinese → 中文; other device languages → English). Under 我的 → 修改资料, members can select Follow device language, 中文, or English; an explicit language overrides subsequent device changes. Only opted-in attendees receive meeting reminders.
+
+- Session notes are displayed alongside member-only group messages, with a link to the source session. They use the original note row, so existing notes appear automatically and edits/clears stay in sync without duplicate posts. Venue URLs are clickable in both group and session pages.
