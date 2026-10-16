@@ -275,22 +275,20 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
     const pad2 = (n) => String(n).padStart(2, '0');
     const dayBoxes = $$('input[name="days"]', form);
     form.startDate.value = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-    dayBoxes.forEach((c) => { if (Number(c.value) === now.getDay()) c.checked = true; });
+    dayBoxes.forEach((c) => { c.checked = false; });
     form.tz.value = viewerTz; // the initiator's own phone decides the time zone
     const q = new URLSearchParams(location.search);
     if (CFG.kinds[q.get('kind')]) $$('input[name="kind"]', form).forEach((r) => { r.checked = r.value === q.get('kind'); });
     const kind = () => ($('input[name="kind"]:checked', form) || {}).value || 'bible';
     const box = (k) => $(`fieldset[data-for="${k}"]`, form);
 
-    // some kinds have their own usual time (晨兴: mornings, Monday to Saturday) until the person picks one
+    // Suggest a time; weekdays are always explicitly chosen by the initiator.
     const base = { time: form.time.value, days: dayBoxes.filter((c) => c.checked).map((c) => Number(c.value)) };
-    let touchedTime = false, touchedDays = false;
+    let touchedTime = false;
     form.time.addEventListener('input', () => { touchedTime = true; });
-    dayBoxes.forEach((c) => c.addEventListener('change', () => { touchedDays = true; }));
     function applyDefaults() {
       const d = (CFG.kinds[kind()] || {}).defaults || base;
       if (!touchedTime) form.time.value = d.time;
-      if (!touchedDays) dayBoxes.forEach((c) => { c.checked = d.days.includes(Number(c.value)); });
     }
     $$('input[name="kind"]', form).forEach((r) => r.addEventListener('change', applyDefaults));
     applyDefaults();
@@ -365,6 +363,7 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
       err.hidden = true;
       const show = (m) => { err.textContent = m; err.hidden = false; err.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
       if (!form.title.value.trim()) { show(t('给搭子起个名字吧', 'Give the group a name')); return; }
+      if (!dayBoxes.some((c) => c.checked)) { show(t('请选择每周哪几天一起读经', 'Choose at least one meeting day')); return; }
       if (pad.empty()) { show(t('请在约上签个名', 'Please sign the covenant')); return; }
       try { await requireLogin(t('发起搭子前，先登录一下（不用密码）。', 'Sign in first to start a group (no password).')); } catch (x) { return; }
       const k = kind();

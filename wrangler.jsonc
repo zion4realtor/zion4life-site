@@ -22,7 +22,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/g/*", "/en/g/*", "/x/*", "/en/x/*"],
+    "run_worker_first": ["/video/*.mp4", "/api/*", "/g/*", "/en/g/*", "/x/*", "/en/x/*"],
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   },

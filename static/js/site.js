@@ -311,6 +311,7 @@
         el.controls = true;
         el.autoplay = true;
         el.setAttribute('playsinline', '');
+        el.setAttribute('webkit-playsinline', '');
         el.setAttribute('preload', 'metadata');
         (s.subtitles || []).forEach(function (sub) {
           var caption = document.createElement('track');
@@ -332,6 +333,17 @@
       }
       start.hidden = true;
       player.appendChild(el);
+      if (s.type === 'file') {
+        el.addEventListener('error', function () {
+          el.remove();
+          start.hidden = false;
+          var note = player.closest('.short-watch');
+          note = note && note.querySelector('.short-note');
+          if (note) { note.textContent = zh ? '暂时没播出来，请点封面重试。' : 'Unable to play. Tap the cover to try again.'; note.hidden = false; }
+        });
+        var playing = el.play();
+        if (playing && playing.catch) playing.catch(function () { /* Native controls remain available if autoplay is blocked. */ });
+      }
       if (s.type === 'file' && player.hasAttribute('data-short')) {
         var watch = player.closest('.short-watch');
         var captionLanguage = watch.getAttribute('data-caption-choice') || 'en';
@@ -351,7 +363,7 @@
           try { var saved = Number(localStorage.getItem('yg-video-' + player.dataset.short)); if (saved > 0 && saved < el.duration - 3) el.currentTime = saved; } catch (e) {}
         }, {once:true});
         el.addEventListener('timeupdate', function () { try { localStorage.setItem('yg-video-' + player.dataset.short, String(el.currentTime)); } catch (e) {} });
-        el.addEventListener('error', function () { var n = watch.querySelector('.short-note'); n.textContent = zh ? '暂时没播出来，请刷新后重试。' : 'Unable to play. Please refresh and try again.'; n.hidden = false; });
+
       }
       track('play_video', { line: s.label || s.type });
       lineBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.getAttribute('data-line')) === i)); });
