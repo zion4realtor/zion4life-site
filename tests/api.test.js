@@ -414,17 +414,17 @@ test('搭子: check-ins, make-ups, notes, bookmarks, the initiator’s table, th
   assert.equal((await call(`/api/dazi/${id}/board`)).status, 401);
 });
 
-test('reminders go out once as each session starts; calendar feeds', async () => {
+test('reminders go out once about half an hour before each session; calendar feeds', async () => {
   const owner = await signIn('owner@example.com', '老陈');
   const now = Date.now();
-  const at = new Date(now + 3 * 60000);
+  const at = new Date(now + 30 * 60000);
   const pad = (x) => String(x).padStart(2, '0');
   const body = groupBody({ days: [at.getUTCDay()], time: `${pad(at.getUTCHours())}:${pad(at.getUTCMinutes())}`, startDate: at.toISOString().slice(0, 10) });
   const { body: { id } } = await call('/api/dazi', { body, cookie: owner });
   mails = [];
   const r1 = await runReminders(env, now);
   assert.equal(r1.sent, 1);
-  assert.match(mails[0].subject, /饭搭子·约翰福音 第1章/);
+  assert.match(mails[0].subject, /聚会提醒.*约翰福音 第1章/);
   assert.match(mails[0].html, new RegExp(`/g/${id}/1`));
   assert.equal((await runReminders(env, now + 60000)).sent, 0, 'not twice');
   const me = await call('/api/me', { cookie: owner });
@@ -674,10 +674,10 @@ test('member attendance days filter reminders, invitation and personal calendars
   const monday = Array.from({ length: 7 }, (_, i) => session(g, i + 1)).find((s) => new Date(`${s.date}T00:00:00Z`).getUTCDay() === 1);
   const tuesday = session(g, monday.n + 1);
   mails.length = 0;
-  await runReminders(env, monday.start);
+  await runReminders(env, monday.start - 30 * 60000);
   assert.ok(mails.some((m) => m.to.includes('monday@example.com')));
   mails.length = 0;
-  await runReminders(env, tuesday.start);
+  await runReminders(env, tuesday.start - 30 * 60000);
   assert.ok(!mails.some((m) => m.to.includes('monday@example.com')));
   assert.ok(mails.some((m) => m.to.includes('legacy@example.com')));
   assert.equal((await call(`/api/dazi/${id}/attendance`, { body: { attendanceDays: [2], attendanceTz: 'UTC' }, cookie: mon })).body.ok, true);
@@ -784,4 +784,40 @@ test('all comments and replies require a registered session; drip subscriptions 
   }
   await call('/api/auth/logout', { body: {}, cookie });
   assert.equal((await call('/api/talk', { body: { target: targets[0], body: 'Expired session' }, cookie })).status, 401);
+});
+
+
+test('half-hour reminders honor device language, explicit override, opt-out, and send once', async () => {
+  const owner = await signIn('chinese@example.com', '中文组员', {deviceLang:'zh',tz:'Asia/Shanghai'});
+  const english = await signIn('english@example.com', 'English member', {deviceLang:'en',tz:'America/New_York'});
+  const muted = await signIn('muted@example.com', 'Muted');
+  const date=new Date(Date.now()+86400000).toISOString().slice(0,10);
+  const made=await call('/api/dazi',{cookie:owner,body:groupBody({startDate:date,time:'12:00'})});
+  const id=made.body.id;
+  for(const cookie of [english,muted]) assert.equal((await call(`/api/dazi/${id}/join`,{cookie,body:{sig:SIG}})).body.ok,true);
+  await call(`/api/dazi/${id}/notify`,{cookie:muted,body:{on:false}});
+  const g=await store(env)('dzGet',{id});const s=session(g,1);
+  mails=[];
+  assert.equal((await runReminders(env,s.start-31*60000)).sent,0);
+  assert.equal((await runReminders(env,s.start-30*60000)).sent,2);
+  const zh=mails.find(m=>m.to.includes('chinese@example.com'));
+  const en=mails.find(m=>m.to.includes('english@example.com'));
+  assert.match(zh.text,/半小时内开始/);assert.match(zh.html,new RegExp(`/g/${id}/1`));
+  assert.match(en.text,/starting in about 30 minutes/);assert.match(en.html,new RegExp(`/en/g/${id}/1`));
+  assert.ok(!mails.some(m=>m.to.includes('muted@example.com')));
+  assert.equal((await runReminders(env,s.start-25*60000)).sent,0);
+  assert.equal((await runReminders(env,s.start)).sent,0,'no second reminder at start');
+  const profile=(await call('/api/me',{cookie:english})).body.user;
+  assert.equal(profile.lang,'en');assert.equal(profile.emailLangAuto,true,'English phone even on Chinese page');
+  await call('/api/me',{cookie:english,body:{lang:'zh'}});
+  await call('/api/me',{cookie:english,body:{deviceLang:'en'}});
+  assert.equal((await call('/api/me',{cookie:english})).body.user.lang,'zh','manual language wins');
+  await call('/api/me',{cookie:english,body:{emailLangAuto:true,deviceLang:'en'}});
+  assert.equal((await call('/api/me',{cookie:english})).body.user.lang,'en','automatic mode resumes');
+  await call('/api/me',{cookie:english,body:{deviceLang:'zh'}});
+  assert.equal((await call('/api/me',{cookie:english})).body.user.lang,'zh','automatic mode tracks device changes');
+  const sql=fakeSql();migrate(sql);
+  OPS.userCreate(sql,{id:'persist',email:'persist@example.com',name:'p',lang:'en',cal:'persist',now:1});
+  OPS.userUpdate(sql,{id:'persist',emailLangAuto:false});migrate(sql);
+  assert.equal(OPS.userById(sql,{id:'persist'}).emailLangAuto,false);
 });

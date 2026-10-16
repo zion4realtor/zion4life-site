@@ -174,7 +174,7 @@ async function mailOwner(env, db, g, zh, en) {
   await sendMail(env, { to: owner.email, subject: L === 'en' ? en : zh, html, text });
 }
 
-// ---------- reminders: every 5 minutes, email members as each session starts ----------
+// ---------- reminders: every 5 minutes, email attendees about 30 minutes before ----------
 export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
   const { store } = await import('./store.js');
   const db = store(env);
@@ -183,7 +183,7 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
   const ctx = await withTagItems(db, { ...(await siteData(env, url)), now }, groups);
   let sent = 0;
   for (const g of groups) {
-    for (const s of sessionsBetween(g, now - 4 * 60000, now + 6 * 60000, ctx)) {
+    for (const s of sessionsBetween(g, now + 25 * 60000, now + 30 * 60000 + 1, ctx)) {
       if (!(await db('dzSentClaim', { gid: g.id, n: s.n, now })).ok) continue;
       const r = readingFor(g, s.n, ctx);
       for (const u of await db('dzMailList', { gid: g.id })) {
@@ -192,7 +192,7 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
         const t = tr(L);
         const { html, text } = layout({
           lang: L,
-          title: t(`${g.title}：现在开始`, `${g.title}: starting now`),
+          title: t(`${g.title}：半小时内开始`, `${g.title}: starting in about 30 minutes`),
           lines: [
             t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh', u.tz || g.tz)}，${minutesText((s.end-s.start)/60000, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en', u.tz || g.tz)}, ${minutesText((s.end-s.start)/60000, 'en')}.`),
             t(`这次读：${r.full}`, `This time: ${r.full}`),
@@ -202,7 +202,7 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
           button: { label: t('打开这次的材料', 'Open this time’s reading'), url: groupUrl(g, L, s.n) },
           footer: t('不想收到这个搭子的邮件？打开搭子，在“设置”里关掉提醒。', 'No more emails from this group? Open it and turn reminders off in Settings.'),
         });
-        await sendMail(env, { to: u.email, subject: t(`【有光】${KINDS[g.kind].zh}·${r.full}`, `[Light] ${KINDS[g.kind].en}: ${r.full}`), html, text });
+        await sendMail(env, { to: u.email, subject: t(`【有光】聚会提醒：${g.title} · ${r.full}`, `[Light] Meeting reminder: ${g.title} · ${r.full}`), html, text });
         sent++;
       }
     }

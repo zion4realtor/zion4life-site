@@ -4,7 +4,7 @@
 //   /g/<id>, /g/<id>/<n>, /g/<id>/now   搭子 pages: the static shell with the group's name in the link preview
 //   /x/<id>                          articles and videos written by tag managers, rendered here
 // (and the same under /en/). Everything else is the static site in dist/.
-// The cron trigger (every 5 minutes) emails members as each 搭子 session starts.
+// The cron trigger (every 5 minutes) emails attendees about 30 minutes before each 搭子 session.
 import { handleApi, runReminders } from './api.js';
 import { handleHit } from './analytics.js';
 import { store } from './store.js';

@@ -56,6 +56,7 @@
   const fmtDate = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { month: 'short', day: 'numeric' });
   const fmtClock = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   // this phone's time zone: the site shows every time in it, and emails use it too
+  const phoneLang = /^zh(?:-|$)/i.test(navigator.language || '') ? 'zh' : 'en';
   let phoneTz = '';
   try { phoneTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* ignore */ }
   const dayKey = (ms) => new Date(ms).toDateString();
@@ -78,7 +79,7 @@
     if (!mePromise || fresh) {
       mePromise = api('/api/me');
       // keep the account's time zone in step with the phone (people travel)
-      mePromise.then((m) => { if (m.user && phoneTz && m.user.tz !== phoneTz) api('/api/me', { body: { tz: phoneTz } }); });
+      mePromise.then((m) => { if (m.user && ((phoneTz && m.user.tz !== phoneTz) || (m.user.emailLangAuto && m.user.lang !== phoneLang))) api('/api/me', { body: { tz: phoneTz, deviceLang: phoneLang } }); });
     }
     return mePromise;
   }
@@ -168,7 +169,7 @@
         const r = await api('/api/auth/verify', {
           body: {
             email, code: fCode.code.value, name: fCode.name.value,
-            ids: $$('[data-id][aria-pressed="true"]', fCode).map((b) => b.getAttribute('data-id')), idsPublic: fCode.idsPublic.checked, tz: phoneTz,
+            ids: $$('[data-id][aria-pressed="true"]', fCode).map((b) => b.getAttribute('data-id')), idsPublic: fCode.idsPublic.checked, tz: phoneTz, deviceLang: phoneLang,
           },
         });
         btn.disabled = false;
@@ -532,7 +533,7 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
 <label class="field"><span>${t('昵称', 'Nickname')}</span><input name="name" maxlength="20" value="${esc(u.name)}"></label>
 <div class="field"><span>${t('身份标签', 'Identity tags')}</span><div class="id-chips">${Object.keys(IDS).map((k) => `<button type="button" class="chip-btn" data-id="${k}" aria-pressed="${u.ids.includes(k)}">${esc(idName(k))}</button>`).join('')}</div></div>
 <label class="check"><input type="checkbox" name="idsPublic"${u.idsPublic ? ' checked' : ''}><span>${t('让搭子们看到我的身份标签', 'Let my buddies see these tags')}</span></label>
-<div class="field"><span>${t('提醒邮件用哪种语言', 'Language for emails')}</span><div class="seg"><label><input type="radio" name="lang" value="zh"${u.lang !== 'en' ? ' checked' : ''}><span>中文</span></label><label><input type="radio" name="lang" value="en"${u.lang === 'en' ? ' checked' : ''}><span>English</span></label></div></div>
+<div class="field"><span>${t('提醒邮件用哪种语言', 'Language for emails')}</span><div class="seg" style="flex-wrap:wrap"><label><input type="radio" name="lang" value="auto"${u.emailLangAuto ? ' checked' : ''}><span>${t('跟随手机语言', 'Follow device language')}</span></label><label><input type="radio" name="lang" value="zh"${!u.emailLangAuto && u.lang !== 'en' ? ' checked' : ''}><span>中文</span></label><label><input type="radio" name="lang" value="en"${!u.emailLangAuto && u.lang === 'en' ? ' checked' : ''}><span>English</span></label></div></div>
 <p class="form-error" data-error hidden></p>
 <button class="btn btn-water btn-block" type="submit">${t('保存', 'Save')}</button></form></div>`);
     document.body.appendChild(box);
@@ -541,7 +542,7 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
     $('.sheet-x', box).addEventListener('click', () => box.remove());
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const r = await api('/api/me', { body: { name: f.name.value, ids: $$('[data-id][aria-pressed="true"]', f).map((b) => b.getAttribute('data-id')), idsPublic: f.idsPublic.checked, lang: f.lang.value } });
+      const r = await api('/api/me', { body: { name: f.name.value, ids: $$('[data-id][aria-pressed="true"]', f).map((b) => b.getAttribute('data-id')), idsPublic: f.idsPublic.checked, lang: f.lang.value === 'auto' ? undefined : f.lang.value, emailLangAuto: f.lang.value === 'auto', deviceLang: phoneLang } });
       if (!r.ok) { const er = $('[data-error]', f); er.textContent = r.error; er.hidden = false; return; }
       mePromise = Promise.resolve(r);
       box.remove();

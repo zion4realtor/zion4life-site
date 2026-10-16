@@ -75,7 +75,7 @@ const SCHEMA = [
 ];
 
 // Columns added after the tables first went live.
-const ADDED = [['dz', 'schedules', "TEXT NOT NULL DEFAULT '[]'"], ['dz_member', 'attendance_days', 'TEXT'], ['dz_member', 'attendance_tz', "TEXT NOT NULL DEFAULT ''"], ['user', 'tz', "TEXT NOT NULL DEFAULT ''"], ['dz', 'legs', "TEXT NOT NULL DEFAULT '[]'"], ['user', 'country', "TEXT NOT NULL DEFAULT ''"]];
+const ADDED = [['user', 'email_lang_auto', 'INTEGER NOT NULL DEFAULT 1'], ['dz', 'schedules', "TEXT NOT NULL DEFAULT '[]'"], ['dz_member', 'attendance_days', 'TEXT'], ['dz_member', 'attendance_tz', "TEXT NOT NULL DEFAULT ''"], ['user', 'tz', "TEXT NOT NULL DEFAULT ''"], ['dz', 'legs', "TEXT NOT NULL DEFAULT '[]'"], ['user', 'country', "TEXT NOT NULL DEFAULT ''"]];
 
 export function migrate(sql) {
   for (const q of SCHEMA) sql.exec(q);
@@ -91,7 +91,7 @@ const parse = (s, d) => {
 };
 
 // Account row → what the server code uses (email included; never send it to a page as is).
-const userOf = (r) => r && { id: r.id, email: r.email, name: r.name, ids: parse(r.ids, []), idsPublic: !!r.ids_public, lang: r.lang, cal: r.cal, tz: r.tz || '', country: r.country || '', created: r.created, seen: r.seen };
+const userOf = (r) => r && { id: r.id, email: r.email, name: r.name, ids: parse(r.ids, []), idsPublic: !!r.ids_public, lang: r.lang, emailLangAuto: r.email_lang_auto !== 0, cal: r.cal, tz: r.tz || '', country: r.country || '', created: r.created, seen: r.seen };
 // What other people may see of an account.
 export const publicUser = (u) => u && { id: u.id, name: u.name, ids: u.idsPublic ? u.ids : [] };
 
@@ -144,13 +144,14 @@ export const OPS = {
       id, email, name, JSON.stringify(ids || []), idsPublic ? 1 : 0, lang, cal, tz, country, now, now);
     return userOf(first(sql, 'SELECT * FROM user WHERE id = ?', id));
   },
-  userUpdate(sql, { id, name, ids, idsPublic, lang, tz, country, now }) {
+  userUpdate(sql, { id, name, ids, idsPublic, lang, emailLangAuto, tz, country, now }) {
     if (tz != null) sql.exec('UPDATE user SET tz = ? WHERE id = ?', tz, id);
     if (country) sql.exec('UPDATE user SET country = ? WHERE id = ?', country, id);
     if (now) sql.exec('UPDATE user SET seen = ? WHERE id = ?', now, id);
     if (name != null) sql.exec('UPDATE user SET name = ? WHERE id = ?', name, id);
     if (ids != null) sql.exec('UPDATE user SET ids = ? WHERE id = ?', JSON.stringify(ids), id);
     if (idsPublic != null) sql.exec('UPDATE user SET ids_public = ? WHERE id = ?', idsPublic ? 1 : 0, id);
+    if (emailLangAuto != null) sql.exec('UPDATE user SET email_lang_auto = ? WHERE id = ?', emailLangAuto ? 1 : 0, id);
     if (lang != null) sql.exec('UPDATE user SET lang = ? WHERE id = ?', lang, id);
     return userOf(first(sql, 'SELECT * FROM user WHERE id = ?', id));
   },

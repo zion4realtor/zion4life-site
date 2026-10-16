@@ -157,7 +157,7 @@ variables, or Resend (`RESEND_API_KEY`, `FROM_EMAIL_ADDRESS`, `ASK_TO`).
   Each change is a "leg" `{ from, plan }` in `dz.legs`; members get a message.
 - 资料: the initiator puts PDFs and pictures in the group (20 MB each, 200 MB a group);
   only members open them. Bytes live in the Durable Object's `blob` table in 1 MB pieces.
-- Reminders: the 5-minute cron emails members as each session starts, with a link to that
+- Reminders: the 5-minute cron emails attendees about 30 minutes before each session, with a link to that
   session's reading. Joining emails a calendar invitation (weekly repeat in the group's time
   zone). Each account has a calendar subscription `/api/cal/<key>.ics` covering all their
   groups, and each group offers a downloadable `.ics`.
@@ -240,3 +240,5 @@ node --test             # build + tests
 ### Drip Shepherding image pages and membership
 
 Drip image pages provide a `tag:breathe` subscription and per-article comments shared by the Chinese and English pages. Only registered, signed-in users may post comments, prayers, replies, questions, or suggestions; visitors can read public comments. Both the UI and API enforce this rule.
+
+- Email language defaults to the language last reported by the signed-in device (Chinese → 中文; other device languages → English). Under 我的 → 修改资料, members can select Follow device language, 中文, or English; an explicit language overrides subsequent device changes. Only opted-in attendees receive meeting reminders.

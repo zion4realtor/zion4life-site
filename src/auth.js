@@ -55,7 +55,7 @@ export async function meView(env, db, user) {
   const tags = await db('mgrTags', { uid: user.id });
   const claims = await db('claimMine', { uid: user.id });
   return {
-    user: { ...publicUser(user), ids: user.ids, idsPublic: user.idsPublic, lang: user.lang, email: maskEmail(user.email), cal: user.cal, tz: user.tz },
+    user: { ...publicUser(user), ids: user.ids, idsPublic: user.idsPublic, lang: user.lang, emailLangAuto: user.emailLangAuto, email: maskEmail(user.email), cal: user.cal, tz: user.tz },
     admin: isAdmin(env, user),
     manages: tags,
     claims,
@@ -124,9 +124,9 @@ export async function handleAuth(request, env, db, url, now, lang) {
       }[r.reason]);
     }
     if (!user) {
-      user = await db('userCreate', { id: randomId(10), email, name, ids: cleanIds(b.ids), idsPublic: !!b.idsPublic, lang, cal: randomToken(18), tz: cleanTz(b.tz), country: countryOf(request), now });
+      user = await db('userCreate', { id: randomId(10), email, name, ids: cleanIds(b.ids), idsPublic: !!b.idsPublic, lang: ['zh', 'en'].includes(b.deviceLang) ? b.deviceLang : lang, cal: randomToken(18), tz: cleanTz(b.tz), country: countryOf(request), now });
     } else {
-      user = await db('userUpdate', { id: user.id, tz: cleanTz(b.tz) || undefined, country: countryOf(request), now });
+      user = await db('userUpdate', { id: user.id, lang: user.emailLangAuto && ['zh', 'en'].includes(b.deviceLang) ? b.deviceLang : undefined, tz: cleanTz(b.tz) || undefined, country: countryOf(request), now });
     }
     const token = randomToken();
     await db('sessionPut', { token: await hash(token), uid: user.id, expires: now + YEAR, now });
@@ -151,7 +151,9 @@ export async function handleAuth(request, env, db, url, now, lang) {
     }
     if (b.ids !== undefined) upd.ids = cleanIds(b.ids);
     if (b.idsPublic !== undefined) upd.idsPublic = !!b.idsPublic;
-    if (b.lang === 'zh' || b.lang === 'en') upd.lang = b.lang;
+    if (typeof b.emailLangAuto === 'boolean') upd.emailLangAuto = b.emailLangAuto;
+    if (b.lang === 'zh' || b.lang === 'en') { upd.lang = b.lang; upd.emailLangAuto = false; }
+    if ((upd.emailLangAuto ?? user.emailLangAuto) && ['zh', 'en'].includes(b.deviceLang)) upd.lang = b.deviceLang;
     if (cleanTz(b.tz)) upd.tz = cleanTz(b.tz);
     const u = await db('userUpdate', upd);
     return json({ ok: true, ...(await meView(env, db, u)) });
