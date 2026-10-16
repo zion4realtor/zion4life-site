@@ -7,7 +7,7 @@
 import { json, fail, str, randomId, readBody, rateOk, tr, pre, SITE } from './util.js';
 import { currentUser, isAdmin, sameOrigin } from './auth.js';
 import { siteData } from './content.js';
-import { zoomMeetingLink, sendMail, layout } from './mail.js';
+import { zoomMeetingLink, sendMail, mailReady, layout } from './mail.js';
 import {
   KINDS, VENUES, validTimeZone, localDate, addDays, sessionState, session, startedCount, totalSessions, readingFor,
   scheduleText, planText, sessionLabel, sessionsBetween, lateAfter, icsFeed, icsInvite, minutesText, weekStarts, planned, scheduleAt, attendsSession, attendanceWeek, daysText,
@@ -176,16 +176,16 @@ async function mailOwner(env, db, g, zh, en) {
 }
 
 // ---------- reminders: every 5 minutes, email attendees about 30 minutes before ----------
-export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
+export async function runReminders(env, now = Date.now(), url = new URL(SITE), options = {}) {
   const { store } = await import('./store.js');
   const db = store(env);
   await db('prune', { day: new Date(now - 2 * 86400000).toISOString().slice(0, 10), now });
-  const groups = await db('dzActive', {});
+  const groups = (await db('dzActive', {})).filter(g => !options.groupId || g.id === options.groupId);
   const ctx = await withTagItems(db, { ...(await siteData(env, url)), now }, groups);
-  let sent = 0;
+  let sent = 0, failed = 0, alreadySent = false;
   for (const g of groups) {
-    for (const s of sessionsBetween(g, now + 25 * 60000, now + 30 * 60000 + 1, ctx)) {
-      if (!(await db('dzSentClaim', { gid: g.id, n: s.n, now })).ok) continue;
+    for (const s of options.manual ? [session(g, options.n)] : sessionsBetween(g, now + 25 * 60000, now + 30 * 60000 + 1, ctx)) {
+      if (!(await db(options.manual ? 'dzManualSentClaim' : 'dzSentClaim', { gid: g.id, n: s.n, now })).ok) { alreadySent = true; continue; }
       const r = readingFor(g, s.n, ctx);
       for (const u of await db('dzMailList', { gid: g.id })) {
         if (!attendsSession(g, u, s)) continue;
@@ -193,7 +193,7 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
         const t = tr(L);
         const { html, text } = layout({
           lang: L,
-          title: t(`${g.title}：半小时内开始`, `${g.title}: starting in about 30 minutes`),
+          title: options.manual ? t(`${g.title}：聚会提醒`, `${g.title}: meeting reminder`) : t(`${g.title}：半小时内开始`, `${g.title}: starting in about 30 minutes`),
           lines: [
             t(`第 ${s.n} 次，${sessionLabel(g, s, 'zh', u.tz || g.tz)}，${minutesText((s.end-s.start)/60000, 'zh')}。`, `Time ${s.n}, ${sessionLabel(g, s, 'en', u.tz || g.tz)}, ${minutesText((s.end-s.start)/60000, 'en')}.`),
             t(`这次读：${r.full}`, `This time: ${r.full}`),
@@ -204,12 +204,14 @@ export async function runReminders(env, now = Date.now(), url = new URL(SITE)) {
           secondaryButton: zoomMeetingLink(g.venue.info) ? { label: t('打开这次的材料', 'Open this time’s reading'), url: groupUrl(g, L, s.n) } : undefined,
           footer: t('不想收到这个搭子的邮件？打开搭子，在“设置”里关掉提醒。', 'No more emails from this group? Open it and turn reminders off in Settings.'),
         });
-        await sendMail(env, { to: u.email, subject: t(`【有光】聚会提醒：${g.title} · ${r.full}`, `[Light] Meeting reminder: ${g.title} · ${r.full}`), html, text });
-        sent++;
+        try {
+          const result = await sendMail(env, { to: u.email, subject: t(`【有光】聚会提醒：${g.title} · ${r.full}`, `[Light] Meeting reminder: ${g.title} · ${r.full}`), html, text });
+          if (result.ok) sent++; else failed++;
+        } catch (_) { failed++; }
       }
     }
   }
-  return { groups: groups.length, sent };
+  return { groups: groups.length, sent, failed, alreadySent };
 }
 
 // ---------- calendar feeds ----------
@@ -498,6 +500,16 @@ export async function handleDazi(request, env, db, url, now, lang) {
 
   if (method !== 'POST') return fail('Not found', 404);
   const b = (await readBody(request, 20000)) || {};
+
+  if (action === 'remind') {
+    if (!isOwner && !admin) return fail(t('只有发起人或管理员可以发送提醒', 'Only the initiator or an admin can send reminders'), 403);
+    if (!mailReady(env)) return fail(t('邮件服务暂不可用', 'Email service is unavailable'), 503);
+    const st = sessionState(g, now, ctx);
+    const target = st.current || st.next;
+    if (g.status !== 'active' || !target || target.start > now + 2 * HOUR || Number(b.n) !== target.n) return fail(t('只能提醒正在进行或两小时内开始的这次聚会，请刷新页面', 'Only the current meeting or one starting within two hours can be reminded. Refresh the page.'));
+    const result = await runReminders(env, now, url, { manual: true, groupId: g.id, n: target.n });
+    return json({ ok: true, ...result });
+  }
 
   if (action === 'attendance') {
     if (!mem) return fail(t('只有组员可以修改自己的参加日', 'Only members can change their attendance days'), 403);

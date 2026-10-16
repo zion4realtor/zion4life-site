@@ -733,7 +733,7 @@ ${archive(p.date)}
     tab: 'me',
     noindex: true,
     body: `<section class="page" style="--tint:var(--t-sky)">
-<div class="banner"><h1>${esc(L.me)}</h1><p>${esc(L.meSub)}</p>${MASCOT()}</div>
+<div class="me-light-banner"><img class="me-light-scene" src="/img/me-light-banner.svg" alt="" aria-hidden="true"><div class="me-light-copy"><span class="me-light-eyebrow">${lang === 'zh' ? '有光 · 每天相伴' : 'LIGHT · DAY BY DAY'}</span><h1>${esc(L.me)}</h1><p class="me-light-line">${lang === 'zh' ? '循着光，一起前行。' : 'Following the light, together.'}</p><p class="me-light-description">${esc(L.meSub)}</p></div></div>
 <div data-me><p class="muted">${esc(L.loading)}</p></div>
 ${askBox(lang)}
 </section>`,

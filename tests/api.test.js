@@ -836,3 +836,18 @@ test('Zoom join links appear in covenant and half-hour reminders alongside readi
  assert.ok(mail);assert.ok(mail.html.includes('Join Zoom meeting'));assert.ok(mail.text.includes(url));assert.ok(mail.html.includes(`/en/g/${g.id}/1`));
  assert.ok(mail.html.includes('pwd=Demo%2BPass%3D&amp;omn=456'));
 });
+
+
+test('only owner can manually remind an imminent meeting, accepted count is accurate and duplicates are blocked', async()=>{
+ const owner=await signIn('urgent-owner@example.com','Host');
+ const member=await signIn('urgent-member@example.com','Member');
+ const at=new Date(Date.now()+20*60000);const pad=x=>String(x).padStart(2,'0');
+ const made=await call('/api/dazi',{cookie:owner,body:groupBody({startDate:at.toISOString().slice(0,10),time:`${pad(at.getUTCHours())}:${pad(at.getUTCMinutes())}`})});
+ const id=made.body.id;assert.equal(made.body.ok,true);
+ await call(`/api/dazi/${id}/join`,{cookie:member,body:{sig:SIG}});mails=[];
+ assert.equal((await call(`/api/dazi/${id}/remind`,{cookie:member,body:{n:1}})).status,403);
+ const result=await call(`/api/dazi/${id}/remind`,{cookie:owner,body:{n:1}});
+ assert.equal(result.body.sent,2);assert.equal(result.body.failed,0);assert.equal(mails.length,2);
+ const again=await call(`/api/dazi/${id}/remind`,{cookie:owner,body:{n:1}});assert.equal(again.body.alreadySent,true);assert.equal(mails.length,2);
+ assert.equal((await call(`/api/dazi/${id}/remind`,{cookie:owner,body:{n:2}})).body.ok,false);
+});

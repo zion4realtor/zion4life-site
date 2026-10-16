@@ -943,3 +943,14 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 @media(max-width:520px){.banner{min-height:145px;padding:19px 18px 16px;border-radius:19px}.short-watch.is-portrait .short-stage{padding:12px 0}.short-watch.is-portrait .short-stage .player{width:auto;height:min(76svh,760px);max-width:100%;border-radius:0}.hymn-lyrics-panel{margin-inline:-3px;padding:17px 16px}.lyrics-stanza p{font-size:15.5px;line-height:1.9}}
 
 .short-quotes{margin:18px 0 22px;padding:5px 0 5px 16px;border-left:2px solid #84c7bd;color:#f2e7c9;font:italic 17px/1.65 var(--display)}.short-quotes p{margin:8px 0}.short-quotes p+p{color:#d5e2eb;font-size:15px}
+
+/* Personal space: mountain light, a quiet river and a path forward. */
+.me-light-banner{position:relative;isolation:isolate;overflow:hidden;margin:6px 0 22px;min-height:270px;border-radius:24px;background:#173c56;color:#fff;box-shadow:0 12px 32px #1730421a;display:flex;align-items:center}
+.me-light-scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:68% center;z-index:-2}
+.me-light-banner::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#102c45eb 0%,#183e53b5 38%,#183e5320 70%,transparent)}
+.me-light-copy{padding:30px 32px;max-width:67%;text-shadow:0 1px 8px #16364d35}
+.me-light-eyebrow{display:block;color:#d7e5e8;font-size:12px;letter-spacing:.16em;margin-bottom:14px}
+.me-light-copy h1{font:400 38px/1.2 var(--display);letter-spacing:.06em;margin:0 0 12px;color:#fff}
+.me-light-line{font:400 22px/1.5 var(--display);color:#ffedc4;margin:0 0 10px}
+.me-light-description{font-size:15px;line-height:1.75;color:#dbe9ed;margin:0;max-width:285px}
+@media(max-width:520px){.me-light-banner{min-height:254px;border-radius:20px}.me-light-copy{max-width:83%;padding:26px 22px}.me-light-scene{object-position:65% center}.me-light-copy h1{font-size:34px}.me-light-line{font-size:21px}.me-light-description{font-size:15px;max-width:220px}.me-light-eyebrow{font-size:11px;margin-bottom:13px}}

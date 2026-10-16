@@ -55,6 +55,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS dz_board (id TEXT PRIMARY KEY, gid TEXT NOT NULL, uid TEXT NOT NULL, body TEXT NOT NULL, created INTEGER NOT NULL)',
   'CREATE INDEX IF NOT EXISTS dz_board_gid ON dz_board (gid, created)',
   'CREATE TABLE IF NOT EXISTS dz_decline (gid TEXT NOT NULL, name TEXT NOT NULL, created INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS dz_manual_sent (gid TEXT NOT NULL, n INTEGER NOT NULL, sent INTEGER NOT NULL, PRIMARY KEY (gid, n))',
   'CREATE TABLE IF NOT EXISTS dz_sent (gid TEXT NOT NULL, n INTEGER NOT NULL, sent INTEGER NOT NULL, PRIMARY KEY (gid, n))',
   'CREATE TABLE IF NOT EXISTS rate (day TEXT NOT NULL, who TEXT NOT NULL, kind TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (day, who, kind))',
   `CREATE TABLE IF NOT EXISTS ask (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT NOT NULL, name TEXT NOT NULL, reply TEXT NOT NULL,
@@ -418,6 +419,11 @@ export const OPS = {
   dzMailList(sql, { gid }) {
     return rows(sql, `SELECT u.id, u.email, u.name, u.lang, u.tz, m.attendance_days, m.attendance_tz FROM dz_member m JOIN user u ON u.id = m.uid
       WHERE m.gid = ? AND m.status = 'active' AND m.notify = 1`, gid).map((r) => ({ ...r, attendanceDays: parse(r.attendance_days, null), attendanceTz: r.attendance_tz }));
+  },
+  dzManualSentClaim(sql, { gid, n, now = Date.now() }) {
+    if (first(sql, 'SELECT 1 AS x FROM dz_manual_sent WHERE gid = ? AND n = ?', gid, n)) return { ok: false };
+    sql.exec('INSERT INTO dz_manual_sent (gid, n, sent) VALUES (?, ?, ?)', gid, n, now);
+    return { ok: true };
   },
   dzSentClaim(sql, { gid, n, now = Date.now() }) {
     if (first(sql, 'SELECT 1 AS x FROM dz_sent WHERE gid = ? AND n = ?', gid, n)) return { ok: false };

@@ -537,6 +537,7 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
       if (nx && g.status === 'active') {
         h += `<a class="now-card${g.current ? ' live' : ''}" href="${member ? `${pre}/g/${g.id}/${nx.n}` : '#join'}"><span class="now-h">${g.current ? t(`正在进行 · 第 ${nx.n} 次`, `On now · time ${nx.n}`) : t(`下次 · 第 ${nx.n} 次`, `Next · time ${nx.n}`)}</span>
 <span class="now-when">${esc(when(nx.start))}</span><span class="now-read">${esc(nx.reading.text)}</span>${member ? `<span class="now-go">${t('打开材料', 'Open the reading')} →</span>` : ''}</a>`;
+        if (owner && nx.start <= Date.now() + 2 * 3600000) h += `<p class="btn-row"><button type="button" class="btn btn-line" data-remind-now="${nx.n}">${t('立即提醒组员', 'Remind members now')}</button></p><p class="hint" data-remind-result aria-live="polite"></p>`;
       } else if (g.finished) {
         h += `<div class="notice">${t('这个计划已经读完了，感谢主。', 'This plan is finished. Thank the Lord.')}</div>`;
       }
@@ -572,6 +573,16 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
       return `<ul class="people">${g.members.map((m) => `<li><span class="seat static" style="--seat:${COLORS[m.c]}">${esc([...m.name][0] || '·')}</span><span class="pname"><b>${esc(m.name)}</b>${m.role === 'owner' ? `<em>${t('发起人', 'Initiator')}</em>` : ''}${m.me ? `<em>${t('我', 'Me')}</em>` : ''}${m.ids && m.ids.length ? `<small>${m.ids.map((x) => esc(Y.idName(x))).join(' · ')}</small>` : ''}</span>${member && m.sig ? `<img class="sig" src="${m.sig}" alt="${t('签名', 'Signature')}">` : ''}${member && data.me.role === 'owner' && m.role !== 'owner' ? `<button type="button" class="link-btn danger" data-remove="${esc(m.key)}" data-name="${esc(m.name)}">${t('移出', 'Remove')}</button>` : ''}</li>`).join('')}</ul>`;
     }
     function bind(g) {
+      const remind = $('[data-remind-now]', root);
+      if (remind) remind.addEventListener('click', async () => {
+        remind.disabled = true;
+        const result = $('[data-remind-result]', root);
+        result.textContent = t('正在发送提醒……', 'Sending reminders…');
+        const r = await api(`/api/dazi/${g.id}/remind`, { body: { n: Number(remind.dataset.remindNow) } });
+        if (!r.ok) { result.textContent = r.error; remind.disabled = false; return; }
+        result.textContent = r.alreadySent ? t('这次已手动提醒过，未重复发送。', 'This meeting has already been manually reminded; no duplicates sent.') : t(`已提交发送 ${r.sent} 封提醒${r.failed ? `，${r.failed} 封未成功` : ''}。`, `${r.sent} reminder emails accepted${r.failed ? `; ${r.failed} failed` : ''}.`);
+      });
+
       $$('[data-copy-invite]', root).forEach((b) => b.addEventListener('click', () => copy(data.invite, t('邀请链接已复制，发给朋友就可以了', 'Invite link copied. Send it to a friend.'))));
       $$('[data-join], [data-join-days]', root).forEach((j) => {
         j.addEventListener('click', async () => {
