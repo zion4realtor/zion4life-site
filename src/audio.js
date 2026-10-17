@@ -43,6 +43,7 @@ function audioResponse(request, buf, cache) {
 }
 const KEEP_DAYS = 30;
 const PER_RUN = 8; // pieces recorded per cron run (every 5 minutes; each takes a few seconds)
+const AUDIO_REPAIRS = [{ id: 'huxi-2026-10-18-en-part-6-v1', kind: 'huxi', date: '2026-10-18', lang: 'en', index: 6 }];
 
 const keyOf = (date, lang, kind = 'huxi') => `a:${kind}/${date}/${lang}`;
 const chinaDate = (ms) => new Date(ms + 8 * 3600000).toISOString().slice(0, 10);
@@ -66,7 +67,10 @@ export async function handleAudio(request, env, db, url) {
     const h = a ? a.hash.slice(0, 10) : '';
     return json({
       ok: true, ready, done: a?.done || 0, total: a?.parts || 0,
-      parts: ready ? Array.from({ length: a.parts }, (_, i) => `/api/audio/${url.pathname.split('/')[3]}/${m[1]}/${m[2]}/${h}/${i}.wav`) : [],
+      parts: ready ? Array.from({ length: a.parts }, (_, i) => {
+        const part = `/api/audio/${url.pathname.split('/')[3]}/${m[1]}/${m[2]}/${h}/${i}.wav`;
+        return AUDIO_REPAIRS.some((x) => x.date === m[1] && x.lang === m[2] && x.index === i) ? `${part}?v=20261018-en-part6-r1` : part;
+      }) : [],
     }, 200, { 'Cache-Control': 'no-store' });
   }
   if ((m = url.pathname.match(/^\/api\/audio\/(?:huxi|diguan)\/(\d{4}-\d{2}-\d{2})\/(zh|en)\/([0-9a-f]{10})\/(\d{1,3})\.wav$/))) {
@@ -134,6 +138,19 @@ export async function makeAudio(env, db, url, now = Date.now()) {
           a.tries = 99;
         }
         budget--;
+      }
+      for (const repair of AUDIO_REPAIRS.filter((x) => x.kind === d.kind && x.date === d.date && x.lang === lang)) {
+        const status = await db('audioRepairDone', { id: repair.id });
+        if (status?.done || a.done < a.parts || repair.index >= s.chunks.length) continue;
+        try {
+          const out = await speak(env, s.chunks[repair.index].t, lang, v);
+          const saved = await db.put(`${key}/${repair.index}`, out, typeof out === 'string' ? 'b64' : 'raw');
+          await db('audioRepairMark', { id: repair.id, now });
+          made++;
+          console.log('[audio-repair]', key, repair.index, saved.bytes || 0);
+        } catch (e) {
+          console.error('[audio-repair]', key, repair.index, e?.message || e);
+        }
       }
     }
   }
