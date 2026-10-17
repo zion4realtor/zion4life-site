@@ -881,10 +881,10 @@ for (const lang of LANGS) {
     scripts: [DAZI_JS],
     styles: [`/css/plaza.css?v=${ver('css/plaza.css')}`],
     body: `<section class="plaza-page" data-page="plaza">
-<section class="plaza-hero"><h1>${esc(D.plazaH)}</h1>
-<p>${lang === 'zh' ? '约上两三个人，定好时间，一起坚持。<br>一张桌，就是一组同行的搭子。' : 'Gather a few friends, choose a time, and keep going together.<br>Each table is a group of companions.'}</p>
-<details><summary>${lang === 'zh' ? '怎么参与？材料和提醒在哪里？' : 'How do I join, find readings, and get reminders?'}</summary>
-<p>${lang === 'zh' ? '选一张桌，看看一起读什么、何时相聚、在哪里见面。登录后，在“搭子的约”上签名加入，就有了固定同行的伙伴。' : 'Choose a table to see what the group reads, when it meets, and how to meet. Sign in and sign the group’s covenant to join.'}</p>
+<section class="plaza-hero"><div class="plaza-heading-row"><div><p class="plaza-eyebrow">${lang === 'zh' ? '留一个位置，一起走下去' : 'A place to belong. Companions for the journey.'}</p><h1>${esc(D.plazaH)}</h1></div><a class="plaza-start" href="${U(lang, '/dazi/new/')}"><span aria-hidden="true">＋</span>${lang === 'zh' ? '发起搭子' : 'Start a group'}</a></div>
+<p class="plaza-lede">${lang === 'zh' ? '两三个人，一个约定，一起坚持。' : 'A few friends. A regular time. Together.'}</p>
+<details class="plaza-help"><summary>${lang === 'zh' ? '怎么参与 · 读物与提醒' : 'How it works · readings & reminders'}</summary>
+<p>${lang === 'zh' ? '选一个小组，看看一起读什么、何时相聚、在哪里见面。登录后，在“搭子的约”上签名加入，就有了固定同行的伙伴。' : 'Choose a group to see what the group reads, when it meets, and how to meet. Sign in and sign the group’s covenant to join.'}</p>
 <p>${lang === 'zh' ? '网站按小组进度提供当次读物或链接。到约定时间，通过电话、微信、Zoom 等约好的方式相聚；时间会按每个人的手机自动换算。' : 'The site provides readings or links for each session. Meet through the agreed phone call, WeChat, Zoom, or other service. Times automatically display in each person’s local time zone.'}</p>
 <p>${lang === 'zh' ? '加入后，可在小组“日历”中订阅或下载日历。添加到手机日历并开启提醒后，可从提醒中的链接打开当次材料。提醒方式取决于手机和日历设置。' : 'After joining, subscribe to or download the group calendar from its Calendar tab. Add it to your phone calendar and enable reminders; the event link opens that session’s reading. Alerts depend on your phone and calendar settings.'}</p>
 </details></section>
@@ -894,7 +894,7 @@ for (const lang of LANGS) {
 <div class="mine-strip" data-mine hidden><h2>${esc(D.mine)}</h2><div class="mine-row" data-mine-row></div></div>
 <div class="plaza" data-plaza aria-live="polite"></div>
 <dialog class="table-popup" data-table-popup aria-labelledby="plaza-popup-title"><button type="button" class="popup-close" data-popup-close aria-label="${lang === 'zh' ? '关闭说明' : 'Close details'}">×</button><div data-popup-body></div></dialog>
-<a class="fab" href="${U(lang, '/dazi/new/')}"><span aria-hidden="true">＋</span>${esc(D.fab)}</a>
+
 ${config}
 </section>`,
   });

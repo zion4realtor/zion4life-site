@@ -83,11 +83,11 @@
     h += `<span class="table-top">${CFG.kinds[kind] ? CFG.kinds[kind].icon : ''}</span>`;
     for (let i = 0; i < n; i++) {
       const a = (-90 + (360 / n) * i) * Math.PI / 180;
-      const x = c + R * Math.cos(a), y = c + R * Math.sin(a);
+      const x = c + R * (big ? 1 : 1.05) * Math.cos(a), y = c + R * (big ? 1 : .72) * Math.sin(a);
       const s = seats[i];
       h += s
-        ? `<span class="seat${s.me ? ' me' : ''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;--seat:${COLORS[s.c]}">${esc(s.i)}</span>`
-        : `<span class="seat free" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"></span>`;
+        ? `<span class="seat${s.me ? ' me' : ''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;--chair-layer:${Math.sin(a) > .15 ? 5 : 2};--seat:${COLORS[s.c]}">${esc(s.i)}</span>`
+        : `<span class="seat free" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;--chair-layer:${Math.sin(a) > .15 ? 5 : 2};"></span>`;
     }
     if (seats.length > n) h += `<span class="seat more" style="left:${c}px;top:${c + R + 4}px">+${seats.length - n}</span>`;
     return `${h}</span>`;
@@ -97,7 +97,7 @@
   // ---------- the plaza: presentation over the existing read-only group APIs ----------
   function spot(g) {
     return `<a class="spot${g.next?.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" data-plaza-group="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.title)}" style="--tint:${tintOf(g.kind)}">
-${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span></a>`;
+${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span><span class="gather-count">${g.seats.length} / ${g.max} ${t('人', 'members')}</span></a>`;
   }
   function plaza() {
     const box = $('[data-plaza]');
@@ -110,7 +110,7 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
     let groups = [], pageIndex = 1, loadVersion = 0, selected = null, lastFocus = null;
     let kind = new URLSearchParams(location.search).get('kind') || '';
     if (!CFG.kinds[kind]) kind = '';
-    const pageSize = () => window.matchMedia('(min-width: 620px)').matches ? 9 : 6;
+    const pageSize = () => window.matchMedia('(min-width: 900px)').matches ? 12 : window.matchMedia('(min-width: 620px)').matches ? 9 : 6;
     // Names already public on /g/<id>. Do not modify the card API or any membership data.
     const readMembers = (g) => {
       if (memberCache.has(g.id)) return Promise.resolve(memberCache.get(g.id));
@@ -128,16 +128,21 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
     };
     const labelChairs = (node, g, members) => {
       if (!node.isConnected) return;
+      $$('.member-name', node).forEach((label) => label.remove());
       $$('.seat:not(.free):not(.more)', node).forEach((seat, i) => {
         const name = members?.[i]?.name || g.seats[i]?.i || '·';
         const label = document.createElement('span');
         label.className = 'member-name';
         label.textContent = name;
-        seat.replaceChildren(label);
+        label.style.left = seat.style.left;
+        label.style.top = `${parseFloat(seat.style.top) + 21}px`;
+        label.style.zIndex = '10';
+        seat.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="14" r="7" fill="#f5d7bd"/><path d="M13 13q0-10 8-8 8 1 6 11l-3-7-10 6Z" fill="#4e5049"/><path d="M5 41q1-18 15-18t15 18" fill="currentColor"/></svg>';
+        seat.parentElement.appendChild(label);
         seat.title = name;
         seat.setAttribute('aria-label', t(`${name} 已入座`, `${name}, seated`));
       });
-      $$('.seat.free', node).forEach((seat) => seat.setAttribute('aria-label', t('空椅，虚位以待', 'An open chair awaits a companion')));
+      $$('.seat.free', node).forEach((seat) => seat.setAttribute('aria-label', t('空位，欢迎同行', 'Room for another companion')));
     };
     const popupContent = (g, members) => {
       const nx = g.next;
@@ -174,10 +179,10 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
       const visible = filtered.slice((pageIndex - 1) * limit, pageIndex * limit);
       count.textContent = groups.length ? t(`此刻，广场上有 ${groups.length} 组搭子`, `${groups.length} buddy ${groups.length === 1 ? 'group' : 'groups'} on the plaza right now`) : t('广场上还空着，第一桌由你来摆', 'The plaza is empty. Set out the first table');
       if (vacant.checked) count.textContent += t(` · 找到 ${filtered.length} 组`, ` · ${filtered.length} found`);
-      const empty = groups.length ? t('这个分类暂时没有符合条件的搭子，试试其他分类或取消空位筛选。', 'No groups match this filter. Try another category or turn off Open seats.') : `<a href="${pre}/dazi/new/${kind ? `?kind=${encodeURIComponent(kind)}` : ''}">${t('摆一张新桌，邀请伙伴同行', 'Set a new table and invite your companions')}</a>`;
+      const empty = groups.length ? t('这个分类暂时没有符合条件的搭子，试试其他分类或取消空位筛选。', 'No groups match this filter. Try another category or turn off Open seats.') : `<a href="${pre}/dazi/new/${kind ? `?kind=${encodeURIComponent(kind)}` : ''}">${t('发起一个小组，邀请伙伴同行', 'Start a group and invite your companions')}</a>`;
       box.innerHTML = `<div class="plaza-grid">${visible.length ? visible.map(spot).join('') : `<p class="plaza-empty">${empty}</p>`}</div>
-<p class="plaza-legend">${t('椅子上的名字是组员 · 空椅虚位以待', 'Names mark companions · Open chairs await you')}</p>
-<nav class="plaza-pager" aria-label="${t('广场分页', 'Plaza pages')}"><button type="button" data-plaza-prev${pageIndex === 1 ? ' disabled' : ''}>${t('上一页', 'Previous')}</button><span>${pageIndex} / ${pages}</span><button type="button" data-plaza-next${pageIndex === pages ? ' disabled' : ''}>${t('下一页', 'Next')}</button></nav>`;
+<p class="plaza-legend">${t('名字代表组员 · ＋ 表示还有空位', 'Names mark companions · + means room to join')}</p>
+<nav class="plaza-pager"${pages === 1 ? ' hidden' : ''} aria-label="${t('广场分页', 'Plaza pages')}"><button type="button" data-plaza-prev${pageIndex === 1 ? ' disabled' : ''}>${t('上一页', 'Previous')}</button><span>${pageIndex} / ${pages}</span><button type="button" data-plaza-next${pageIndex === pages ? ' disabled' : ''}>${t('下一页', 'Next')}</button></nav>`;
       const stepPage = (step) => {
         pageIndex += step;
         render();
