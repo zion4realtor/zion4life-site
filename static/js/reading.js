@@ -21,7 +21,7 @@
  root.querySelector('[data-reading-source]').href=en?(t.keyVerses[0]?.sourceEn||'https://text.recoveryversion.bible/'):t.sourceUrl;
  const audio=root.querySelector('[data-reading-audio]'),status=root.querySelector('[data-reading-audio-status]');audio.onerror=()=>status.textContent=en?'The recording could not load. Please try again.':'录音暂时无法载入，可重试或打开原文页面收听。';
  if(!en&&t.audioUrl){if(audio.getAttribute('src')!==t.audioUrl)audio.src=t.audioUrl;audio.hidden=false;status.textContent='';if(new URLSearchParams(location.search).has('autoplay'))audio.play().catch(()=>{})}
- else if(en&&t.englishAudio?.status==='ready'&&t.englishAudio?.scope==='full-passage'&&t.englishAudio?.translation==='WEB'){const src=`/api/reading/${date}/audio/${testament}.mp3`;if(audio.getAttribute('src')!==src)audio.src=src;audio.hidden=false;status.textContent='';clearTimeout(poll)}
+ else if(en&&t.englishAudio?.status==='ready'&&t.englishAudio?.scope==='full-passage'&&t.englishAudio?.translation==='WEB'){const src=`/api/reading/${date}/audio/${testament}.mp3?v=${encodeURIComponent(t.englishAudio.hash)}`;if(audio.getAttribute('src')!==src)audio.src=src;audio.hidden=false;status.textContent='';clearTimeout(poll)}
  else if(en){audio.hidden=true;const a=t.englishAudio;status.textContent='Preparing today’s complete reading…'+(a?.scope==='full-passage'&&a.total?` (${a.done}/${a.total})`:'');clearTimeout(poll);poll=setTimeout(reading,30000)}
  }
  const calendar=document.querySelector('[data-reading-calendar]');let calendarMonth=new Date(),calendarTicket=0;
