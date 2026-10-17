@@ -554,9 +554,9 @@ ${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).joi
     const mystery = a.slug === 'rensheng-aomi';
     const dripShepherding = /^diguan-muyang-\d{4}-\d{2}-\d{2}$/.test(a.slug);
     const dripAudio = dripShepherding && a.date >= '2026-10-16';
-    const dripImage = lang === 'zh'
-      ? `/files/drip-shepherding-${a.date}-zh.jpg`
-      : `/files/drip-shepherding-${a.date}-en.jpg`;
+    const dripImage = ['png', 'jpg'].map((ext) => `/files/drip-shepherding-${a.date}-${lang}.${ext}`)
+      .find((src) => fs.existsSync(path.join(STATIC, src.slice(1))));
+    if (dripShepherding && !dripImage) throw new Error(`Missing drip image: ${a.date} ${lang}`);
     const mysteryPdf = lang === 'zh'
       ? { file: '/files/mystery-of-human-life.zh.pdf', pages: ['/files/mystery-zh-1.jpg', '/files/mystery-zh-2.jpg'] }
       : { file: '/files/mystery-of-human-life.en.pdf', pages: ['/files/mystery-en-1.jpg', '/files/mystery-en-2.jpg'] };
