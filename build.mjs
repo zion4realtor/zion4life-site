@@ -16,6 +16,7 @@ const CONTENT = path.join(ROOT, 'content');
 const STATIC = path.join(ROOT, 'static');
 const DIST = path.join(ROOT, 'dist');
 const LANGS = ['zh', 'en'];
+const readingSeeds = fs.readdirSync(path.join(CONTENT, 'reading')).filter(f => f.endsWith('.json')).map(f => JSON.parse(fs.readFileSync(path.join(CONTENT, 'reading', f), 'utf8')));
 const site = readJSON('site.json');
 const homeEditorial = readJSON('home-editorial.json');
 const TAGS = readJSON('tags.json');
@@ -350,6 +351,8 @@ ${head}
 <link rel="stylesheet" href="${FONT}">
 <link rel="stylesheet" href="${CSS}">
 ${styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
+<link rel="stylesheet" href="/css/reading.css?v=${ver('css/reading.css')}">
+<script src="/js/reading.js?v=${ver('js/reading.js')}" defer></script>
 </head>
 <body>
 <header class="topbar"><div class="wrap topbar-in">
@@ -357,7 +360,7 @@ ${styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
 <nav class="lang" aria-label="Language"><a href="${alt('zh')}" hreflang="zh-CN"${lang === 'zh' ? ' aria-current="true"' : ''} data-lang="zh">中</a><a href="${alt('en')}" hreflang="en"${lang === 'en' ? ' aria-current="true"' : ''} data-lang="en">EN</a></nav>
 </div></header>
 <main class="wrap${wide ? ' wide' : ''}">
-${body}
+${['/t/eat/','/t/life/'].includes(p) ? `<section class="calendar" id="reading-calendar" data-reading-calendar><header><b>${lang === 'zh' ? '三旧一新 · 读经日历' : 'Bible reading calendar'}</b><div class="calendar-nav"><button data-calendar-step="-1" type="button" aria-label="${lang === 'zh' ? '上个月' : 'Previous month'}">←</button><span data-calendar-month></span><button data-calendar-step="1" type="button" aria-label="${lang === 'zh' ? '下个月' : 'Next month'}">→</button></div></header><div class="calendar-grid" data-calendar-grid></div></section>` : ''}${body}
 <footer class="foot"><b>${esc(name)}</b> zion4life.faith<br><span class="mail">${esc(site.contact)}</span><br>${esc(L.copyright(new Date().getFullYear()))} · Atlanta USA</footer>
 </main>
 <div class="tab-space"></div>
@@ -510,7 +513,7 @@ for (const lang of LANGS) {
       title: '',
       tab: 'home',
       body: `<section class="hello home-hello"><span class="hello-kicker">${esc(homeEditorial[lang].eyebrow)}</span><h1>${esc(homeEditorial[lang].title)}</h1><p>${esc(homeEditorial[lang].subtitle)}</p></section>
-<div class="home-fresh-sections" data-home-fresh-sections><section class="home-command" data-home-fresh="community" data-updated="${tp?Date.parse(tp.date):0}" aria-label="${lang==='zh'?'祷告负担与搭子':'Prayer and buddies'}"><div class="home-daily">${todayTile}</div><div class="home-companion">${daziTile}</div></section>${spotlight}</div>
+<div class="home-fresh-sections" data-home-fresh-sections><section class="home-command" data-home-fresh="community" data-updated="${tp?Date.parse(tp.date):0}" aria-label="${lang==='zh'?'每日读经与搭子':'Daily reading and buddies'}"><div class="home-daily">${`<a class="daily-preview" data-reading-home href="${U(lang, '/read/today/ot/')}"><small data-reading-label>${lang === 'zh' ? '今日吃饭 · 三旧一新' : 'DAILY BIBLE READING'}</small><h2>${lang === 'zh' ? '每天一点<br>享受主话' : 'A little<br>every day'}</h2><p data-reading-summary>${lang === 'zh' ? '读经 · 听经 · 记在心里' : 'Read · Listen · Remember'}</p><p>${lang === 'zh' ? '读经 · 听经' : 'Read & listen'} →</p></a>`}</div><div class="home-companion">${daziTile}</div></section>${spotlight}</div>
 <section class="home-discover" aria-labelledby="home-discover-title"><div class="home-section-head"><span class="home-eyebrow">${lang === 'zh' ? '照着你的需要开始' : 'FIND YOUR NEXT STEP'}</span><h2 id="home-discover-title">${lang === 'zh' ? '一个入口，看见所有主题' : 'Every topic, one place to begin'}</h2><p>${lang === 'zh' ? '照着此刻的需要，找到愿意读下去的那一篇。' : 'Find something to read, hear, or carry into your day.'}</p></div><div class="home-paths" data-home-grid>${pathHTML}</div></section>
 <section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/t/mystery/')}" class="recent-more">${lang === 'zh' ? '浏览粮仓' : 'Explore'} ↗</a></div><div class="recent-list">${recentItems}</div></section>
 ${askBox(lang, true)}`,
@@ -595,6 +598,21 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
     const cards = related.map(x => `<a class="${end ? 'end-card' : 'recommend-card'}" href="${U(lang, `/v/${x.slug}/`)}"><img src="${esc(x.poster || x.sources[0]?.poster || '')}" alt="" loading="lazy"><b>${esc(x[lang].title)}</b>${end ? '' : `<small>${esc(L.min(x.minutes))} · ${lang === 'zh' ? '相关视频' : 'Related video'}</small>`}</a>`).join('');
     return end ? `<div class="end-recommend" data-video-end hidden><h2>${heading}</h2><div class="end-grid">${cards}</div><button class="end-replay" data-video-replay type="button">↻ ${lang === 'zh' ? '再看一遍' : 'Watch again'}</button></div>` : `<section class="recommend" aria-label="${heading}"><div class="recommend-head"><h2>${heading}</h2><div class="recommend-controls"><button type="button" data-video-scroll="-1" aria-label="${lang === 'zh' ? '上一组视频' : 'Previous videos'}">←</button><button type="button" data-video-scroll="1" aria-label="${lang === 'zh' ? '下一组视频' : 'Next videos'}">→</button></div></div><div class="recommend-rail">${cards}</div></section>`;
   };
+
+
+  // Bible reading: approved short daily selections and links to the complete source.
+  const readingBody = (d, testament) => {
+    const en = lang === 'en', pre = en ? '/en' : '', t = d?.[testament], ot = testament === 'ot';
+    const date = d?.date || '', token = date || 'today';
+    const label = t ? `${en ? t.bookEn : t.bookZh} ${t.ranges.map(x => `${x.chapter}:${x.firstVerse}–${x.lastVerse}`).join(' · ')}` : '';
+    const verses = t?.keyVerses || [];
+    return `<article class="reading" data-reading-page data-reading-date="${date}" data-testament="${testament}"><div class="reading-kicker"><span data-reading-kicker>${en ? 'EAT' : '吃饭'}${d ? ` · ${en ? 'DAY' : '第'} ${d.planDay}${en ? '' : ' 天'}` : ''}</span><time data-reading-date-label>${date}</time></div><h1>${en ? 'Daily Bible reading' : '三旧一新，天天吃饭'}</h1><nav class="reading-tabs"><a href="/read/${token}/${testament}/" ${en ? '' : 'aria-current="page"'} data-reading-lang="zh">中文</a><a href="/en/read/${token}/${testament}/" ${en ? 'aria-current="page"' : ''} data-reading-lang="en">English</a></nav><nav class="reading-tabs"><a href="${pre}/read/${token}/ot/" ${ot ? 'aria-current="page"' : ''} data-reading-testament="ot">${en ? 'Old Testament' : '旧约'}</a><a href="${pre}/read/${token}/nt/" ${ot ? '' : 'aria-current="page"'} data-reading-testament="nt">${en ? 'New Testament' : '新约'}</a></nav><div class="reading-audio"><b>${en ? 'Listen to today’s key verse' : '读给我听'}</b><small>${en ? 'Aura 2 · Helena · Key verse only' : '中文原声 · 当天读经'}</small><audio controls preload="none" data-reading-audio ${!en && t?.audioUrl ? `src="${esc(t.audioUrl)}"` : 'hidden'}></audio><span class="reading-status" data-reading-audio-status>${en ? 'Preparing the key-verse recording…' : ''}</span></div><h2 data-reading-range>${esc(label)}</h2><div data-reading-verses>${verses.map(v => `<section class="memory-section"><div class="memory-heading"><span>${en ? 'REMEMBER THE WORD' : '今日金句 · 记在心里'}</span><button type="button" data-memory-toggle aria-pressed="false">${en ? 'Practice' : '遮住试背'}</button></div><p class="memory-ref">${esc(en ? v.reference : v.referenceZh)}</p><p class="reading-verse" data-memory-text>${esc(en ? v.en : v.zh)}</p></section>`).join('')}</div><div class="reading-error" data-reading-error hidden></div><div class="reading-note">${en ? 'Selected from today’s reading. Open the source for the full reading.' : '金句选自当天阅读范围，完整经文请打开原文。'}<br><a data-reading-source href="${esc(en ? (verses[0]?.sourceEn || 'https://text.recoveryversion.bible/') : (t?.sourceUrl || 'https://line.twgbr.org/recoveryversion/oneyear/'))}" target="_blank" rel="noopener">${en ? 'Read the complete passage ↗' : '打开今日完整经文 ↗'}</a><br>© Living Stream Ministry</div><div class="reading-links"><a href="${pre}/t/eat/#reading-calendar">${en ? 'Eat' : '吃饭'}</a><a href="${pre}/t/life/#reading-calendar">${en ? 'Life' : '生命'}</a><a href="${pre}/read/today/ot/">${en ? 'Today’s reading' : '今日读经'} ↗</a></div></article>`;
+  };
+  for (const testament of ['ot','nt']) {
+    emit(lang, `/read/shell/${testament}/`, { title:lang === 'zh' ? '三旧一新' : 'Daily Bible reading', tab:'home', noindex:true, body:readingBody(null,testament) });
+    emit(lang, `/read/today/${testament}/`, { title:lang === 'zh' ? '今日三旧一新' : 'Today’s Bible reading', tab:'home', noindex:true, body:readingBody(null,testament) });
+    for (const d of readingSeeds) for (const token of [d.date, String(d.planDay)]) emit(lang, `/read/${token}/${testament}/`, { title:`${d.date} ${lang === 'zh' ? '三旧一新' : 'Daily Bible reading'}`, desc:lang === 'zh' ? '当天读经、金句与录音' : 'Daily reading, key verses and audio',tab:'home',body:readingBody(d,testament) });
+  }
 
   // videos
   for (const v of videos) {

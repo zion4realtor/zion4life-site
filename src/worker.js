@@ -12,6 +12,7 @@ import { siteData } from './content.js';
 import { planText, minutesText, sessionState, KINDS } from './schedule.js';
 import { esc, md, plain } from './md.js';
 import { serveVideo } from './media.js';
+import { readingApi, readingPage, prepareReadings } from './reading.js';
 
 export { Store } from './store.js';
 
@@ -20,6 +21,8 @@ export default {
     const url = new URL(request.url);
     const p = url.pathname;
     if (p.startsWith('/video/') && p.endsWith('.mp4')) return serveVideo(request, env);
+    if (p.startsWith('/api/reading/')) return readingApi(request, env, url);
+    if (/^\/(en\/)?read\/\d{4}-\d{2}-\d{2}\//.test(p)) return readingPage(request, env, url);
     if (p === '/api/hit') return handleHit(request, env, ctx, url);
     if (p.startsWith('/api/')) {
       try {
@@ -39,6 +42,7 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
+    ctx.waitUntil(prepareReadings(env).then(r => console.log('[reading]', JSON.stringify(r))).catch(e => console.error('[reading]', e?.stack || e)));
     ctx.waitUntil(runReminders(env).then((r) => console.log('[reminders]', JSON.stringify(r))));
   },
 };

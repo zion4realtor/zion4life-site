@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-17",
+  "planDay": 290,
+  "tags": [
+    "eat",
+    "life"
+  ],
+  "status": "ready",
+  "keyVerses": [
+    {
+      "reference": "Jeremiah 18:6a",
+      "referenceZh": "耶利米书18:6上",
+      "testament": "ot",
+      "zh": "耶和华说，以色列家啊，我待你们岂不能照这窑匠所作的吗？",
+      "en": "Am I not able to do with you, O house of Israel, as this potter does? declares Jehovah.",
+      "sourceEn": "https://text.recoveryversion.bible/24_Jeremiah_18.htm"
+    },
+    {
+      "reference": "Hebrews 12:14",
+      "referenceZh": "希伯来书12:14",
+      "testament": "nt",
+      "zh": "你们要追求与众人和睦，并要追求圣别，非圣别没有人能见主；",
+      "en": "Pursue peace with all men and sanctification, without which no one will see the Lord;",
+      "sourceEn": "https://text.recoveryversion.bible/58_Hebrews_12.htm"
+    }
+  ],
+  "checkedAt": "2026-10-17T16:46:25.191773+00:00",
+  "ot": {
+    "bookZh": "耶利米书",
+    "ranges": [
+      {
+        "chapter": 18,
+        "firstVerse": 1,
+        "lastVerse": 23
+      },
+      {
+        "chapter": 19,
+        "firstVerse": 1,
+        "lastVerse": 15
+      }
+    ],
+    "audioUrl": "https://dropbox.com/s/xg48i6oi4ocmd06/ot-oneyear-290.mp3?raw=1",
+    "audioStatus": "external-unverified",
+    "sourceUrl": "https://line.twgbr.org/recoveryversion/oneyear/o290.html",
+    "englishAudio": {
+      "status": "pending",
+      "scope": "key-verses",
+      "voice": "Aura 2 Helena"
+    },
+    "keyVerses": [
+      {
+        "reference": "Jeremiah 18:6a",
+        "referenceZh": "耶利米书18:6上",
+        "testament": "ot",
+        "zh": "耶和华说，以色列家啊，我待你们岂不能照这窑匠所作的吗？",
+        "en": "Am I not able to do with you, O house of Israel, as this potter does? declares Jehovah.",
+        "sourceEn": "https://text.recoveryversion.bible/24_Jeremiah_18.htm"
+      }
+    ],
+    "bookEn": "Jeremiah"
+  },
+  "nt": {
+    "bookZh": "希伯来书",
+    "ranges": [
+      {
+        "chapter": 12,
+        "firstVerse": 1,
+        "lastVerse": 14
+      }
+    ],
+    "audioUrl": "https://dropbox.com/s/0hgiveqoatn6zdw/nt-oneyear-290.mp3?raw=1",
+    "audioStatus": "external-unverified",
+    "sourceUrl": "https://line.twgbr.org/recoveryversion/oneyear/n290.html",
+    "englishAudio": {
+      "status": "pending",
+      "scope": "key-verses",
+      "voice": "Aura 2 Helena"
+    },
+    "keyVerses": [
+      {
+        "reference": "Hebrews 12:14",
+        "referenceZh": "希伯来书12:14",
+        "testament": "nt",
+        "zh": "你们要追求与众人和睦，并要追求圣别，非圣别没有人能见主；",
+        "en": "Pursue peace with all men and sanctification, without which no one will see the Lord;",
+        "sourceEn": "https://text.recoveryversion.bible/58_Hebrews_12.htm"
+      }
+    ],
+    "bookEn": "Hebrews"
+  }
+}

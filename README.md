@@ -244,3 +244,13 @@ Drip image pages provide a `tag:breathe` subscription and per-article comments s
 - Email language defaults to the language last reported by the signed-in device (Chinese → 中文; other device languages → English). Under 我的 → 修改资料, members can select Follow device language, 中文, or English; an explicit language overrides subsequent device changes. Only opted-in attendees receive meeting reminders.
 
 - Session notes are displayed alongside member-only group messages, with a link to the source session. They use the original note row, so existing notes appear automatically and edits/clears stay in sync without duplicate posts. Venue URLs are clickable in both group and session pages.
+
+## Daily Bible reading (2026-10-17)
+
+Home now links to `/read/today/ot/`; each visitor's browser selects a calendar date at local 04:00 (before then, the previous date). Fixed `/read/YYYY-MM-DD/ot/` and `/nt/` links preserve that date, including language switching. February 29 repeats February 28 in the 365-day source plan.
+
+`src/reading.js` runs independently in the existing five-minute Worker cron. It prepares the current UTC date and the following two dates ahead of the earliest UTC+14 boundary, verifies actual source verse ranges, selects one short key quotation per testament (shared Chinese/English references), and preserves daily metadata in STORE blob keys prefixed `reading:day:`. It does not store complete chapters. Source outline headings do not define the day's range. Source failures are logged and retried; missing days show an explicit pending message, never previous content labelled as current.
+
+Chinese audio links to the source's existing recording. English Aura 2 Helena audio reads **the selected key verse only**, labelled accordingly; it is not the full day's English Bible audio. These short MP3s have separate `reading:audio:` storage and are not pruned by the prayer recording's 30-day cleanup. The official API's offline-storage restrictions still apply; this is not an offline full-Bible inventory.
+
+Seed days live in `content/reading/` with matching static JSON in `static/data/reading/` and a date index `static/data/reading-index.json`. The calendar in Eat and Life reads the ready date index from STORE plus seeds; future dates are not shown before the visitor's local release date. The cron needs only the already configured STORE and AI bindings, not a local computer, OpenAI key or LSM API credential. Startup recording status is visible in `/api/reading/YYYY-MM-DD.json` and MP3s are served under `/api/reading/YYYY-MM-DD/audio/ot.mp3` and `/nt.mp3` with byte ranges.

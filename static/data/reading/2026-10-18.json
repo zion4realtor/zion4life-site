@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-18",
+  "planDay": 291,
+  "tags": [
+    "eat",
+    "life"
+  ],
+  "status": "ready",
+  "checkedAt": "2026-10-17T17:17:14.684Z",
+  "ot": {
+    "bookZh": "耶利米书",
+    "bookEn": "Jeremiah",
+    "bookNumber": 24,
+    "ranges": [
+      {
+        "chapter": 20,
+        "firstVerse": 1,
+        "lastVerse": 18
+      },
+      {
+        "chapter": 21,
+        "firstVerse": 1,
+        "lastVerse": 14
+      },
+      {
+        "chapter": 22,
+        "firstVerse": 1,
+        "lastVerse": 30
+      }
+    ],
+    "sourceUrl": "https://line.twgbr.org/recoveryversion/oneyear/o291.html",
+    "audioUrl": "https://dropbox.com/s/jv2u80uei7brdee/ot-oneyear-291.mp3?raw=1",
+    "englishAudio": {
+      "status": "pending",
+      "scope": "key-verses",
+      "voice": "Aura 2 Helena"
+    },
+    "keyVerses": [
+      {
+        "reference": "Jeremiah 20:9 (excerpt)",
+        "referenceZh": "耶利米书 20:9（节选）",
+        "zh": "我若说，我不再题说祂，也不再奉祂的名讲论，我便心里觉得似乎有烧着的火，闭塞在我骨中，我就含忍不住，不能自禁。",
+        "en": "But if I say, I will not mention Him / Or speak anymore in His name, / Then it is in my heart like a…",
+        "sourceEn": "https://text.recoveryversion.bible/24_Jeremiah_20.htm",
+        "testament": "ot"
+      }
+    ]
+  },
+  "nt": {
+    "bookZh": "希伯来书",
+    "bookEn": "Hebrews",
+    "bookNumber": 58,
+    "ranges": [
+      {
+        "chapter": 12,
+        "firstVerse": 15,
+        "lastVerse": 24
+      }
+    ],
+    "sourceUrl": "https://line.twgbr.org/recoveryversion/oneyear/n291.html",
+    "audioUrl": "https://dropbox.com/s/aad6ufzd3pmqlq1/nt-oneyear-291.mp3?raw=1",
+    "englishAudio": {
+      "status": "pending",
+      "scope": "key-verses",
+      "voice": "Aura 2 Helena"
+    },
+    "keyVerses": [
+      {
+        "reference": "Hebrews 12:22 (excerpt)",
+        "referenceZh": "希伯来书 12:22（节选）",
+        "zh": "但你们乃是来到锡安山，来到活神的城，属天的耶路撒冷，来到千万天使整体的聚集，",
+        "en": "But you have come forward to Mount Zion and to the city of the living God, the heavenly Jerusalem; and to myriads of angels, to…",
+        "sourceEn": "https://text.recoveryversion.bible/58_Hebrews_12.htm",
+        "testament": "nt"
+      }
+    ]
+  }
+}

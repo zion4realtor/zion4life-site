@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-19",
+  "planDay": 292,
+  "tags": [
+    "eat",
+    "life"
+  ],
+  "status": "ready",
+  "checkedAt": "2026-10-17T17:17:15.258Z",
+  "ot": {
+    "bookZh": "耶利米书",
+    "bookEn": "Jeremiah",
+    "bookNumber": 24,
+    "ranges": [
+      {
+        "chapter": 23,
+        "firstVerse": 1,
+        "lastVerse": 40
+      }
+    ],
+    "sourceUrl": "https://line.twgbr.org/recoveryversion/oneyear/o292.html",
+    "audioUrl": "https://dropbox.com/s/ctnkj3z7tg6pgff/ot-oneyear-292.mp3?raw=1",
+    "englishAudio": {
+      "status": "pending",
+      "scope": "key-verses",
+      "voice": "Aura 2 Helena"
+    },
+    "keyVerses": [
+      {
+        "reference": "Jeremiah 23:29",
+        "referenceZh": "耶利米书 23:29",
+        "zh": "耶和华说，我的话岂不是像火，又像能打碎磐石的大锤吗？",
+        "en": "Is not My word thus &mdash; like fire, declares Jehovah, and like a hammer that breaks the rock in pieces?",
+        "sourceEn": "https://text.recoveryversion.bible/24_Jeremiah_23.htm",
+        "testament": "ot"
+      }
+    ]
+  },
+  "nt": {
+    "bookZh": "希伯来书",
+    "bookEn": "Hebrews",
+    "bookNumber": 58,
+    "ranges": [
+      {
+        "chapter": 12,
+        "firstVerse": 25,
+        "lastVerse": 29
+      },
+      {
+        "chapter": 13,
+        "firstVerse": 1,
+        "lastVerse": 7
+      }
+    ],
+    "sourceUrl": "https://line.twgbr.org/recoveryversion/oneyear/n292.html",
+    "audioUrl": "https://dropbox.com/s/rckwwe2btdpiih9/nt-oneyear-292.mp3?raw=1",
+    "englishAudio": {
+      "status": "pending",
+      "scope": "key-verses",
+      "voice": "Aura 2 Helena"
+    },
+    "keyVerses": [
+      {
+        "reference": "Hebrews 12:28",
+        "referenceZh": "希伯来书 12:28",
+        "zh": "所以我们既领受了不能震动的国，就当接受恩典，借此得以照神所喜悦的，以虔诚和畏惧事奉神；",
+        "en": "Therefore receiving an unshakable kingdom, let us have grace, through which we may serve God well-pleasingly with piety and fear;",
+        "sourceEn": "https://text.recoveryversion.bible/58_Hebrews_12.htm",
+        "testament": "nt"
+      }
+    ]
+  }
+}
