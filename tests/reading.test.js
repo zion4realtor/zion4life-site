@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parseReading,planDay,selectVerse,englishVerse,readingApi,prepareReadings } from '../src/reading.js';
+import { parseReading,planDay,publicationDate,selectVerse,englishVerse,readingApi,prepareReadings } from '../src/reading.js';
 const sample = (book,chapter,body) => `<html><head><title>读经一年一遍第291天-${book}</title></head><body><div>大纲范围：十八至二十章</div><p><b>第${chapter}章</b>${body}</p><hr><p>not reading material</p></body></html>`;
 const old = sample('耶利米书','十八',`<sup>1</sup>First reading text.<sup><a onclick="overlib('note')">1</a></sup><sup>6</sup>Selected reading text.</p><p><b>第十九章</b><sup>1</sup>Next chapter text.`);
 const nextOld = sample('耶利米书','二十','<sup>1</sup>First text.<sup>9</sup>Selected text.</p><p><b>第二十一章</b><sup>1</sup>Next text.</p><p><b>第二十二章</b><sup>1</sup>Another text.');
@@ -26,4 +26,13 @@ test('cron prepares metadata without new key-verse audio, preserving archived MP
  const d=JSON.parse(new TextDecoder().decode(blobs.get('reading:day:2026-10-18')));assert.equal(d.status,'ready');assert.equal(d.ot.keyVerses.length+d.nt.keyVerses.length,2);assert.equal(d.ot.verses,undefined);assert.equal(d.ot.ranges.length,3);
  const cal=new Request('https://x/api/reading/calendar/2026-10.json');const dates=(await (await readingApi(cal,env,new URL(cal.url))).json()).dates;assert.deepEqual(dates,['2026-10-17','2026-10-18']);
  }finally{globalThis.fetch=actual}
+});
+
+test('reading publishes globally at Beijing midnight, including Eastern winter dates',async()=>{
+ assert.equal(publicationDate(Date.parse('2026-10-17T15:59:59Z')),'2026-10-17');
+ assert.equal(publicationDate(Date.parse('2026-10-17T16:00:00Z')),'2026-10-18');
+ assert.equal(publicationDate(Date.parse('2026-12-17T16:00:00Z')),'2026-12-18');
+ const {env}=environment(),request=new Request('https://x/api/reading/today.json');
+ const response=await readingApi(request,env,new URL(request.url)),d=await response.json();
+ assert.equal(d.date,publicationDate(Date.parse(d.serverTime)));assert.equal(d.timezone,'Asia/Shanghai');assert.equal(response.headers.get('cache-control'),'no-store');
 });

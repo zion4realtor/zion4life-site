@@ -459,6 +459,44 @@ const HOME_SCREEN = {
 </div></details>`,
 };
 
+// Reading instructions are independent of the prayer page.
+const READING_HOME_SCREEN = {
+  zh: `<details class="a2hs" data-a2hs>
+<summary>${PHONE_ICON}<span>放到手机桌面，像 APP 一样一点就开</span></summary>
+<div class="a2hs-in">
+<p class="a2hs-lead">把“今日读经”固定链接放到桌面，每天一点开就是当天的经文与录音；往期保留在读经日历里。北京时间每天 0 点更新，所有设备同步。 <a href="/read/today/ot/">打开今日读经固定链接 ↗</a></p>
+<p class="a2hs-go" data-a2hs-go hidden><button class="btn btn-water btn-sm" type="button" data-a2hs-btn>一键放到桌面</button></p>
+<div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>在微信里打开的</b><p>微信里没法直接放到桌面。先点右上角「···」，选「在浏览器打开」（苹果手机是「在 Safari 中打开」），再按下面的步骤做。</p></div>
+<div class="a2hs-step" data-os="ios"><b>苹果手机（iPhone）</b><ol>
+<li>用 <b>Safari</b> 浏览器打开这个页面。</li>
+<li>点屏幕下方的「分享」按钮（一个方框，箭头朝上）。新版 iOS 要先点右下角「···」，再点「分享」。</li>
+<li>往上滑，点「添加到主屏幕」。</li>
+<li>点右上角「添加」。</li></ol></div>
+<div class="a2hs-step" data-os="android"><b>安卓手机（华为、小米、OPPO、vivo、三星等）</b><ol>
+<li>用手机自带的浏览器或 Chrome 打开这个页面。</li>
+<li>点右上角「⋮」，或屏幕下方的菜单「≡」。</li>
+<li>选「添加到主屏幕」或「添加到桌面」（有的手机叫「发送到桌面」「添加快捷方式」）。</li>
+<li>点「添加」。桌面上没出现的话，到手机「设置 → 应用 → 这个浏览器 → 权限」里打开「桌面快捷方式」，再试一次。</li></ol></div>
+</div></details>`,
+  en: `<details class="a2hs" data-a2hs>
+<summary>${PHONE_ICON}<span>Put it on your home screen, like an app</span></summary>
+<div class="a2hs-in">
+<p class="a2hs-lead">Add the Today link to your home screen for the current reading and audio. Past readings remain in the calendar. Updated daily at midnight Beijing time, for all devices. <a href="/en/read/today/ot/">Open the Today link ↗</a></p>
+<p class="a2hs-go" data-a2hs-go hidden><button class="btn btn-water btn-sm" type="button" data-a2hs-btn>Add to home screen</button></p>
+<div class="a2hs-step a2hs-wx" data-a2hs-wx hidden><b>Opened in WeChat?</b><p>WeChat cannot do this itself. Tap “···” at the top right, choose “Open in Browser” (on iPhone, “Open in Safari”), then follow the steps below.</p></div>
+<div class="a2hs-step" data-os="ios"><b>iPhone</b><ol>
+<li>Open this page in <b>Safari</b>.</li>
+<li>Tap the Share button at the bottom (a square with an arrow pointing up). On the newest iOS, tap “···” at the bottom right first, then “Share”.</li>
+<li>Scroll up and tap “Add to Home Screen”.</li>
+<li>Tap “Add” at the top right.</li></ol></div>
+<div class="a2hs-step" data-os="android"><b>Android</b><ol>
+<li>Open this page in Chrome or your phone’s own browser.</li>
+<li>Tap “⋮” at the top right, or the menu “≡” at the bottom.</li>
+<li>Choose “Add to Home screen” (on some phones “Add to desktop” or “Add shortcut”).</li>
+<li>Tap “Add”. If no icon appears, allow home-screen shortcuts for the browser in Settings → Apps → the browser → Permissions, then try again.</li></ol></div>
+</div></details>`,
+};
+
 function askBox(lang, compact = false) {
   const L = S[lang];
   const opening = compact ? `<details class="ask-fold"><summary><span class="ask-fold-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></span><span class="ask-fold-copy"><strong>${lang === 'zh' ? '有问题，或想提建议？' : 'Questions or ideas?'}</strong><small>${lang === 'zh' ? '欢迎提问，也欢迎告诉我网站可以怎样改进' : 'Ask a question or suggest a site improvement'}</small></span><span class="ask-fold-action"><span>${lang === 'zh' ? '留言' : 'Write'}</span><b aria-hidden="true">＋</b></span></summary>` : '';
@@ -608,7 +646,7 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
     const date = d?.date || '', token = date || 'today';
     const label = t ? `${en ? t.bookEn : t.bookZh} ${t.ranges.map(x => `${x.chapter}:${x.firstVerse}–${x.lastVerse}`).join(' · ')}` : '';
     const verses = t?.keyVerses || [];
-    return `<article class="reading" data-reading-page data-reading-date="${date}" data-testament="${testament}"><div class="reading-kicker"><span data-reading-kicker>${en ? 'EAT' : '吃饭'}${d ? ` · ${en ? 'DAY' : '第'} ${d.planDay}${en ? '' : ' 天'}` : ''}</span><time data-reading-date-label>${date}</time></div><h1>${en ? 'Daily Bible reading' : '三旧一新，天天吃饭'}</h1><nav class="reading-tabs"><a href="/read/${token}/${testament}/" ${en ? '' : 'aria-current="page"'} data-reading-lang="zh">中文</a><a href="/en/read/${token}/${testament}/" ${en ? 'aria-current="page"' : ''} data-reading-lang="en">English</a></nav><nav class="reading-tabs"><a href="${pre}/read/${token}/ot/" ${ot ? 'aria-current="page"' : ''} data-reading-testament="ot">${en ? 'Old Testament' : '旧约'}</a><a href="${pre}/read/${token}/nt/" ${ot ? '' : 'aria-current="page"'} data-reading-testament="nt">${en ? 'New Testament' : '新约'}</a></nav><div class="reading-audio"><b>${en ? 'Listen to today’s reading' : '读给我听'}</b><audio controls preload="none" data-reading-audio ${!en && t?.audioUrl ? `src="${esc(t.audioUrl)}"` : 'hidden'}></audio><span class="reading-status" data-reading-audio-status>${en ? 'Preparing today’s complete reading…' : ''}</span></div><h2 data-reading-range>${esc(label)}</h2><div data-reading-verses>${verses.map(v => `<section class="memory-section"><div class="memory-heading"><span>${en ? 'REMEMBER THE WORD' : '今日金句 · 记在心里'}</span><button type="button" data-memory-toggle aria-pressed="false">${en ? 'Practice' : '遮住试背'}</button></div><p class="memory-ref">${esc(en ? v.reference : v.referenceZh)}</p><p class="reading-verse" data-memory-text>${esc(en ? v.en : v.zh)}</p></section>`).join('')}</div><div class="reading-error" data-reading-error hidden></div><div class="reading-note">${en ? 'Selected from today’s reading. Open the source for the full reading.' : '金句选自当天阅读范围，完整经文请打开原文。'}<br><a data-reading-source href="${esc(en ? (verses[0]?.sourceEn || 'https://text.recoveryversion.bible/') : (t?.sourceUrl || 'https://line.twgbr.org/recoveryversion/oneyear/'))}" target="_blank" rel="noopener">${en ? 'Read in Recovery Version ↗' : '打开今日完整经文 ↗'}</a><br>${en ? `<a data-reading-web-source href="${t ? esc(webURL(t,t.ranges[0].chapter)) : 'https://worldenglish.bible/'}" target="_blank" rel="noopener">Read in World English Bible (WEB) ↗</a><br><span class="reading-editions">Audio: World English Bible (WEB) · Key verses: Recovery Version.<br>We have not obtained permission to publish a full-length Recovery Version narration from LSM, so the audio uses the World English Bible.</span>` : '台湾福音书房'}</div><div class="reading-links"><a href="${pre}/t/eat/#reading-calendar">${en ? 'Eat' : '吃饭'}</a><a href="${pre}/t/life/#reading-calendar">${en ? 'Life' : '生命'}</a><a href="${pre}/read/today/ot/">${en ? 'Today’s reading' : '今日读经'} ↗</a></div>${HOME_SCREEN[lang].replace(/<p class="a2hs-lead">[\s\S]*?<\/p>/, `<p class="a2hs-lead">${en ? 'Add the Today link to your home screen. Open it each day for that day’s Bible reading; past days remain in the reading calendar.' : '把“今日读经”固定链接放到桌面，每天一点开就是当天的经文与录音；往期保留在读经日历里。'} <a href="${pre}/read/today/ot/">${en ? 'Open the Today link ↗' : '打开今日读经固定链接 ↗'}</a></p>`)}</article>`;
+    return `<article class="reading" data-reading-page data-reading-date="${date}" data-testament="${testament}"><div class="reading-kicker"><span data-reading-kicker>${en ? 'EAT' : '吃饭'}${d ? ` · ${en ? 'DAY' : '第'} ${d.planDay}${en ? '' : ' 天'}` : ''}</span><time data-reading-date-label>${date}</time></div><h1>${en ? 'Daily Bible reading' : '三旧一新，天天吃饭'}</h1><nav class="reading-tabs"><a href="/read/${token}/${testament}/" ${en ? '' : 'aria-current="page"'} data-reading-lang="zh">中文</a><a href="/en/read/${token}/${testament}/" ${en ? 'aria-current="page"' : ''} data-reading-lang="en">English</a></nav><nav class="reading-tabs"><a href="${pre}/read/${token}/ot/" ${ot ? 'aria-current="page"' : ''} data-reading-testament="ot">${en ? 'Old Testament' : '旧约'}</a><a href="${pre}/read/${token}/nt/" ${ot ? '' : 'aria-current="page"'} data-reading-testament="nt">${en ? 'New Testament' : '新约'}</a></nav><div class="reading-audio"><b>${en ? 'Listen to today’s reading' : '读给我听'}</b><audio controls preload="none" data-reading-audio ${!en && t?.audioUrl ? `src="${esc(t.audioUrl)}"` : 'hidden'}></audio><span class="reading-status" data-reading-audio-status>${en ? 'Preparing today’s complete reading…' : ''}</span></div><h2 data-reading-range>${esc(label)}</h2><div data-reading-verses>${verses.map(v => `<section class="memory-section"><div class="memory-heading"><span>${en ? 'REMEMBER THE WORD' : '今日金句 · 记在心里'}</span><button type="button" data-memory-toggle aria-pressed="false">${en ? 'Practice' : '遮住试背'}</button></div><p class="memory-ref">${esc(en ? v.reference : v.referenceZh)}</p><p class="reading-verse" data-memory-text>${esc(en ? v.en : v.zh)}</p></section>`).join('')}</div><div class="reading-error" data-reading-error hidden></div><div class="reading-note">${en ? 'Selected from today’s reading. Open the source for the full reading.' : '金句选自当天阅读范围，完整经文请打开原文。'}<br><a data-reading-source href="${esc(en ? (verses[0]?.sourceEn || 'https://text.recoveryversion.bible/') : (t?.sourceUrl || 'https://line.twgbr.org/recoveryversion/oneyear/'))}" target="_blank" rel="noopener">${en ? 'Read in Recovery Version ↗' : '打开今日完整经文 ↗'}</a><br>${en ? `<a data-reading-web-source href="${t ? esc(webURL(t,t.ranges[0].chapter)) : 'https://worldenglish.bible/'}" target="_blank" rel="noopener">Read in World English Bible (WEB) ↗</a><br><span class="reading-editions">Audio: World English Bible (WEB) · Key verses: Recovery Version.<br>We have not obtained permission to publish a full-length Recovery Version narration from LSM, so the audio uses the World English Bible.</span>` : '台湾福音书房'}</div><div class="reading-links"><a href="${pre}/t/eat/#reading-calendar">${en ? 'Eat' : '吃饭'}</a><a href="${pre}/t/life/#reading-calendar">${en ? 'Life' : '生命'}</a><a href="${pre}/read/today/ot/">${en ? 'Today’s reading' : '今日读经'} ↗</a></div>${READING_HOME_SCREEN[lang]}</article>`;
   };
   for (const testament of ['ot','nt']) {
     emit(lang, `/read/shell/${testament}/`, { title:lang === 'zh' ? '三旧一新' : 'Daily Bible reading', tab:'home', noindex:true, body:readingBody(null,testament) });
