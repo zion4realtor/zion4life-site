@@ -958,3 +958,8 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 /* Tappable venue links and reading notes in the member-only conversation. */
 .venue-link{color:var(--water-ink);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere;word-break:break-word}
 .group-note-source{margin:8px 0 0;font-size:14px;line-height:1.6}.group-note-source a{color:var(--water-ink);text-decoration:none}.group-note-source a:hover{text-decoration:underline}
+
+/* Keep the video subscription row at the right on desktop and phones. */
+.video-subscribe { flex-direction: row; justify-content: flex-end; flex-wrap: wrap; text-align: right; }
+.video-subscribe .hint { white-space: normal; }
+.drip-article .more .card-thumb img { object-position: top; }

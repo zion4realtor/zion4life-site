@@ -390,7 +390,11 @@ function card(it, lang, current) {
   const tint = TINTS[TAG[it.tags[0]]?.tint || 'aqua'];
   const others = it.tags.filter((x) => x !== current).map((x) => `<span class="other">${esc(TAG[x][lang])}</span>`).join('');
   const readTime = it.slug === 'rensheng-aomi' ? '' : `<span>${esc(L.min(it.minutes[lang]))}</span>`;
-  const thumb = it.kind === 'video' ? (it.poster || `/tags/${current}.jpg`) : `/tags/${current}.jpg`;
+  const tagThumb = `/tags/${current || it.tags[0]}.jpg`;
+  const dripThumb = /^diguan-muyang-/.test(it.slug) && ['png', 'jpg']
+    .map((ext) => `/files/drip-shepherding-${it.date}-${lang}.${ext}`)
+    .find((src) => fs.existsSync(path.join(STATIC, src.slice(1))));
+  const thumb = it.poster || dripThumb || tagThumb;
   if (it.kind === 'video') {
     return `<a class="card" href="${itemHref(it, lang)}" data-kind="videos" style="--tint:${tint}">
 <span class="poster"><img src="${thumb}" alt="" loading="lazy" width="1200" height="675"><span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span></span>

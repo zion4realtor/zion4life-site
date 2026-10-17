@@ -375,8 +375,8 @@
       "off"
     ],
     "sourceNote": {
-      "zh": "选自《福音(12)「救命仙『單』 ─ 一張福音單張的傳奇」》，李光弘弟兄2020年5月26日讲于花莲。原片时间 00:34:58.400–00:39:12.300。保留中文原声与原始横屏画幅；字幕为本站整理的样片稿。",
-      "en": "From “Gospel (12): The Life-Saving Leaflet — The Story of a Gospel Tract,” a talk by Livingstone Lee in Hualien on May 26, 2020. Source time 00:34:58.400–00:39:12.300. Original Chinese audio and landscape framing are preserved; captions are an edited sample."
+      "zh": "选自《福音(12)「救命仙『單』 ─ 一張福音單張的傳奇」》，李光弘弟兄2020年5月26日讲于花莲。原片时间 00:34:58.400–00:39:12.300。保留中文原声与原始横屏画幅；字幕按本段中文原声逐句整理并校时。",
+      "en": "From “Gospel (12): The Life-Saving Leaflet — The Story of a Gospel Tract,” a talk by Livingstone Lee in Hualien on May 26, 2020. Source time 00:34:58.400–00:39:12.300. Original Chinese audio and landscape framing are preserved; captions are aligned phrase by phrase to the original Chinese audio."
     },
     "zh": {
       "title": "一张福音单张，怎样走进一个家庭？",
@@ -399,12 +399,12 @@
       {
         "lang": "en",
         "label": "English",
-        "url": "/video/one-flyer-one-family.en.vtt"
+        "url": "/video/one-flyer-one-family.en.vtt?v=20261017-aligned"
       },
       {
         "lang": "zh",
         "label": "中文",
-        "url": "/video/one-flyer-one-family.zh.vtt"
+        "url": "/video/one-flyer-one-family.zh.vtt?v=20261017-aligned"
       }
     ]
   }
