@@ -585,6 +585,17 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
     });
   }
 
+  // Related videos: shared topics first, then the same series; never the current video.
+  const videoSuggestions = (v, end = false) => {
+    const related = videos.filter(x => x.slug !== v.slug && !x.sample && x.sources?.length)
+      .map((x, order) => ({ x, order, score: x.tags.filter(t => v.tags.includes(t)).length * 3 + (v.shortGroup && x.shortGroup === v.shortGroup ? 2 : 0) }))
+      .sort((a,b) => b.score - a.score || a.order - b.order).slice(0, end ? 4 : 5).map(y => y.x);
+    if (!related.length || v.sample) return '';
+    const heading = lang === 'zh' ? '接着看，你可能也喜欢' : 'Keep watching';
+    const cards = related.map(x => `<a class="${end ? 'end-card' : 'recommend-card'}" href="${U(lang, `/v/${x.slug}/`)}"><img src="${esc(x.poster || x.sources[0]?.poster || '')}" alt="" loading="lazy"><b>${esc(x[lang].title)}</b>${end ? '' : `<small>${esc(L.min(x.minutes))} · ${lang === 'zh' ? '相关视频' : 'Related video'}</small>`}</a>`).join('');
+    return end ? `<div class="end-recommend" data-video-end hidden><h2>${heading}</h2><div class="end-grid">${cards}</div><button class="end-replay" data-video-replay type="button">↻ ${lang === 'zh' ? '再看一遍' : 'Watch again'}</button></div>` : `<section class="recommend" aria-label="${heading}"><div class="recommend-head"><h2>${heading}</h2><div class="recommend-controls"><button type="button" data-video-scroll="-1" aria-label="${lang === 'zh' ? '上一组视频' : 'Previous videos'}">←</button><button type="button" data-video-scroll="1" aria-label="${lang === 'zh' ? '下一组视频' : 'Next videos'}">→</button></div></div><div class="recommend-rail">${cards}</div></section>`;
+  };
+
   // videos
   for (const v of videos) {
     const c = v[lang];
@@ -609,7 +620,7 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
       const shortQuotes = v.quotes?.[lang]?.length ? `<blockquote class="short-quotes">${v.quotes[lang].map(q => `<p>${esc(q)}</p>`).join('')}</blockquote>` : '';
       const hymnLinks = v.fullSongUrl ? `<section class="hymn-links" aria-label="${lang === 'zh' ? '完整诗歌' : 'Full hymn'}"><a class="hymn-full" href="${v.fullSongUrl}" target="_blank" rel="noopener noreferrer">${lang === 'zh' ? '想要听整首' : 'Listen to the full hymn'} <span aria-hidden="true">↗</span></a></section>` : '';
       emit(lang, `/v/${v.slug}/`, { title:c.title, desc:c.summary, tab:'home',
-        body:`${subscribe}<article class="short-watch${v.orientation === 'portrait' ? ' is-portrait' : ''}" data-caption-choice="${defaultCaption}"><div class="short-top"><a href="${U(lang,`/t/${backTag}/`)}">← ${esc(TAG[backTag]?.[lang] || L.back)}</a><span>${esc(shortKicker)}${group.length > 1 ? ` · ${i+1}/${group.length}` : ''}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster || sources[0]?.poster || ''}" alt="" width="540" height="960"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，播放视频' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}</div></div>${v.sample ? '' : videoLike(v.slug,lang)}<div class="short-copy"><div class="short-byline">${esc(byline)}</div><h1>${esc(c.title)}</h1>${v.slug === 'why-am-i-here' ? `<nav class="video-tag-links" aria-label="${lang === 'zh' ? '相关标签' : 'Related topics'}">${v.tags.map(id=>`<a href="${U(lang,`/t/${id}/`)}">${esc(TAG[id][lang])}</a>`).join('')}</nav>` : ''}${captionControls}<p class="short-summary">${esc(c.summary)}</p>${shortQuotes}${hymnLyrics}${hymnLinks}${shareBox(lang,lang === 'zh' ? '想分享这段视频？' : 'Want to share this video?',U(lang,`/v/${v.slug}/`),c.title)}${download}<details class="short-source"><summary>${lang === 'zh' ? '关于这段视频' : 'About this video'}</summary><p>${esc(sourceNote)}</p></details>${nextLink}<div class="short-note" role="status" hidden></div></div></article><section class="talk video-talk" data-talk="v:${v.slug}"></section>` });
+        body:`${subscribe}<article class="short-watch${v.orientation === 'portrait' ? ' is-portrait' : ''}" data-caption-choice="${defaultCaption}"><div class="short-top"><a href="${U(lang,`/t/${backTag}/`)}">← ${esc(TAG[backTag]?.[lang] || L.back)}</a><span>${esc(shortKicker)}${group.length > 1 ? ` · ${i+1}/${group.length}` : ''}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster || sources[0]?.poster || ''}" alt="" width="540" height="960"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，播放视频' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}${videoSuggestions(v,true)}</div></div>${v.sample ? '' : videoLike(v.slug,lang)}<div class="short-copy"><div class="short-byline">${esc(byline)}</div><h1>${esc(c.title)}</h1>${v.slug === 'why-am-i-here' ? `<nav class="video-tag-links" aria-label="${lang === 'zh' ? '相关标签' : 'Related topics'}">${v.tags.map(id=>`<a href="${U(lang,`/t/${id}/`)}">${esc(TAG[id][lang])}</a>`).join('')}</nav>` : ''}${captionControls}<p class="short-summary">${esc(c.summary)}</p>${shortQuotes}${hymnLyrics}${hymnLinks}${shareBox(lang,lang === 'zh' ? '想分享这段视频？' : 'Want to share this video?',U(lang,`/v/${v.slug}/`),c.title)}${download}<details class="short-source"><summary>${lang === 'zh' ? '关于这段视频' : 'About this video'}</summary><p>${esc(sourceNote)}</p></details>${nextLink}<div class="short-note" role="status" hidden></div></div></article>${videoSuggestions(v)}<section class="talk video-talk" data-talk="v:${v.slug}"></section>` });
       continue;
     }
     const related = items.filter((x) => !x.tagOnly && x !== v && x.tags.some((t) => v.tags.includes(t))).slice(0, 4);
@@ -624,6 +635,7 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
 <button class="player-start" type="button"${sources.length ? '' : ' disabled'} aria-label="${sources.length ? L.play : L.soon}"><span class="poster"><span class="ptitle">${esc(c.title)}</span>${sources.length ? `<span class="play">${ICON.play}</span>` : ''}<span class="dur">${esc(L.min(v.minutes))}</span>${MASCOT()}</span></button>
 ${sources.length ? '' : `<p class="player-soon">${esc(L.soon)}</p>`}
 ${json(`src-${v.slug}`, sources)}
+${videoSuggestions(v,true)}
 </div>
 ${v.sample ? '' : videoLike(v.slug,lang)}
 ${sources.length > 1 ? `<div class="lines" role="group">${sources.map((s, i) => `<button type="button" data-line="${i}"${i ? '' : ' aria-pressed="true"'}>${esc(s.label)}</button>`).join('')}</div>` : ''}
@@ -633,6 +645,7 @@ ${sources.length > 1 ? `<div class="lines" role="group">${sources.map((s, i) => 
 ${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
 ${sources.length > 1 ? `<p class="muted">${esc(L.lineTip)}</p>` : ''}
 ${shareBox(lang, L.shareVideo, U(lang, `/v/${v.slug}/`), c.title)}
+${videoSuggestions(v)}
 <section class="talk" data-talk="v:${v.slug}"></section>
 ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><div class="cards">${related.map((x) => card(x, lang)).join('\n')}</div></section>` : ''}
 </article>`,

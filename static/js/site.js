@@ -402,3 +402,39 @@
   };
   window.ygSortHomeFresh();
 })();
+
+// The end panel appears only after native playback ends. Existing playback, captions,
+// source selection and progress saving remain owned by the player above.
+(function () {
+  document.querySelectorAll('[data-video-scroll]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var rail = button.closest('.recommend').querySelector('.recommend-rail');
+      rail.scrollBy({ left: Number(button.dataset.videoScroll) * (rail.querySelector('a').offsetWidth + 16), behavior: 'smooth' });
+    });
+  });
+  document.querySelectorAll('[data-player]').forEach(function (player) {
+    var panel = player.querySelector('[data-video-end]');
+    if (!panel) return;
+    function attach() {
+      var video = player.querySelector('video');
+      if (!video || video.dataset.endChoices) return;
+      video.dataset.endChoices = '1';
+      panel.hidden = true;
+      player.classList.remove('end-mode');
+      video.addEventListener('ended', function () {
+        player.classList.add('end-mode');
+        panel.hidden = false;
+        panel.querySelector('a').focus({ preventScroll: true });
+      });
+      video.addEventListener('play', function () { panel.hidden = true; player.classList.remove('end-mode'); });
+    }
+    new MutationObserver(attach).observe(player, { childList: true });
+    attach();
+    panel.querySelector('[data-video-replay]').addEventListener('click', function () {
+      panel.hidden = true;
+      player.classList.remove('end-mode');
+      var video = player.querySelector('video');
+      if (video) { video.currentTime = 0; video.play().catch(function () {}); video.focus(); }
+    });
+  });
+})();
