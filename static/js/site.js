@@ -395,7 +395,10 @@
   window.ygSortHomeFresh = function () {
     var container=document.querySelector('[data-home-fresh-sections]');
     if (!container) return;
-    Array.from(container.children).map(function(node,index){return {node:node,index:index,time:Number(node.dataset.updated)||0};}).sort(function(a,b){return b.time-a.time||a.index-b.index;}).forEach(function(x){container.appendChild(x.node);});
+    var community=container.querySelector('[data-home-fresh="community"]');
+    var videos=container.querySelector('[data-home-fresh="videos"]');
+    if(community) container.prepend(community);
+    if(videos && community) community.after(videos);
   };
   window.ygSortHomeFresh();
 })();

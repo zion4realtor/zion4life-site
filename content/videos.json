@@ -296,44 +296,6 @@
     ]
   },
   {
-    "slug": "jianzheng-xuesheng-1",
-    "minutes": 8,
-    "date": "2026-10-12",
-    "tags": [
-      "stories",
-      "students"
-    ],
-    "zh": {
-      "title": "一位大学生的故事",
-      "summary": "示例占位：一位同学讲自己在校园里的经历。"
-    },
-    "en": {
-      "title": "A student's story",
-      "summary": "Sample: a university student talks about what happened on campus."
-    },
-    "sources": [],
-    "sample": true
-  },
-  {
-    "slug": "jianzheng-geren-1",
-    "minutes": 6,
-    "date": "2026-10-11",
-    "tags": [
-      "stories",
-      "family"
-    ],
-    "zh": {
-      "title": "一个家庭的改变",
-      "summary": "示例占位：一位妈妈讲家里这几年的变化。"
-    },
-    "en": {
-      "title": "A family changed",
-      "summary": "Sample: a mother talks about how her family changed over the years."
-    },
-    "sources": [],
-    "sample": true
-  },
-  {
     "slug": "one-flyer-one-family",
     "minutes": 4,
     "seconds": 253.9,
