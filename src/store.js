@@ -70,6 +70,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS blob (key TEXT NOT NULL, i INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (key, i))',
   `CREATE TABLE IF NOT EXISTS rec (key TEXT PRIMARY KEY, hash TEXT NOT NULL, parts INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0,
     bytes INTEGER NOT NULL DEFAULT 0, tries INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL)`,
+  'CREATE TABLE IF NOT EXISTS audio_repair (id TEXT PRIMARY KEY, updated INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS sub (uid TEXT NOT NULL, topic TEXT NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (uid, topic))',
   'CREATE INDEX IF NOT EXISTS sub_topic ON sub (topic)',
   `CREATE TABLE IF NOT EXISTS msg (id TEXT PRIMARY KEY, scope TEXT NOT NULL, title_zh TEXT NOT NULL, title_en TEXT NOT NULL,
@@ -518,6 +519,13 @@ export const OPS = {
   audioDrop(sql, { key }) {
     sql.exec('DELETE FROM rec WHERE key = ?', key);
     sql.exec('DELETE FROM blob WHERE key LIKE ?', `${key}/%`);
+    return { ok: true };
+  },
+  audioRepairDone(sql, { id }) {
+    return { done: !!first(sql, 'SELECT 1 AS x FROM audio_repair WHERE id = ?', id) };
+  },
+  audioRepairMark(sql, { id, now = Date.now() }) {
+    sql.exec('INSERT OR IGNORE INTO audio_repair (id, updated) VALUES (?, ?)', id, now);
     return { ok: true };
   },
 
