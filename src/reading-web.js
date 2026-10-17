@@ -36,3 +36,6 @@ export async function ensureWebAudio(env,data,testament,budget){
  }catch(e){job.error=String(e.message||e).slice(0,180);job.retryAt=Date.now()+5*60000;await db.put(jobKey,JSON.stringify(job));console.error('[reading WEB audio]',data.date,testament,job.error)}
  part.englishAudio=descriptor();return {used,complete:!!job.complete};
 }
+
+// Read-only progress while a long recording is running; never starts TTS from a public request.
+export async function webAudioProgress(env,date,testament){const db=store(env),transcript=await load(db,`reading:web:transcript:${date}:${testament}:v1`);if(!transcript)return null;const h=await hash(`webp-v1|helena|mp3|${transcript.text}`),job=await load(db,`reading:web:job:${h}`);return {status:job?.complete?'ready':job?.error?'retrying':'generating',scope:'full-passage',translation:'WEB',edition:EDITION,voice:'Aura 2 Helena',hash:h,done:job?.done||0,total:transcript.chunks.length,verseCount:transcript.verseCount,bytes:job?.bytes||0,...(job?.error?{error:job.error,retryAt:job.retryAt}:{})}}
