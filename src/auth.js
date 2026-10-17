@@ -85,12 +85,17 @@ export async function handleAuth(request, env, db, url, now, lang) {
     if (!mailReady(env) && !env.DEV_SHOW_CODE) {
       return fail(t('注册和登录还没开放：网站的发信还在设置中，过几天再来。', 'Sign-in is not open yet: the site’s email is still being set up. Please come back in a few days.'), 503);
     }
+    const cool = env.DEV_SHOW_CODE ? 0 : 45000;
+    const cooldown = (wait) => json({ ok: false, error: t(`刚刚发过了，${wait} 秒后可以再发一次。`, `A code was just sent. You can ask again in ${wait} seconds.`), retryAfter: wait }, 429, { 'Retry-After': String(wait) });
+    const pending = await db('codeWait', { email, now, cool });
+    if (pending.wait) return cooldown(pending.wait); // Repeated clicks must not consume today's send allowance.
     const lim = env.DEV_SHOW_CODE ? 1000 : 1; // local testing signs in over and over
     if (!(await rateOk(db, request, 'code', 12 * lim, now))) return fail(t('今天发的验证码太多了，明天再试。', 'Too many codes today. Please try again tomorrow.'), 429);
     if (!(await rateOk(db, request, 'code-email', 6 * lim, now, email))) return fail(t('这个邮箱今天收的验证码太多了，明天再试。', 'This email has had too many codes today. Please try again tomorrow.'), 429);
     const code = randomDigits(6);
-    const r = await db('codePut', { email, hash: await hash(`${email}|${code}`), expires: now + 15 * 60000, now, cool: env.DEV_SHOW_CODE ? 0 : 45000 });
-    if (!r.ok) return fail(t(`刚刚发过了，${r.wait} 秒后可以再发一次。`, `A code was just sent. You can ask again in ${r.wait} seconds.`), 429);
+    const codeHash = await hash(`${email}|${code}`);
+    const r = await db('codePut', { email, hash: codeHash, expires: now + 15 * 60000, now, cool });
+    if (!r.ok) return cooldown(r.wait);
     const existing = await db('userByEmail', { email });
     const L = existing?.lang || lang;
     const tt = tr(L);
@@ -101,9 +106,14 @@ export async function handleAuth(request, env, db, url, now, lang) {
       lines: [tt('在网页上输入这 6 位数字就可以了，15 分钟内有效。', 'Type these 6 digits on the page. The code works for 15 minutes.'),
         tt('如果不是你本人在登录，不用理会这封邮件。', 'If you did not try to sign in, you can ignore this email.')],
     });
-    const sent = await sendMail(env, { to: email, subject: tt(`有光验证码 ${code}`, `Light sign-in code ${code}`), html, text });
-    if (!sent.ok && !env.DEV_SHOW_CODE) return fail(t('验证码没发出去，请稍后再试。', 'The code could not be sent. Please try again in a moment.'), 502);
-    return json({ ok: true, isNew: !existing, ...(env.DEV_SHOW_CODE ? { devCode: code } : {}) });
+    let sent;
+    try { sent = await sendMail(env, { to: email, subject: tt(`有光验证码 ${code}`, `Light sign-in code ${code}`), html, text }); }
+    catch (_) { sent = { ok: false }; }
+    if (!sent.ok && !env.DEV_SHOW_CODE) {
+      await db('codeRestore', { email, expectedHash: codeHash, previous: r.previous });
+      return fail(t('验证码没有发送成功，请重试；先前尚未过期的验证码仍可使用。', 'The code could not be sent. Please try again; an earlier unexpired code still works.'), 502);
+    }
+    return json({ ok: true, isNew: !existing, retryAfter: cool / 1000, ...(env.DEV_SHOW_CODE ? { devCode: code } : {}) });
   }
 
   // Step 2: check the code; create the account the first time; sign this phone in.

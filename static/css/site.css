@@ -963,3 +963,6 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .video-subscribe { flex-direction: row; justify-content: flex-end; flex-wrap: wrap; text-align: right; }
 .video-subscribe .hint { white-space: normal; }
 .drip-article .more .card-thumb img { object-position: top; }
+
+/* Clear resend guidance in the email-code form. */
+.code-help{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}.code-help>p:first-child{font-weight:600;font-size:16px;margin:0 0 12px}.code-help .hint{font-size:14px;line-height:1.8;margin:12px 0}.code-help button:disabled{opacity:.6;cursor:default}

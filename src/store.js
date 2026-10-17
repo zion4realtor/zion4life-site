@@ -114,10 +114,21 @@ function membersOf(sql, gid, withSig = false) {
 export const OPS = {
   // ---------- sign-in ----------
   // Store a new code unless one was sent in the last 45 seconds.
-  codePut(sql, { email, hash, expires, now = Date.now(), cool = 45000 }) {
+  codeWait(sql, { email, now = Date.now(), cool = 45000 }) {
     const old = first(sql, 'SELECT sent FROM code WHERE email = ?', email);
+    return { wait: old ? Math.max(0, Math.ceil((cool - (now - old.sent)) / 1000)) : 0 };
+  },
+  codePut(sql, { email, hash, expires, now = Date.now(), cool = 45000 }) {
+    const old = first(sql, 'SELECT * FROM code WHERE email = ?', email);
     if (old && now - old.sent < cool) return { ok: false, wait: Math.ceil((cool - (now - old.sent)) / 1000) };
     sql.exec('INSERT OR REPLACE INTO code (email, hash, expires, tries, sent) VALUES (?, ?, ?, 0, ?)', email, hash, expires, now);
+    return { ok: true, previous: old };
+  },
+  codeRestore(sql, { email, expectedHash, previous }) {
+    const current = first(sql, 'SELECT hash FROM code WHERE email = ?', email);
+    if (!current || current.hash !== expectedHash) return { ok: false };
+    if (previous) sql.exec('INSERT OR REPLACE INTO code (email, hash, expires, tries, sent) VALUES (?, ?, ?, ?, ?)', email, previous.hash, previous.expires, previous.tries, previous.sent);
+    else sql.exec('DELETE FROM code WHERE email = ?', email);
     return { ok: true };
   },
   codeCheck(sql, { email, hash, now = Date.now() }) {

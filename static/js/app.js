@@ -114,7 +114,7 @@
 </div>
 <p class="form-error" data-error hidden></p>
 <button class="btn btn-water btn-block" type="submit">${t('完成', 'Done')}</button>
-<p class="hint"><button type="button" class="link-btn" data-back>${t('换个邮箱', 'Use another email')}</button> · <button type="button" class="link-btn" data-resend>${t('重新发送', 'Send again')}</button></p>
+<div class="code-help"><p>${t('没收到验证码？', 'No code yet?')}</p><button type="button" class="btn btn-line btn-block" data-resend>${t('重新发送验证码', 'Resend code')}</button><p class="hint">${t('请检查垃圾邮件或广告邮件，并核对邮箱地址。验证码 15 分钟内有效；重新发送后，请使用最新一封邮件中的验证码。', 'Check spam or promotions and make sure your email address is correct. Codes expire after 15 minutes. After resending, use the code in the newest email.')}</p><button type="button" class="link-btn" data-back>${t('邮箱填错了？换个邮箱', 'Wrong address? Change email')}</button></div>
 </form>
 </div></div>`);
       document.body.appendChild(box);
@@ -124,7 +124,23 @@
       const err = (f, msg) => { const e = $('[data-error]', f); e.textContent = msg || ''; e.hidden = !msg; };
       let email = '';
       let isNew = false;
+      const resend = $('[data-resend]', fCode);
+      let cooldownUntil = 0, cooldownTimer;
+      function updateResend() {
+        const seconds = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+        resend.disabled = seconds > 0;
+        resend.textContent = seconds ? t(`${seconds} 秒后可重新发送`, `Resend in ${seconds}s`) : t('重新发送验证码', 'Resend code');
+        if (!seconds) clearInterval(cooldownTimer);
+      }
+      function startCooldown(seconds) {
+        clearInterval(cooldownTimer);
+        cooldownUntil = Date.now() + Math.max(0, Number(seconds) || 0) * 1000;
+        updateResend();
+        if (cooldownUntil > Date.now()) cooldownTimer = setInterval(updateResend, 1000);
+      }
+
       const close = (ok) => {
+        clearInterval(cooldownTimer);
         box.remove();
         document.documentElement.classList.remove('sheet-on');
         sheetOpen = null;
@@ -135,7 +151,9 @@
       setTimeout(() => fEmail.email.focus(), 60);
       async function send() {
         const r = await api('/api/auth/start', { body: { email, website: fEmail.website.value } });
+        if (r.retryAfter != null) startCooldown(r.retryAfter);
         if (!r.ok) return r;
+        if (r.retryAfter == null) startCooldown(45);
         isNew = r.isNew;
         $('[data-sent]', fCode).textContent = t(`验证码已经发到 ${email}，看一下邮箱（也看看垃圾邮件）。`, `We sent a code to ${email}. Check your inbox (and spam).`);
         $('[data-new]', fCode).hidden = !isNew;
@@ -157,9 +175,14 @@
       });
       $$('[data-id]', fCode).forEach((b) => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
       $('[data-back]', fCode).addEventListener('click', () => { fCode.hidden = true; fEmail.hidden = false; err(fCode); });
-      $('[data-resend]', fCode).addEventListener('click', async () => {
+      resend.addEventListener('click', async () => {
+        if (resend.disabled) return;
+        resend.disabled = true;
+        resend.textContent = t('正在发送……', 'Sending…');
+        err(fCode);
         const r = await send();
-        if (r.ok) toast(t('又发了一次', 'Sent again')); else err(fCode, r.error);
+        if (r.ok) { fCode.code.value = ''; toast(t('已重新发送，请使用最新一封邮件中的验证码', 'Sent again. Use the code in the newest email.')); }
+        else { err(fCode, r.error); updateResend(); }
       });
       fCode.addEventListener('submit', async (e) => {
         e.preventDefault();

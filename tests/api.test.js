@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import worker from '../src/worker.js';
 import { Store, OPS, migrate, store } from '../src/store.js';
-import { runReminders } from '../src/api.js';
+import { runReminders, handleApi } from '../src/api.js';
 import { resetSiteData, parseVideo } from '../src/content.js';
 import { BOOKS, TOTAL_CHAPTERS, chapterLink, lifeStudyLink } from '../src/bible.js';
 import { zonedTime, session, startedCount, sessionState, totalSessions, readingFor, scheduleText, planText, sessionLabel, sessionsBetween, icsInvite, vtimezone, attendsSession } from '../src/schedule.js';
@@ -874,4 +874,22 @@ test('session notes appear once in the private group conversation, including old
  assert.equal((await call(`/api/dazi/${id}/board`,{cookie:outsider})).status,403);
  await call(`/api/dazi/${id}/s/1`,{cookie:member,body:{note:'   '}});
  board=(await call(`/api/dazi/${id}/board`,{cookie:owner})).body;assert.equal(board.posts.length,1);assert.equal(board.posts[0].body,'Ordinary message');
+});
+
+
+test('verification resend cooldown does not spend daily send allowance; failed resend preserves the previous code', async()=>{
+ const email='resend-check@example.com';const now=Date.now();
+ const start=async at=>{
+  const url=new URL('https://zion4life.faith/api/auth/start');
+  const req=new Request(url,{method:'POST',headers:{'content-type':'application/json',origin:url.origin,'cf-connecting-ip':'6.6.6.6'},body:JSON.stringify({email})});
+  const r=await handleApi(req,env,url,at);return {status:r.status,body:await r.json()};
+ };
+ const first=await start(now);assert.equal(first.body.ok,true);assert.equal(first.body.retryAfter,45);
+ const code=mails.at(-1).subject.match(/(\d{6})/)[1];
+ for(let i=0;i<9;i++){const r=await start(now+1000);assert.equal(r.status,429);assert.equal(r.body.retryAfter,44);}
+ assert.equal(mails.length,1,'cooldown clicks do not send emails');
+ const send=globalThis.fetch;globalThis.fetch=async()=>new Response('{}',{status:503});
+ assert.equal((await start(now+46000)).status,502);globalThis.fetch=send;
+ const verified=await call('/api/auth/verify',{body:{email,code,name:'Resend member'}});assert.equal(verified.body.ok,true,'old code still verifies when provider rejects the new mail');
+ const again=await start(now+47000);assert.equal(again.body.ok,true,'cooldown clicks did not exhaust six-per-day allowance');
 });
