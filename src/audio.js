@@ -58,12 +58,31 @@ async function asset(env, url, p) {
   }
 }
 
+async function runConfiguredAudioRepair(env, db, url, repair, a, now = Date.now()) {
+  if (!a || a.done < a.parts) return;
+  const status = await db('audioRepairDone', { id: repair.id });
+  if (status?.done) return;
+  const speech = await asset(env, url, `/data/${repair.kind}/${repair.date}.speech.json`);
+  const s = speech?.[repair.lang];
+  if (!s?.chunks?.[repair.index]) return;
+  const key = keyOf(repair.date, repair.lang, repair.kind);
+  const v = repair.lang === 'en' && repair.date < EN_AURA2_FROM ? LEGACY_EN_VOICE : VOICE[repair.lang];
+  const out = await speak(env, s.chunks[repair.index].t, repair.lang, v);
+  const saved = await db.put(`${key}/${repair.index}`, out, typeof out === 'string' ? 'b64' : 'raw');
+  await db('audioRepairMark', { id: repair.id, now });
+  console.log('[audio-repair]', key, repair.index, saved.bytes || 0);
+}
+
 export async function handleAudio(request, env, db, url) {
   if (request.method !== 'GET') return fail('Not found', 404);
   let m;
   if ((m = url.pathname.match(/^\/api\/audio\/(?:huxi|diguan)\/(\d{4}-\d{2}-\d{2})\/(zh|en)\.json$/))) {
     const a = await db('audioGet', { key: keyOf(m[1], m[2], url.pathname.split('/')[3]) });
     const ready = !!a && a.done >= a.parts && a.parts > 0;
+    for (const repair of AUDIO_REPAIRS.filter((x) => x.kind === url.pathname.split('/')[3] && x.date === m[1] && x.lang === m[2])) {
+      try { await runConfiguredAudioRepair(env, db, url, repair, a); }
+      catch (e) { console.error('[audio-repair]', repair.id, e?.message || e); }
+    }
     const h = a ? a.hash.slice(0, 10) : '';
     return json({
       ok: true, ready, done: a?.done || 0, total: a?.parts || 0,
