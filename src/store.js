@@ -27,6 +27,10 @@
 // handle so the tests run the same code against node:sqlite.
 
 const SCHEMA = [
+  'CREATE TABLE IF NOT EXISTS video_like_total (target TEXT PRIMARY KEY, added INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS video_like_batch (id TEXT PRIMARY KEY, target TEXT NOT NULL, amount INTEGER NOT NULL, created INTEGER NOT NULL)',
+  'CREATE INDEX IF NOT EXISTS video_like_batch_created ON video_like_batch (created)',
+
   // the first version's group tables held only test data
   'DROP TABLE IF EXISTS grp', 'DROP TABLE IF EXISTS member', 'DROP TABLE IF EXISTS device', 'DROP TABLE IF EXISTS checkin',
   'DROP TABLE IF EXISTS audio', 'DROP TABLE IF EXISTS reminded',
@@ -112,6 +116,20 @@ function membersOf(sql, gid, withSig = false) {
 }
 
 export const OPS = {
+  videoLikes(sql) {
+    return rows(sql, 'SELECT target, added FROM video_like_total');
+  },
+  videoLike(sql, { target, amount, id, now }) {
+    const batch = first(sql, 'SELECT target, amount FROM video_like_batch WHERE id = ?', id);
+    if (batch && (batch.target !== target || batch.amount !== amount)) return { conflict:true };
+    if (!batch) {
+      sql.exec('INSERT INTO video_like_batch (id, target, amount, created) VALUES (?, ?, ?, ?)',id,target,amount,now);
+      sql.exec('INSERT INTO video_like_total (target, added, updated) VALUES (?, ?, ?) ON CONFLICT(target) DO UPDATE SET added = added + excluded.added, updated = excluded.updated',target,amount,now);
+      sql.exec('DELETE FROM video_like_batch WHERE created < ?',now-14*86400000);
+    }
+    return { added:first(sql,'SELECT added FROM video_like_total WHERE target = ?',target)?.added || 0 };
+  },
+
   // ---------- sign-in ----------
   // Store a new code unless one was sent in the last 45 seconds.
   codeWait(sql, { email, now = Date.now(), cool = 45000 }) {

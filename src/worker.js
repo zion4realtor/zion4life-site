@@ -117,6 +117,7 @@ async function postPage(request, env, url, lang, id) {
   const body = `<article class="article" style="--tint:${tint}">
 <a class="back" href="${pre}/t/${tags[0] || ''}/">← ${esc(first ? first[lang] : en ? 'Back' : '返回')}</a>
 ${post.kind === 'video' ? `<div class="player" data-player><button class="player-start" type="button" aria-label="${en ? 'Play' : '播放'}"><span class="poster"><span class="ptitle">${esc(post.title)}</span><span class="play"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></span></span></button><script type="application/json">${JSON.stringify(sources).replace(/</g, '\\u003c')}</script></div>` : ''}
+${post.kind === 'video' ? `<div class="video-reactions"><button type="button" class="video-like" data-video-like="x:${post.id}" aria-label="${en ? 'Like, tap again to add more' : '点赞，可连续点击'}"><span aria-hidden="true">♡</span><span data-like-label>${en ? 'Like' : '点赞'}</span><b data-like-count>258</b></button><span class="like-error" role="status"></span></div>` : ''}
 <h1 class="a-title">${esc(post.title)}</h1>
 <div class="a-meta"><span>${esc(post.author)}</span><time datetime="${d.toISOString().slice(0, 10)}">${esc(date)}</time></div>
 <div class="a-tags">${tags.map((t) => `<a class="chiplink" href="${pre}/t/${t}/">${esc(data.tag[t][lang])}</a>`).join('')}</div>

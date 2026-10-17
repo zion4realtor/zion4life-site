@@ -97,7 +97,7 @@
   // ---------- the plaza: presentation over the existing read-only group APIs ----------
   function spot(g) {
     return `<a class="spot${g.next?.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" data-plaza-group="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.title)}" style="--tint:${tintOf(g.kind)}">
-${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span><span class="gather-count">${g.seats.length} / ${g.max} ${t('人', 'members')}</span></a>`;
+${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span><span class="gather-count">${g.seats.length} / ${g.max} ${t('人', 'members')}</span><span class="group-open-hint">${t('点击查看详情', 'Tap for details')} <span aria-hidden="true">↗</span></span></a>`;
   }
   function plaza() {
     const box = $('[data-plaza]');
@@ -180,7 +180,7 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
       count.textContent = groups.length ? t(`此刻，广场上有 ${groups.length} 组搭子`, `${groups.length} buddy ${groups.length === 1 ? 'group' : 'groups'} on the plaza right now`) : t('广场上还空着，第一桌由你来摆', 'The plaza is empty. Set out the first table');
       if (vacant.checked) count.textContent += t(` · 找到 ${filtered.length} 组`, ` · ${filtered.length} found`);
       const empty = groups.length ? t('这个分类暂时没有符合条件的搭子，试试其他分类或取消空位筛选。', 'No groups match this filter. Try another category or turn off Open seats.') : `<a href="${pre}/dazi/new/${kind ? `?kind=${encodeURIComponent(kind)}` : ''}">${t('发起一个小组，邀请伙伴同行', 'Start a group and invite your companions')}</a>`;
-      box.innerHTML = `<div class="plaza-grid">${visible.length ? visible.map(spot).join('') : `<p class="plaza-empty">${empty}</p>`}</div>
+      box.innerHTML = `<p class="plaza-tap-guide">${t('点一下任意小组，查看时间、读物和加入方式', 'Tap any group for times, readings and how to join')}</p><div class="plaza-grid">${visible.length ? visible.map(spot).join('') : `<p class="plaza-empty">${empty}</p>`}</div>
 <p class="plaza-legend">${t('名字代表组员 · ＋ 表示还有空位', 'Names mark companions · + means room to join')}</p>
 <nav class="plaza-pager"${pages === 1 ? ' hidden' : ''} aria-label="${t('广场分页', 'Plaza pages')}"><button type="button" data-plaza-prev${pageIndex === 1 ? ' disabled' : ''}>${t('上一页', 'Previous')}</button><span>${pageIndex} / ${pages}</span><button type="button" data-plaza-next${pageIndex === pages ? ' disabled' : ''}>${t('下一页', 'Next')}</button></nav>`;
       const stepPage = (step) => {

@@ -16,6 +16,7 @@ export const EVENTS = {
   join_group: ['group_id', 'kind'],
   share: ['method'],
   play_video: ['line'],
+  video_like: ['liked'],
   listen_audio: [],               // 呼吸 读给我听
 };
 

@@ -770,4 +770,61 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>�
     };
     load();
   }
+
+  // Every tap is applause. Batch quick taps without blocking the button.
+  const likeButtons = $$('[data-video-like]');
+  const films = $$('[data-feature-video]');
+  function likeCount(count) {
+    if(count <= 10000) return String(count);
+    const step = Math.floor(count/5000);
+    return EN ? (step*5)+'K+' : (step/2)+'万+';
+  }
+  const applause = new Map();
+  function paintLike(button,count) {
+    const text = $('[data-like-count]',button);
+    text.textContent = likeCount(count);
+    text.title = String(count);
+    button.setAttribute('aria-label',t('点赞，可连续点击。当前 ','Like, tap again to add more. Current count: ')+count);
+  }
+  likeButtons.forEach(function(button) {
+    const state = { confirmed:258,queued:0,batch:null,sending:false,timer:null,hasTapped:false };
+    applause.set(button,state);
+    const render = () => paintLike(button,state.confirmed+state.queued+(state.batch?.amount || 0));
+    const flush = async function() {
+      if(state.sending || (!state.batch && !state.queued)) return;
+      if(!state.batch) { const amount=Math.min(state.queued,1000);state.queued-=amount;state.batch={amount,id:crypto.randomUUID()}; }
+      state.sending=true;
+      const r=await api('/api/video-likes/'+encodeURIComponent(button.dataset.videoLike),{body:state.batch});
+      state.sending=false;
+      const message=$('.like-error',button.parentElement);
+      if(r.ok) {
+        state.confirmed=Math.max(state.confirmed,r.count);state.batch=null;message.textContent='';render();
+        window.ygTrack && window.ygTrack('video_like',{liked:'yes'});
+        if(state.queued) state.timer=setTimeout(flush,80);
+      } else {
+        message.textContent=t('网络未连上，点赞待发送；再点可重试。','Likes are waiting to send. Tap again to retry.');
+      }
+    };
+    button.addEventListener('click',function() {
+      state.hasTapped=true;state.queued++;render();
+      button.classList.remove('is-cheering');requestAnimationFrame(()=>button.classList.add('is-cheering'));
+      setTimeout(()=>button.classList.remove('is-cheering'),300);
+      if(!state.sending) { clearTimeout(state.timer);state.timer=setTimeout(flush,160); }
+    });
+  });
+  if(likeButtons.length || films.length) {
+    api('/api/video-likes').then(function(r) {
+      if(!r.ok) return;
+      likeButtons.forEach(function(button) {
+        const key=button.dataset.videoLike;
+        const update=function(s) { const st=applause.get(button);if(s && !st.hasTapped) { st.confirmed=Math.max(st.confirmed,s.count);paintLike(button,st.confirmed+st.queued+(st.batch?.amount||0)); } };
+        if(key.startsWith('x:')) api('/api/video-likes/'+encodeURIComponent(key)).then(s=>{if(s.ok)update(s)});else update(r.stats[key]);
+      });
+      $$('[data-feature-likes]').forEach(el=>{const s=r.stats[el.dataset.featureLikes];if(s)el.textContent='♡ '+likeCount(s.count)});
+      if(r.order && films.length) {
+        const grid=films[0].parentElement,rank=new Map(r.order.map((slug,i)=>[slug,i]));
+        films.sort((a,b)=>(rank.get(a.dataset.featureVideo)??999)-(rank.get(b.dataset.featureVideo)??999)).forEach((el,i)=>{el.hidden=i>=4;grid.appendChild(el)});
+      }
+    });
+  }
 })();

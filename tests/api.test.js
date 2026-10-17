@@ -893,3 +893,26 @@ test('verification resend cooldown does not spend daily send allowance; failed r
  const verified=await call('/api/auth/verify',{body:{email,code,name:'Resend member'}});assert.equal(verified.body.ok,true,'old code still verifies when provider rejects the new mail');
  const again=await start(now+47000);assert.equal(again.body.ok,true,'cooldown clicks did not exhaust six-per-day allowance');
 });
+
+
+test('video applause: every tap adds, retries deduplicate, no unlike or daily cap', async () => {
+  const target='v:meaning-of-life', endpoint='/api/video-likes/'+encodeURIComponent(target);
+  const batch=(amount,id)=>({amount,id:id.padEnd(24,'x')});
+  assert.equal((await call('/api/video-likes')).body.stats[target].count,258);
+  assert.equal((await call(endpoint,{body:batch(1,'first')})).body.count,259);
+  assert.equal((await call(endpoint,{body:batch(1,'first')})).body.count,259,'network retry counts once');
+  assert.equal((await call(endpoint,{body:batch(50,'second')})).body.count,309);
+  assert.equal((await call(endpoint,{body:batch(1000,'third')})).body.count,1309,'no 100/day limit');
+  const en=await call('/api/video-likes',{lang:'en'});
+  assert.equal(en.body.stats[target].count,1309);
+  assert.equal((await call(endpoint,{body:batch(1000,'third')})).body.count,1309);
+  assert.equal((await call(endpoint,{body:batch(2,'third')})).status,409,'cannot reuse request ID for different taps');
+  assert.equal((await call(endpoint,{body:{liked:false}})).status,400,'unlike unsupported');
+  assert.equal((await call(endpoint,{body:batch(-1,'invalid')})).status,400);
+  assert.equal((await call('/api/video-likes/v:unknown-video',{body:batch(1,'unknown')})).status,404);
+  const forbidden=await worker.fetch(new Request('https://zion4life.faith'+endpoint,{method:'POST',headers:{origin:'https://bad.example','content-type':'application/json'},body:JSON.stringify(batch(1,'foreign'))}),env);
+  assert.equal(forbidden.status,403);
+  const parallel=await Promise.all(Array.from({length:10},(_,i)=>call(endpoint,{body:batch(1,'parallel'+i)})));
+  assert.equal((await call('/api/video-likes')).body.stats[target].count,1319,'concurrent taps not lost');
+  assert.ok(parallel.every(r=>r.status===200));
+});

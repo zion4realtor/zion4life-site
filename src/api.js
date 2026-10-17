@@ -14,6 +14,7 @@ import { handleDazi, runReminders as dazReminders } from './dazi.js';
 import { handleInbox, addMsg, announce } from './inbox.js';
 import { handleAudio, makeAudio } from './audio.js';
 import { sendAsk } from './mail.js';
+import { handleVideoLikes } from './video-likes.js';
 import { KINDS } from './schedule.js';
 
 // The cron, every 5 minutes: 搭子 reminders, new pieces for subscribers, 呼吸 recordings.
@@ -31,6 +32,7 @@ export async function handleApi(request, env, url, now = Date.now()) {
   const lang = langOf(request);
   const t = tr(lang);
 
+  if (p === '/api/video-likes' || p.startsWith('/api/video-likes/')) return handleVideoLikes(request, env, db, url, now);
   if (p === '/api/me' || p.startsWith('/api/auth/')) return handleAuth(request, env, db, url, now, lang);
   if (p.startsWith('/api/talk') || p === '/api/claims' || p.startsWith('/api/posts')) return handleContent(request, env, db, url, now, lang);
   if (p.startsWith('/api/dazi') || p.startsWith('/api/cal/')) return handleDazi(request, env, db, url, now, lang);
