@@ -407,5 +407,79 @@
         "url": "/video/one-flyer-one-family.zh.vtt?v=20261017-aligned"
       }
     ]
+  },
+  {
+    "slug": "why-am-i-here",
+    "minutes": 5,
+    "seconds": 278.18,
+    "date": "2026-10-17",
+    "speaker": {
+      "zh": "王嘉玲（王生台夫妇）",
+      "en": "Wang Jialing (Wang Shengtai’s wife)"
+    },
+    "series": {
+      "zh": "人生大哉问",
+      "en": "Big Questions of Life"
+    },
+    "sourceNote": {
+      "zh": "选自王生台夫妇《我为何存在》录像。为完整呈现“经历—提问—回应”，组合原片 00:02.67–01:15.35、01:43.79–04:40.85，结尾接回 01:15.35–01:43.79 的回应。保留讲述者原声，未添加配音。",
+      "en": "From Why Do I Exist?, a recording by Wang Shengtai and Wang Jialing. This edit combines source times 00:02.67–01:15.35 and 01:43.79–04:40.85, closing with her response at 01:15.35–01:43.79. Original speech retained; no added narration."
+    },
+    "tags": [
+      "goodnews",
+      "video",
+      "work",
+      "feelings"
+    ],
+    "spotlight": true,
+    "zh": {
+      "title": "坐进人生的头等舱，却不知道飞往哪里？",
+      "summary": "家庭、学业和前途都很顺利，她却追问人生的方向。王嘉玲用“飞机头等舱”的比喻讲述自己的经历，并以主动认识造她的主，回应这个追问。"
+    },
+    "en": {
+      "title": "First Class in Life—But Where Is It Going?",
+      "summary": "With a loving family, academic success and a promising future, Wang Jialing still questioned her direction. Her first-class-flight analogy leads to her response: actively seeking her Creator."
+    },
+    "poster": "/video/why-am-i-here.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/why-am-i-here-complete.mp4",
+        "poster": "/video/why-am-i-here.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/why-am-i-here.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/why-am-i-here.zh.vtt"
+      }
+    ],
+    "short": true,
+    "shortKicker": {
+      "zh": "王生台夫妇 · 我为何存在",
+      "en": "WANG SHENGTAI & WANG JIALING · WHY AM I HERE"
+    },
+    "byline": {
+      "zh": "王嘉玲 · 中文原声 · 中英字幕",
+      "en": "Wang Jialing · Original Chinese audio · Bilingual captions"
+    },
+    "subscribeTag": false,
+    "downloadPath": "/video/why-am-i-here-complete.mp4",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
+    "featureLabel": {
+      "zh": "人生大哉问 · 王嘉玲",
+      "en": "BIG QUESTIONS · WANG JIALING"
+    },
+    "publishedAt": "2026-10-17T00:16:21-04:00"
   }
 ]

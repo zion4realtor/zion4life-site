@@ -97,7 +97,7 @@
   // ---------- the plaza: presentation over the existing read-only group APIs ----------
   function spot(g) {
     return `<a class="spot${g.next?.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" data-plaza-group="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.title)}" style="--tint:${tintOf(g.kind)}">
-${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span><span class="gather-count">${g.seats.length} / ${g.max} ${t('人', 'members')}</span><span class="group-open-hint">${t('点击查看详情', 'Tap for details')} <span aria-hidden="true">↗</span></span></a>`;
+${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span><span class="gather-count">${g.seats.length} / ${g.max} ${t('人', 'members')}</span></a>`;
   }
   function plaza() {
     const box = $('[data-plaza]');

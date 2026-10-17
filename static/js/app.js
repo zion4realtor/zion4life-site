@@ -805,7 +805,15 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>�
         message.textContent=t('网络未连上，点赞待发送；再点可重试。','Likes are waiting to send. Tap again to retry.');
       }
     };
-    button.addEventListener('click',function() {
+    button.addEventListener('click',function(event) {
+      const heart=document.createElement('span');
+      heart.className='like-float';heart.textContent='♥';heart.setAttribute('aria-hidden','true');
+      const rect=button.getBoundingClientRect();
+      heart.style.left=(event.clientX ? Math.max(12,Math.min(rect.width-12,event.clientX-rect.left)) : rect.width/2)+'px';
+      heart.style.setProperty('--heart-drift',(Math.random()*48-24)+'px');
+      heart.style.setProperty('--heart-turn',(Math.random()*30-15)+'deg');
+      const old=button.querySelectorAll('.like-float');if(old.length>=12)old[0].remove();
+      button.appendChild(heart);setTimeout(()=>heart.remove(),1100);
       state.hasTapped=true;state.queued++;render();
       button.classList.remove('is-cheering');requestAnimationFrame(()=>button.classList.add('is-cheering'));
       setTimeout(()=>button.classList.remove('is-cheering'),300);
