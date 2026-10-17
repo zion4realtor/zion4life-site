@@ -22,7 +22,7 @@ export default {
     const p = url.pathname;
     if (p.startsWith('/video/') && p.endsWith('.mp4')) return serveVideo(request, env);
     if (p.startsWith('/api/reading/')) return readingApi(request, env, url);
-    if (/^\/(en\/)?read\/\d{4}-\d{2}-\d{2}\//.test(p)) return readingPage(request, env, url);
+    if (/^\/(en\/)?read\/(?:today|\d{4}-\d{2}-\d{2})\//.test(p)) return readingPage(request, env, url);
     if (p === '/api/hit') return handleHit(request, env, ctx, url);
     if (p.startsWith('/api/')) {
       try {

@@ -53,4 +53,20 @@ export async function readingApi(request,env,url){if(url.pathname==='/api/readin
  if((m=url.pathname.match(/^\/api\/reading\/(\d{4}-\d{2}-\d{2})\/transcript\/(ot|nt)\.json$/))){try{planDay(m[1]);const r=await store(env).get(`reading:web:transcript:${m[1]}:${m[2]}:v1`);return r?json(await r.json()):json({status:'pending'},404)}catch{return json({error:'Invalid date'},400)}}
  if((m=url.pathname.match(/^\/api\/reading\/(\d{4}-\d{2}-\d{2})\.json$/))){try{const data=await readingData(env,m[1]);if(data)for(const t of ['ot','nt']){data[t].webSources=data[t].ranges.map(r=>webURL(data[t],r.chapter));if(data[t]?.englishAudio?.translation==='WEB'&&data[t].englishAudio.status==='ready')continue;const progress=await webAudioProgress(env,m[1],t);if(progress)data[t].englishAudio=progress}return data?json(data):json({status:'pending',date:m[1]},404)}catch{return json({error:'Invalid date'},400)}}
  if((m=url.pathname.match(/^\/api\/reading\/calendar\/(\d{4})-(\d{2})\.json$/))){const y=+m[1],month=+m[2];if(y<2026||y>2100||month<1||month>12)return json({error:'Invalid month'},400);const index=(await readBlob(store(env),'reading:index'))||[];const seedResponse=await env.ASSETS.fetch(new Request(`${ORIGIN}/data/reading-index.json`));const seeds=seedResponse.ok?await seedResponse.json():['2026-10-17'];const dates=[...new Set([...seeds,...index])].filter(date=>date.startsWith(`${m[1]}-${m[2]}-`));return json({dates})}return json({error:'Not found'},404)}
-export async function readingPage(request,env,url){const m=url.pathname.match(/^(\/en)?\/read\/(\d{4}-\d{2}-\d{2})\/(ot|nt)\/?$/);if(!m)return null;try{planDay(m[2])}catch{return new Response('Invalid date',{status:400})}const pre=m[1]||'',t=m[3];const direct=await env.ASSETS.fetch(new Request(url.toString()));if(direct.ok)return direct;const r=await env.ASSETS.fetch(new Request(`${url.origin}${pre}/read/shell/${t}/`));if(!r.ok)return r;let html=await r.text();html=html.replace('data-reading-date=""',`data-reading-date="${m[2]}"`).replace(/\/read\/(today|shell)\//g,`/read/${m[2]}/`);html=html.replace(/<title>[^<]*<\/title>/,`<title>${m[2]} ${pre?'Daily Bible reading':'三旧一新'}</title>`);html=html.replace(/(<link rel="canonical" href=")[^"]+/,`$1${esc(url.origin+url.pathname)}`);return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}})}
+export async function readingPage(request,env,url){
+ const m=url.pathname.match(/^(\/en)?\/read\/(today|\d{4}-\d{2}-\d{2})\/(ot|nt)\/?$/);if(!m)return null;
+ const live=m[2]==='today',date=live?publicationDate():m[2];try{planDay(date)}catch{return new Response('Invalid date',{status:400})}
+ const pre=m[1]||'',t=m[3],direct=await env.ASSETS.fetch(new Request(url.toString()));
+ const r=direct.ok?direct:await env.ASSETS.fetch(new Request(`${url.origin}${pre}/read/shell/${t}/`));if(!r.ok)return r;
+ let html=await r.text();if(!live)html=html.replace('data-reading-date=""',`data-reading-date="${date}"`).replace(/\/read\/(today|shell)\//g,`/read/${date}/`);
+ const [y,month,day]=date.split('-'),title=pre?`${date} Daily Bible Reading`:`${y}年${+month}月${+day}日三旧一新读经`;
+ const data=await readingData(env,date),verses=data?.nt?.keyVerses||[];
+ const description=verses.map(v=>`${pre?v.reference:v.referenceZh} ${pre?v.en:v.zh}`).join(' ');
+ html=html.replace(/<title>[^<]*<\/title>/,`<title>${esc(title)}</title>`)
+ .replace(/(<meta property="og:title" content=")[^"]*/,`$1${esc(title)}`)
+ .replace(/(<meta (?:name="description"|property="og:description") content=")[^"]*/g,`$1${esc(description)}`)
+ .replace(/(<meta property="og:url" content=")[^"]*/,`$1${esc(url.origin+url.pathname)}`)
+ .replace(/(<link rel="canonical" href=")[^"]+/,`$1${esc(url.origin+url.pathname)}`);
+ html=html.replace('</head>',`<meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(description)}"></head>`);
+ return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+}
