@@ -443,5 +443,83 @@
       "en": "BIG QUESTIONS · WANG JIALING"
     },
     "publishedAt": "2026-10-17T00:16:21-04:00"
+  },
+  {
+    "slug": "children-learning-together",
+    "minutes": 3,
+    "seconds": 170.01,
+    "date": "2026-10-18",
+    "tags": [
+      "video",
+      "students",
+      "songs",
+      "newfriends"
+    ],
+    "short": true,
+    "shortGroup": "children-together",
+    "orientation": "portrait",
+    "downloadable": false,
+    "shortKicker": {
+      "zh": "孩子们的诗歌与成长",
+      "en": "CHILDREN'S SONGS & GROWING TOGETHER"
+    },
+    "byline": {
+      "zh": "保留英文画面字幕 · 加中文字幕",
+      "en": "Original English captions · Chinese subtitles"
+    },
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "off"
+    },
+    "captionOptions": [
+      "zh",
+      "off"
+    ],
+    "featureLabel": {
+      "zh": "孩子们 · 唱诗与成长",
+      "en": "CHILDREN · SONGS & GROWING TOGETHER"
+    },
+    "featureAction": {
+      "zh": "观看儿童活动",
+      "en": "Watch the children's gathering"
+    },
+    "sourceNote": {
+      "zh": "按先后顺序合成两段儿童活动片段，保留原声、竖屏画幅和原有英文画面字幕，并添加中文字幕。画面色彩仅作轻微调整。",
+      "en": "Two excerpts from a children’s activity, joined in sequence. Original audio, portrait framing, and embedded English captions are preserved; Chinese subtitles are added. Color is adjusted lightly."
+    },
+    "quotes": {
+      "zh": [
+        "“今天我们要帮助别人！”",
+        "“我们要成为神服事人的孩子。”"
+      ],
+      "en": [
+        "“We’re gonna help someone today!”",
+        "“We’re gonna be God’s serving children.”"
+      ]
+    },
+    "zh": {
+      "title": "一起唱诗，学会爱与帮助",
+      "summary": "孩子们听圣经故事、唱诗歌，也在活动中学习善待和帮助彼此。"
+    },
+    "en": {
+      "title": "Singing, Learning to Love and Help",
+      "summary": "Children hear a Bible story, sing, and learn to treat one another with kindness and care."
+    },
+    "poster": "/video/children-learning-together.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/children-learning-together.mp4",
+        "poster": "/video/children-learning-together.jpg",
+        "label": "English original"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/children-learning-together.zh.vtt"
+      }
+    ]
   }
 ]
