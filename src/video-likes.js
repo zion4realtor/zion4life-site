@@ -23,7 +23,7 @@ export async function handleVideoLikes(request, env, db, url, now) {
     const newest = featured.slice().sort(byNewest).slice(0, 2);
     const newestSlugs = new Set(newest.map(v => v.slug));
     const mostLiked = featured.filter(v => !newestSlugs.has(v.slug)).slice()
-      .sort((a,b) => videoScore(stats[`v:${b.slug}`].added,b.published,now) - videoScore(stats[`v:${a.slug}`].added,a.published,now) || byNewest(a,b))
+      .sort((a,b) => stats[`v:${b.slug}`].count - stats[`v:${a.slug}`].count || byNewest(a,b))
       .slice(0, 2);
     const order = [...newest, ...mostLiked].map(v => v.slug);
     return json({ ok: true, base: LIKE_BASE, stats, order }, 200);
