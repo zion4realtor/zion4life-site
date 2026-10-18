@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parseReading,planDay,publicationDate,readingPage,selectVerse,englishVerse,readingApi,prepareReadings } from '../src/reading.js';
+import { parseReading,planDay,publicationDate,readingPage,readingData,selectVerse,englishVerse,readingApi,prepareReadings } from '../src/reading.js';
 const sample = (book,chapter,body) => `<html><head><title>读经一年一遍第291天-${book}</title></head><body><div>大纲范围：十八至二十章</div><p><b>第${chapter}章</b>${body}</p><hr><p>not reading material</p></body></html>`;
 const old = sample('耶利米书','十八',`<sup>1</sup>First reading text.<sup><a onclick="overlib('note')">1</a></sup><sup>6</sup>Selected reading text.</p><p><b>第十九章</b><sup>1</sup>Next chapter text.`);
 const nextOld = sample('耶利米书','二十','<sup>1</sup>First text.<sup>9</sup>Selected text.</p><p><b>第二十一章</b><sup>1</sup>Next text.</p><p><b>第二十二章</b><sup>1</sup>Another text.');
@@ -41,4 +41,8 @@ test('reading share metadata contains date and NT key verse before JavaScript ru
  const {env}=environment();const seed=JSON.parse(fs.readFileSync('content/reading/2026-10-17.json'));
  env.ASSETS.fetch=async req=>req.url.endsWith('.json')?Response.json(seed):new Response('<head><title>Old</title><meta property="og:title" content="Old"><meta property="og:description" content="Old"><meta name="description" content="Old"></head>');
  for(const pre of ['', '/en'])for(const t of ['ot','nt']){const u=new URL(`https://x${pre}/read/2026-10-17/${t}/`),r=await readingPage(new Request(u),env,u),html=await r.text();assert.ok(html.includes(pre?'2026-10-17 Daily Bible Reading':'2026年10月17日三旧一新读经'));assert.ok(html.includes(pre?seed.nt.keyVerses[0].en:seed.nt.keyVerses[0].zh));assert.equal(r.headers.get('cache-control'),'no-store')}
+});
+
+test('saved reading quotations display source punctuation rather than entity codes',async()=>{
+ const {env,blobs}=environment();const data=JSON.parse(fs.readFileSync('content/reading/2026-10-19.json'));data.ot.keyVerses[0].en='My word &mdash; like fire';blobs.set('reading:day:2026-10-19',new TextEncoder().encode(JSON.stringify(data)));const result=await readingData(env,'2026-10-19');assert.equal(result.ot.keyVerses[0].en,'My word — like fire');
 });
