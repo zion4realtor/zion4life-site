@@ -57,12 +57,12 @@
       {
         "lang": "zh",
         "label": "中文",
-        "url": "/video/livingstone-lee-leaflet-2.zh.vtt"
+        "url": "/video/livingstone-lee-leaflet-2.zh.vtt?v=20261018-sync2"
       },
       {
         "lang": "en",
         "label": "English",
-        "url": "/video/livingstone-lee-leaflet-2.en.vtt"
+        "url": "/video/livingstone-lee-leaflet-2.en.vtt?v=20261018-sync2"
       }
     ]
   },
@@ -75,7 +75,8 @@
       "goodnews",
       "video",
       "life",
-      "stories"
+      "stories",
+      "eat"
     ],
     "short": true,
     "shortGroup": "wang-shengtai-2023-david",
@@ -124,12 +125,12 @@
       {
         "lang": "zh",
         "label": "中文",
-        "url": "/video/wang-shengtai-example-david.zh.vtt"
+        "url": "/video/wang-shengtai-example-david.zh.vtt?v=20261018-sync2"
       },
       {
         "lang": "en",
         "label": "English",
-        "url": "/video/wang-shengtai-example-david.en.vtt"
+        "url": "/video/wang-shengtai-example-david.en.vtt?v=20261018-sync2"
       }
     ]
   },
@@ -142,7 +143,8 @@
       "goodnews",
       "video",
       "life",
-      "stories"
+      "stories",
+      "eat"
     ],
     "short": true,
     "shortGroup": "wang-shengtai-2023-moses",
@@ -191,12 +193,12 @@
       {
         "lang": "zh",
         "label": "中文",
-        "url": "/video/wang-shengtai-example-moses.zh.vtt"
+        "url": "/video/wang-shengtai-example-moses.zh.vtt?v=20261018-sync2"
       },
       {
         "lang": "en",
         "label": "English",
-        "url": "/video/wang-shengtai-example-moses.en.vtt"
+        "url": "/video/wang-shengtai-example-moses.en.vtt?v=20261018-sync2"
       }
     ]
   },
@@ -654,7 +656,8 @@
       "video",
       "students",
       "songs",
-      "newfriends"
+      "newfriends",
+      "feelings"
     ],
     "short": true,
     "shortGroup": "children-together",
@@ -719,7 +722,7 @@
       {
         "lang": "zh",
         "label": "中文",
-        "url": "/video/children-learning-together.zh.vtt"
+        "url": "/video/children-learning-together.zh.vtt?v=20261018-sync2"
       }
     ]
   }
