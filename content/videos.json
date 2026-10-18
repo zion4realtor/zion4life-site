@@ -20,14 +20,21 @@
       "en": "LIVINGSTONE LEE · HUALIEN GOSPEL MESSAGE"
     },
     "byline": {
-      "zh": "李光弘 · 中文原声",
-      "en": "Livingstone Lee · Original Chinese audio"
+      "zh": "李光弘 · 中文原声 · 中英文字幕",
+      "en": "Livingstone Lee · Chinese audio · Chinese & English subtitles"
     },
-    "captionOptions": [],
-    "defaultCaption": "off",
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "sourceNote": {
-      "zh": "选自李光弘弟兄2020年5月26日于花莲分享的《救命仙单》信息。原片时间 00:44:40–00:47:40，保留中文原声与横屏画幅。",
-      "en": "Excerpt from Livingstone Lee’s May 26, 2020 message in Hualien, “The Life-Saving Tract.” Source time 00:44:40–00:47:40. Original Chinese audio and landscape framing are preserved."
+      "zh": "选自李光弘弟兄2020年5月26日于花莲分享的《救命仙单》信息。原片时间 00:44:40–00:47:40，保留中文原声与横屏画幅；字幕按讲话原声整理，并配有英文翻译。",
+      "en": "Excerpt from Livingstone Lee’s May 26, 2020 message in Hualien, “The Life-Saving Tract.” Source time 00:44:40–00:47:40. Original Chinese audio and landscape framing are preserved; captions are transcribed from the speech and translated into English."
     },
     "zh": {
       "title": "《救命仙单》信息摘录",
@@ -44,6 +51,18 @@
         "url": "/video/livingstone-lee-leaflet-2.mp4",
         "poster": "/video/livingstone-lee-leaflet-2.jpg",
         "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/livingstone-lee-leaflet-2.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/livingstone-lee-leaflet-2.en.vtt"
       }
     ]
   },
@@ -68,14 +87,21 @@
       "en": "WANG SHENGTAI · BIBLE MESSAGE"
     },
     "byline": {
-      "zh": "王生台 · 中文原声",
-      "en": "Wang Shengtai · Original Chinese audio"
+      "zh": "王生台 · 中文原声 · 中英文字幕",
+      "en": "Wang Shengtai · Chinese audio · Chinese & English subtitles"
     },
-    "captionOptions": [],
-    "defaultCaption": "off",
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "sourceNote": {
-      "zh": "选自王生台弟兄2023年《圣经中爱神的例证：大卫》。原片时间 00:20:00–00:23:00，保留中文原声与横屏画幅。",
-      "en": "Excerpt from Wang Shengtai’s 2023 message “Biblical Examples of Loving God: David.” Source time 00:20:00–00:23:00. Original Chinese audio and landscape framing are preserved."
+      "zh": "选自王生台弟兄2023年《圣经中爱神的例证：大卫》。原片时间 00:20:00–00:23:00，保留中文原声与横屏画幅；字幕按讲话原声整理，并配有英文翻译。",
+      "en": "Excerpt from Wang Shengtai’s 2023 message “Biblical Examples of Loving God: David.” Source time 00:20:00–00:23:00. Original Chinese audio and landscape framing are preserved; captions are transcribed from the speech and translated into English."
     },
     "zh": {
       "title": "大卫：爱神的圣经例证",
@@ -92,6 +118,18 @@
         "url": "/video/wang-shengtai-example-david.mp4",
         "poster": "/video/wang-shengtai-example-david.jpg",
         "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/wang-shengtai-example-david.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/wang-shengtai-example-david.en.vtt"
       }
     ]
   },
@@ -116,14 +154,21 @@
       "en": "WANG SHENGTAI · BIBLE MESSAGE"
     },
     "byline": {
-      "zh": "王生台 · 中文原声",
-      "en": "Wang Shengtai · Original Chinese audio"
+      "zh": "王生台 · 中文原声 · 中英文字幕",
+      "en": "Wang Shengtai · Chinese audio · Chinese & English subtitles"
     },
-    "captionOptions": [],
-    "defaultCaption": "off",
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "sourceNote": {
-      "zh": "选自王生台弟兄2023年《圣经中爱神的例证：摩西》。原片时间 00:30:00–00:33:00，保留中文原声与横屏画幅。",
-      "en": "Excerpt from Wang Shengtai’s 2023 message “Biblical Examples of Loving God: Moses.” Source time 00:30:00–00:33:00. Original Chinese audio and landscape framing are preserved."
+      "zh": "选自王生台弟兄2023年《圣经中爱神的例证：摩西》。原片时间 00:30:00–00:33:00，保留中文原声与横屏画幅；字幕按讲话原声整理，并配有英文翻译。",
+      "en": "Excerpt from Wang Shengtai’s 2023 message “Biblical Examples of Loving God: Moses.” Source time 00:30:00–00:33:00. Original Chinese audio and landscape framing are preserved; captions are transcribed from the speech and translated into English."
     },
     "zh": {
       "title": "摩西：爱神的圣经例证",
@@ -140,6 +185,18 @@
         "url": "/video/wang-shengtai-example-moses.mp4",
         "poster": "/video/wang-shengtai-example-moses.jpg",
         "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/wang-shengtai-example-moses.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/wang-shengtai-example-moses.en.vtt"
       }
     ]
   },
@@ -604,12 +661,12 @@
     "orientation": "portrait",
     "downloadable": false,
     "shortKicker": {
-      "zh": "孩子们的诗歌与成长",
-      "en": "CHILDREN'S SONGS & GROWING TOGETHER"
+      "zh": "2026年 · 美国儿童圣经夏令营",
+      "en": "2026 · U.S. CHILDREN'S BIBLE CAMP"
     },
     "byline": {
-      "zh": "保留英文画面字幕 · 加中文字幕",
-      "en": "Original English captions · Chinese subtitles"
+      "zh": "保留英文画面字幕 · 中文字幕按画面英文翻译",
+      "en": "Original embedded English captions · Chinese translated from on-screen text"
     },
     "defaultCaption": {
       "zh": "zh",
@@ -620,12 +677,12 @@
       "off"
     ],
     "featureLabel": {
-      "zh": "孩子们 · 唱诗与成长",
-      "en": "CHILDREN · SONGS & GROWING TOGETHER"
+      "zh": "儿童 · 圣经夏令营",
+      "en": "CHILDREN · BIBLE CAMP"
     },
     "featureAction": {
-      "zh": "观看儿童活动",
-      "en": "Watch the children's gathering"
+      "zh": "观看夏令营片段",
+      "en": "Watch the camp video"
     },
     "sourceNote": {
       "zh": "按先后顺序合成两段儿童活动片段，保留原声、竖屏画幅和原有英文画面字幕，并添加中文字幕。画面色彩仅作轻微调整。",
@@ -642,12 +699,12 @@
       ]
     },
     "zh": {
-      "title": "一起唱诗，学会爱与帮助",
-      "summary": "孩子们听圣经故事、唱诗歌，也在活动中学习善待和帮助彼此。"
+      "title": "2026美国儿童圣经夏令营",
+      "summary": "2026年美国儿童圣经夏令营活动片段。"
     },
     "en": {
-      "title": "Singing, Learning to Love and Help",
-      "summary": "Children hear a Bible story, sing, and learn to treat one another with kindness and care."
+      "title": "2026 U.S. Children's Bible Camp",
+      "summary": "Scenes from the 2026 U.S. Children's Bible Camp."
     },
     "poster": "/video/children-learning-together.jpg",
     "sources": [
