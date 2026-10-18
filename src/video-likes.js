@@ -18,7 +18,14 @@ export async function handleVideoLikes(request, env, db, url, now) {
   if (method === 'GET' && url.pathname === '/api/video-likes') {
     const saved = Object.fromEntries((await db('videoLikes', {})).map(r => [r.target, r]));
     const stats = Object.fromEntries(videos.map(v => [`v:${v.slug}`, view(saved[`v:${v.slug}`])]));
-    const order = videos.filter(v => v.featured).slice().sort((a,b) => videoScore(stats[`v:${b.slug}`].added,b.published,now) - videoScore(stats[`v:${a.slug}`].added,a.published,now) || b.published.localeCompare(a.published)).map(v => v.slug);
+    const featured = videos.filter(v => v.featured);
+    const byNewest = (a,b) => (Date.parse(b.published) || 0) - (Date.parse(a.published) || 0);
+    const newest = featured.slice().sort(byNewest).slice(0, 2);
+    const newestSlugs = new Set(newest.map(v => v.slug));
+    const mostLiked = featured.filter(v => !newestSlugs.has(v.slug)).slice()
+      .sort((a,b) => videoScore(stats[`v:${b.slug}`].added,b.published,now) - videoScore(stats[`v:${a.slug}`].added,a.published,now) || byNewest(a,b))
+      .slice(0, 2);
+    const order = [...newest, ...mostLiked].map(v => v.slug);
     return json({ ok: true, base: LIKE_BASE, stats, order }, 200);
   }
   const target = decodeURIComponent(url.pathname.slice('/api/video-likes/'.length));
