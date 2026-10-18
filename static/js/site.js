@@ -195,6 +195,27 @@
     });
   });
 
+  document.querySelectorAll('[data-video-share]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var url = btn.getAttribute('data-share-url');
+      var title = btn.getAttribute('data-share-title') || document.title;
+      track('share', { method: isWeChat ? 'video_icon_wechat_copy' : navigator.share ? 'video_icon_system' : 'video_icon_copy' });
+      if (!isWeChat && navigator.share) {
+        navigator.share({ title: title, text: title, url: url }).catch(function (err) {
+          if (!err || err.name !== 'AbortError') copy(url).then(function () {
+            toast(zh ? '链接已复制，可发送给朋友。' : 'Link copied. Send it to a friend.');
+          }, function () { toast(url); });
+        });
+        return;
+      }
+      copy(url).then(function () {
+        toast(zh ? '链接已复制。请点右上角“···”分享给朋友。' : 'Link copied. Use the browser menu to share it.');
+      }, function () {
+        toast(zh ? '请点右上角“···”分享给朋友。' : 'Open the browser menu to share this page.');
+      });
+    });
+  });
+
   // ---- 放到手机桌面: the steps for the phone in hand, and a one-tap button where the browser
   // offers one (Chrome on Android). Hidden once the page is already opened from the home screen. ----
   var a2hs = document.querySelector('[data-a2hs]');

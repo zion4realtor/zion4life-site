@@ -1,5 +1,149 @@
 [
   {
+    "slug": "livingstone-lee-leaflet-2",
+    "minutes": 3,
+    "seconds": 180.09,
+    "date": "2026-10-18",
+    "tags": [
+      "goodnews",
+      "lgh",
+      "video",
+      "stories"
+    ],
+    "short": true,
+    "shortGroup": "lgh-2020-leaflet-followup",
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "shortKicker": {
+      "zh": "李光弘 · 花莲福音信息",
+      "en": "LIVINGSTONE LEE · HUALIEN GOSPEL MESSAGE"
+    },
+    "byline": {
+      "zh": "李光弘 · 中文原声",
+      "en": "Livingstone Lee · Original Chinese audio"
+    },
+    "captionOptions": [],
+    "defaultCaption": "off",
+    "sourceNote": {
+      "zh": "选自李光弘弟兄2020年5月26日于花莲分享的《救命仙单》信息。原片时间 00:44:40–00:47:40，保留中文原声与横屏画幅。",
+      "en": "Excerpt from Livingstone Lee’s May 26, 2020 message in Hualien, “The Life-Saving Tract.” Source time 00:44:40–00:47:40. Original Chinese audio and landscape framing are preserved."
+    },
+    "zh": {
+      "title": "《救命仙单》信息摘录",
+      "summary": "李光弘于2020年在花莲分享的信息片段，谈及福音单张。"
+    },
+    "en": {
+      "title": "The Life-Saving Tract | A Message Excerpt",
+      "summary": "An excerpt from Livingstone Lee’s 2020 Hualien message about the gospel tract."
+    },
+    "poster": "/video/livingstone-lee-leaflet-2.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/livingstone-lee-leaflet-2.mp4",
+        "poster": "/video/livingstone-lee-leaflet-2.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ]
+  },
+  {
+    "slug": "wang-shengtai-example-david",
+    "minutes": 3,
+    "seconds": 180.1,
+    "date": "2026-10-18",
+    "tags": [
+      "goodnews",
+      "video",
+      "life",
+      "stories"
+    ],
+    "short": true,
+    "shortGroup": "wang-shengtai-2023-david",
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "shortKicker": {
+      "zh": "王生台 · 圣经人物信息",
+      "en": "WANG SHENGTAI · BIBLE MESSAGE"
+    },
+    "byline": {
+      "zh": "王生台 · 中文原声",
+      "en": "Wang Shengtai · Original Chinese audio"
+    },
+    "captionOptions": [],
+    "defaultCaption": "off",
+    "sourceNote": {
+      "zh": "选自王生台弟兄2023年《圣经中爱神的例证：大卫》。原片时间 00:20:00–00:23:00，保留中文原声与横屏画幅。",
+      "en": "Excerpt from Wang Shengtai’s 2023 message “Biblical Examples of Loving God: David.” Source time 00:20:00–00:23:00. Original Chinese audio and landscape framing are preserved."
+    },
+    "zh": {
+      "title": "大卫：爱神的圣经例证",
+      "summary": "王生台弟兄2023年《圣经中爱神的例证》信息片段。"
+    },
+    "en": {
+      "title": "David: A Biblical Example of Loving God",
+      "summary": "An excerpt from Wang Shengtai’s 2023 message on biblical examples of loving God."
+    },
+    "poster": "/video/wang-shengtai-example-david.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/wang-shengtai-example-david.mp4",
+        "poster": "/video/wang-shengtai-example-david.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ]
+  },
+  {
+    "slug": "wang-shengtai-example-moses",
+    "minutes": 3,
+    "seconds": 180.03,
+    "date": "2026-10-18",
+    "tags": [
+      "goodnews",
+      "video",
+      "life",
+      "stories"
+    ],
+    "short": true,
+    "shortGroup": "wang-shengtai-2023-moses",
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "shortKicker": {
+      "zh": "王生台 · 圣经人物信息",
+      "en": "WANG SHENGTAI · BIBLE MESSAGE"
+    },
+    "byline": {
+      "zh": "王生台 · 中文原声",
+      "en": "Wang Shengtai · Original Chinese audio"
+    },
+    "captionOptions": [],
+    "defaultCaption": "off",
+    "sourceNote": {
+      "zh": "选自王生台弟兄2023年《圣经中爱神的例证：摩西》。原片时间 00:30:00–00:33:00，保留中文原声与横屏画幅。",
+      "en": "Excerpt from Wang Shengtai’s 2023 message “Biblical Examples of Loving God: Moses.” Source time 00:30:00–00:33:00. Original Chinese audio and landscape framing are preserved."
+    },
+    "zh": {
+      "title": "摩西：爱神的圣经例证",
+      "summary": "王生台弟兄2023年《圣经中爱神的例证》信息片段。"
+    },
+    "en": {
+      "title": "Moses: A Biblical Example of Loving God",
+      "summary": "An excerpt from Wang Shengtai’s 2023 message on biblical examples of loving God."
+    },
+    "poster": "/video/wang-shengtai-example-moses.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/wang-shengtai-example-moses.mp4",
+        "poster": "/video/wang-shengtai-example-moses.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ]
+  },
+  {
     "slug": "o-glorious-divine-love",
     "minutes": 2,
     "seconds": 121.51,
