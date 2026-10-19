@@ -12,35 +12,48 @@
   function soundLabels() {
     reels.forEach(reel => {
       const button = reel.querySelector('.reel-mute');
-      const label = muted ? t('开启声音', 'Sound on') : t('静音', 'Mute');
+      const isMuted = reel.querySelector('video').muted;
+      const label = isMuted ? t('开启声音', 'Sound on') : t('静音', 'Mute');
       button.setAttribute('aria-label', label);
-      button.setAttribute('aria-pressed', String(!muted));
+      button.setAttribute('aria-pressed', String(!isMuted));
       button.querySelector('small').textContent = label;
-      button.querySelector('span').textContent = muted ? '♪' : '♫';
+      button.querySelector('span').textContent = isMuted ? '♪' : '♫';
     });
+  }
+  function showPlaying(reel) {
+    const video = reel.querySelector('video');
+    if (reels[active] !== reel || document.hidden || manuallyPaused) { video.pause(); return; }
+    reel.classList.remove('is-paused');
+    reel.querySelector('.reel-status').hidden = true;
+    soundLabels();
   }
   async function play(reel) {
     const video = reel.querySelector('video');
     if (!video.src) video.src = video.dataset.src;
     video.muted = muted;
+    delete video.dataset.autoplayMuted;
     try {
       await video.play();
-      // A slow play request must never revive a reel that has already left the screen.
-      if (reels[active] !== reel || document.hidden || manuallyPaused) video.pause();
-      else { reel.classList.remove('is-paused'); reel.querySelector('.reel-status').hidden = true; }
+      showPlaying(reel);
     } catch (error) {
-      reel.classList.add('is-paused');
-      if (error.name === 'NotAllowedError' && reels[active] === reel) {
-        const status = reel.querySelector('.reel-status');
-        status.textContent = t('点一下画面，有声播放', 'Tap the video to play with sound');
-        status.hidden = false;
-        status.style.pointerEvents = 'none';
+      if (reels[active] !== reel || document.hidden || manuallyPaused) return;
+      // Browsers may reject sound before a gesture. Keep the picture playing automatically.
+      if (error.name === 'NotAllowedError' && !muted) {
+        video.muted = true;
+        video.dataset.autoplayMuted = '1';
+        try { await video.play(); showPlaying(reel); return; } catch {}
       }
+      reel.classList.add('is-paused');
+      const status = reel.querySelector('.reel-status');
+      status.textContent = t('轻点画面继续播放', 'Tap the video to continue playing');
+      status.hidden = false;
+      status.style.pointerEvents = 'none';
+      soundLabels();
     }
   }
   function activate(index) {
     if (index === active || !reels[index]) return;
-    active = index; manuallyPaused = motion;
+    active = index; manuallyPaused = false;
     reels.forEach((reel, i) => {
       const video = reel.querySelector('video');
       if (i !== index) {
@@ -78,6 +91,7 @@
     const slider = reel.querySelector('input');
     const status = reel.querySelector('.reel-status');
     reel.querySelector('.reel-toggle').addEventListener('click', () => {
+      if (video.dataset.autoplayMuted) { manuallyPaused = false; muted = false; play(reel); return; }
       if (video.paused) { manuallyPaused = false; play(reel); }
       else { manuallyPaused = true; video.pause(); }
     });
@@ -93,7 +107,7 @@
     video.addEventListener('timeupdate', () => { if (Number.isFinite(video.duration) && video.duration > 0) slider.value = String(video.currentTime / video.duration * 100); });
     slider.addEventListener('input', () => { if (Number.isFinite(video.duration)) video.currentTime = video.duration * Number(slider.value) / 100; });
     reel.querySelector('.reel-mute').addEventListener('click', () => {
-      muted = !muted;
+      muted = !video.muted;
       reels.forEach(r => r.querySelector('video').muted = muted);
       soundLabels();
       if (!manuallyPaused) play(reel);

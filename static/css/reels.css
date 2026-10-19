@@ -23,3 +23,10 @@ html:has(.reels-page){background:#080808;overscroll-behavior:none}
 @media(prefers-reduced-motion:reduce){.reel-play,.reels-hint{transition:none}}
 
 .reels-feed:fullscreen{inset:0;width:100%;height:100%;transform:none;border-radius:0}.reels-feed:fullscreen .reel-video{object-fit:contain}
+
+/* Reserve the upper stage for wide films so lower captions never cover the picture. */
+.reel:not(.reel-portrait) .reel-video{top:calc(96px + env(safe-area-inset-top));bottom:auto;height:calc(100% - 430px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:120px;object-position:center}
+.reel-actions .video-like:not(.is-liked)>svg{fill:none;stroke:#fff}
+.reel-actions .video-like.is-liked>svg{fill:#ef4663;stroke:#ef4663}
+.reels-feed:fullscreen .reel-video{top:0;bottom:0;height:100%;min-height:0}
+@media(max-height:650px){.reel-copy h2{font-size:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.reel-copy p{-webkit-line-clamp:1}.reel:not(.reel-portrait) .reel-video{top:80px;height:calc(100% - 350px)}}

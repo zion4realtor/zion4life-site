@@ -789,6 +789,9 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>ã
   likeButtons.forEach(function(button) {
     const state = { confirmed:258,queued:0,batch:null,sending:false,timer:null,hasTapped:false };
     applause.set(button,state);
+    const likedKey = 'yg-video-liked:' + button.dataset.videoLike;
+    try { button.classList.toggle('is-liked', localStorage.getItem(likedKey) === '1'); } catch {}
+
     const render = () => paintLike(button,state.confirmed+state.queued+(state.batch?.amount || 0));
     const flush = async function() {
       if(state.sending || (!state.batch && !state.queued)) return;
@@ -814,6 +817,8 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>ã
       heart.style.setProperty('--heart-turn',(Math.random()*30-15)+'deg');
       const old=button.querySelectorAll('.like-float');if(old.length>=12)old[0].remove();
       button.appendChild(heart);setTimeout(()=>heart.remove(),1100);
+      button.classList.add('is-liked');
+      try { localStorage.setItem(likedKey, '1'); } catch {}
       state.hasTapped=true;state.queued++;render();
       button.classList.remove('is-cheering');requestAnimationFrame(()=>button.classList.add('is-cheering'));
       setTimeout(()=>button.classList.remove('is-cheering'),300);

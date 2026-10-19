@@ -56,4 +56,6 @@ test('every video entry opens the selected film in the same horizontal feed',()=
  const js=fs.readFileSync('static/js/reels.js','utf8');
  assert.ok(js.includes('muted = false'));
  assert.ok(js.includes("error.name === 'NotAllowedError'"));
+ assert.ok(js.includes("video.dataset.autoplayMuted = '1'"));
+ assert.ok(js.includes("active = index; manuallyPaused = false"));
 });
