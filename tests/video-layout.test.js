@@ -31,8 +31,8 @@ test('portrait reactions follow the complete stage, and video library opens an i
   const h=fs.readFileSync(`dist/${pre}t/video/index.html`,'utf8');
   assert.ok(h.includes('data-reels'));
   assert.equal((h.match(/data-reel="/g)||[]).length,10);
-  assert.ok(h.includes('playsinline loop'));
-  assert.ok(!h.includes('playsinline loop muted'));
+  assert.ok(h.includes('playsinline aria-label='));
+  assert.ok(!h.includes('playsinline loop'));
   assert.ok(h.includes('/js/reels.js?v='));
   assert.ok(!h.includes('data-tag-tools="video"'));
  }
@@ -46,7 +46,7 @@ test('every video entry opens the selected film in the same horizontal feed',()=
   assert.equal(h.match(/data-reel="([^"]+)"/)[1],film.slug);
   assert.equal((h.match(/data-reel="/g)||[]).length,films.length);
   assert.ok(h.includes(`/v/${film.slug}/details/#reel-comments`));
-  assert.ok(!h.includes('playsinline loop muted'));
+  assert.ok(!h.includes('playsinline loop'));
   const detail=fs.readFileSync(`dist/${pre}v/${film.slug}/details/index.html`,'utf8');
   assert.ok(detail.includes(`data-talk="v:${film.slug}"`));
  }

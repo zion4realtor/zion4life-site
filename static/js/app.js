@@ -825,6 +825,19 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>ã
       if(!state.sending) { clearTimeout(state.timer);state.timer=setTimeout(flush,160); }
     });
   });
+  if (films.length) {
+    const grid = films[0].parentElement;
+    import(grid.dataset.rotationSrc).then(({ rotateVideos }) => {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem('yg-home-video-rotation-v1') || '{}') || {}; } catch {}
+      const result = rotateVideos(films.map(el => ({slug:el.dataset.featureVideo,published:el.dataset.published})), saved);
+      const rank = new Map(result.slugs.map((slug,i) => [slug,i]));
+      films.sort((a,b) => (rank.get(a.dataset.featureVideo) ?? 999) - (rank.get(b.dataset.featureVideo) ?? 999)).forEach(el => {
+        el.hidden = !rank.has(el.dataset.featureVideo); grid.appendChild(el);
+      });
+      try { localStorage.setItem('yg-home-video-rotation-v1', JSON.stringify(result.state)); } catch {}
+    }).catch(() => {});
+  }
   if(likeButtons.length || films.length) {
     api('/api/video-likes').then(function(r) {
       if(!r.ok) return;
@@ -834,10 +847,7 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>ã
         if(key.startsWith('x:')) api('/api/video-likes/'+encodeURIComponent(key)).then(s=>{if(s.ok)update(s)});else update(r.stats[key]);
       });
       $$('[data-feature-likes]').forEach(el=>{const s=r.stats[el.dataset.featureLikes];if(s)el.textContent='â™¡ '+likeCount(s.count)});
-      if(r.order && films.length) {
-        const grid=films[0].parentElement,rank=new Map(r.order.map((slug,i)=>[slug,i]));
-        films.sort((a,b)=>(rank.get(a.dataset.featureVideo)??999)-(rank.get(b.dataset.featureVideo)??999)).forEach((el,i)=>{el.hidden=i>=4;grid.appendChild(el)});
-      }
+
     });
   }
 })();

@@ -95,6 +95,12 @@
       if (video.paused) { manuallyPaused = false; play(reel); }
       else { manuallyPaused = true; video.pause(); }
     });
+    video.addEventListener('ended', () => {
+      if (reels[active] !== reel || document.hidden || reels.length < 2) return;
+      const next = (active + 1) % reels.length;
+      reels[next].scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'start' });
+      activate(next);
+    });
     video.addEventListener('pause', () => reel.classList.add('is-paused'));
     video.addEventListener('play', () => {
       reel.classList.remove('is-paused');
