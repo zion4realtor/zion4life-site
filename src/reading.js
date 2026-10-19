@@ -62,7 +62,7 @@ async function chineseAudio(env,date,testament){
   const data=await readingData(env,date),source=data?.[testament]?.audioUrl;
   if(!source)throw new Error('Chinese audio unavailable');
   const target=new URL(source);
-  if(!['dropbox.com','www.dropbox.com'].includes(target.hostname)||!/^\\/s\\//.test(target.pathname))throw new Error('Invalid audio source');
+  if(!['dropbox.com','www.dropbox.com'].includes(target.hostname)||!/^\/s\//.test(target.pathname))throw new Error('Invalid audio source');
   target.searchParams.set('raw','1');
   const response=await fetch(target,{redirect:'follow',signal:AbortSignal.timeout(45000)});
   if(!response.ok)throw new Error('Audio source '+response.status);
@@ -79,7 +79,7 @@ async function chineseAudioResponse(request,env,date,testament){
  try{
   planDay(date);
   const response=await chineseAudio(env,date,testament);
-  const bytes=new Uint8Array(await response.arrayBuffer()),range=request.headers.get('range')?.match(/^bytes=(\\d+)-(\\d*)$/);
+  const bytes=new Uint8Array(await response.arrayBuffer()),range=request.headers.get('range')?.match(/^bytes=(\d+)-(\d*)$/);
   const headers={'Content-Type':'audio/mpeg','Accept-Ranges':'bytes','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'};
   if(range){const start=+range[1],end=Math.min(range[2]?+range[2]:bytes.length-1,bytes.length-1);if(start>end)return new Response(null,{status:416,headers:{'Content-Range':'bytes */'+bytes.length}});return new Response(bytes.slice(start,end+1),{status:206,headers:{...headers,'Content-Length':String(end-start+1),'Content-Range':'bytes '+start+'-'+end+'/'+bytes.length}})}
   return new Response(bytes,{headers:{...headers,'Content-Length':String(bytes.length)}});
