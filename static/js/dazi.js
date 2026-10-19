@@ -10,6 +10,11 @@
   if (!page) return;
   const cfgEl = $('#dazi-config');
   const CFG = cfgEl ? JSON.parse(cfgEl.textContent) : { kinds: {}, venues: {} };
+  const FILE_MIME_BY_EXTENSION = {
+    pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', heic: 'image/heic', heif: 'image/heif', avif: 'image/avif',
+    mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', ogg: 'audio/ogg', opus: 'audio/opus', flac: 'audio/flac',
+    mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v', webm: 'video/webm', '3gp': 'video/3gpp', ogv: 'video/ogg', mkv: 'video/x-matroska',
+  };
   // the kinds of 搭子 come from src/kinds.js through the page's config
   const tintOf = (k) => (CFG.kinds[k] ? `var(--t-${CFG.kinds[k].tint})` : 'var(--t-aqua)');
   const fmtWeek = new Intl.DateTimeFormat(EN ? 'en-US' : 'zh-CN', { weekday: 'short' });
@@ -660,8 +665,8 @@ ${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.tota
       const r = data;
         const owner = !!r.progress;
         const files = r.files || [];
-        const icon = (f) => (f.type === 'application/pdf' ? 'PDF' : '🖼');
-        body.innerHTML = `${owner ? `<form class="file-up" data-up><label class="btn btn-water btn-sm"><input type="file" accept="application/pdf,image/*" multiple hidden data-file>${t('放资料（PDF 或图片）', 'Add a PDF or picture')}</label><span class="hint">${t('每个文件最多 20MB。组里的人都能打开、下载。', 'Up to 20 MB each. Everyone in the group can open and download them.')}</span><p class="hint" data-up-msg></p></form>` : ''}
+        const icon = (f) => (f.type === 'application/pdf' ? 'PDF' : f.type.startsWith('audio/') ? '♫' : f.type.startsWith('video/') ? '▶' : '🖼');
+        body.innerHTML = `${owner ? `<form class="file-up" data-up><label class="btn btn-water btn-sm"><input type="file" accept="application/pdf,image/*,audio/*,video/*" multiple hidden data-file>${t('放资料（PDF、图片、音频或视频）', 'Add a PDF, picture, audio, or video')}</label><span class="hint">${t('每个文件最多 20MB。组里的人都能打开、下载。', 'Up to 20 MB each. Everyone in the group can open and download them.')}</span><p class="hint" data-up-msg></p></form>` : ''}
 ${files.length ? `<ul class="files">${files.map((f) => `<li>${/^image\/(jpeg|png|webp|gif)$/.test(f.type) ? `<a class="file-thumb" href="/api/dazi/${g.id}/files/${f.id}" target="_blank" rel="noopener"><img src="/api/dazi/${g.id}/files/${f.id}" alt="" loading="lazy"></a>` : `<span class="file-ic">${icon(f)}</span>`}<span class="file-name"><a href="/api/dazi/${g.id}/files/${f.id}" target="_blank" rel="noopener">${esc(f.name)}</a><small>${esc(sizeText(f.size))} · ${esc(ago(f.created))}</small></span><a class="link-btn" href="/api/dazi/${g.id}/files/${f.id}?dl=1">${t('下载', 'Download')}</a>${owner ? `<button type="button" class="link-btn danger" data-del-file="${f.id}" data-name="${esc(f.name)}">${t('删除', 'Remove')}</button>` : ''}</li>`).join('')}</ul>` : `<p class="muted">${owner ? t('还没有资料。比如晨兴圣言的 PDF、讲义的照片，放在这里，组里每个人都收得到。', 'No files yet. Put the Morning Revival PDF or photos of handouts here and everyone in the group gets them.') : t('发起人还没有放资料。', 'The initiator has not added any files yet.')}</p>`}`;
         const up = $('[data-file]', body);
         if (up) {
@@ -670,7 +675,8 @@ ${files.length ? `<ul class="files">${files.map((f) => `<li>${/^image\/(jpeg|png
             for (const file of up.files) {
               if (file.size > 20000000) { toast(t(`${file.name} 太大了，最多 20MB`, `${file.name} is too big (20 MB at most)`)); continue; }
               msgEl.textContent = t(`正在上传 ${file.name}……`, `Uploading ${file.name}…`);
-              const res = await fetch(`/api/dazi/${g.id}/files?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Lang': EN ? 'en' : 'zh' }, body: file }).then((x) => x.json()).catch(() => ({ ok: false, error: t('上传没有成功，再试一次', 'The upload failed. Try again.') }));
+              const mime = file.type || FILE_MIME_BY_EXTENSION[file.name.split('.').pop().toLowerCase()] || 'application/octet-stream';
+              const res = await fetch(`/api/dazi/${g.id}/files?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'Content-Type': mime, 'X-Lang': EN ? 'en' : 'zh' }, body: file }).then((x) => x.json()).catch(() => ({ ok: false, error: t('上传没有成功，再试一次', 'The upload failed. Try again.') }));
               if (!res.ok) toast(res.error);
             }
             msgEl.textContent = '';

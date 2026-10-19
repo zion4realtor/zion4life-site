@@ -11,3 +11,4 @@
 
 /* Keep the Bible reading footer close to the reading card. */
 .reading[data-reading-page]+.foot{padding-top:8px}
+.reading-subscribe{margin:22px 0;padding:16px 18px;border:1px solid #dbe8df;border-radius:16px;background:linear-gradient(115deg,#f3f8ed,#f0f7f6)}.reading-subscribe p{margin:0 0 10px;color:#315b4c;font-weight:650}.reading-subscribe>div{display:flex;flex-wrap:wrap;gap:8px}.reading-subscribe small{display:block;margin-top:10px;color:#71847a;line-height:1.5}.reading-subscribe .btn[aria-pressed=true]{background:#e0efe3;color:#315f4a;border-color:#bdd7c2}

@@ -51,7 +51,41 @@ export async function prepareReadings(env,now=Date.now()) {
  for(const date of dates){let d=await readingData(env,date);if(!d&&prepared<1){if(inflight.has(date))continue;const attempt=await readBlob(db,`reading:attempt:${date}`);if(attempt&&now-attempt.at<10*60000)continue;inflight.set(date,true);await db.put(`reading:attempt:${date}`,JSON.stringify({at:now}));try{d=await prepare(env,date);prepared++}catch(e){console.error('[reading prepare]',date,e.message)}finally{inflight.delete(date)}}if(!d)continue;for(const t of ['ot','nt']){if(audios>=8)break;if(d[t]?.englishAudio?.status==='ready'&&d[t].englishAudio.scope==='full-passage'&&d[t].englishAudio.translation==='WEB')continue;try{const result=await ensureWebAudio(env,d,t,8-audios);audios+=result.used;await db.put(key(date),JSON.stringify(d));}catch(e){console.error('[reading WEB]',date,t,e.message)}}}
  return {prepared,audios};
 }
-export async function readingApi(request,env,url){if(url.pathname==='/api/reading/today.json'){const now=Date.now(),date=publicationDate(now);return json({date,planDay:planDay(date),timezone:'Asia/Shanghai',serverTime:new Date(now).toISOString()})}let m;if((m=url.pathname.match(/^\/api\/reading\/(\d{4}-\d{2}-\d{2})\/audio\/(ot|nt)\.mp3$/))){let d;try{d=await readingData(env,m[1])}catch{return json({error:'Invalid date'},400)}const a=d?.[m[2]]?.englishAudio;if(a?.status!=='ready')return json({error:'Recording pending'},404);const blob=await store(env).get(a.scope==='full-passage'&&a.translation==='WEB'?`reading:web:audio:${a.hash}`:`reading:audio:${m[1]}:${m[2]}:${a.hash}`);if(!blob)return json({error:'Recording pending'},404);const bytes=new Uint8Array(await blob.arrayBuffer()),range=request.headers.get('range')?.match(/^bytes=(\d+)-(\d*)$/),headers={'Content-Type':'audio/mpeg','Accept-Ranges':'bytes','Cache-Control':'public, max-age=3600'};if(range){const start=+range[1],end=Math.min(range[2]?+range[2]:bytes.length-1,bytes.length-1);if(start>end)return new Response(null,{status:416,headers:{'Content-Range':`bytes */${bytes.length}`}});return new Response(bytes.slice(start,end+1),{status:206,headers:{...headers,'Content-Range':`bytes ${start}-${end}/${bytes.length}`}})}return new Response(bytes,{headers})}
+const chineseAudioInflight=new Map();
+async function chineseAudio(env,date,testament){
+ const db=store(env),key='reading:zh:audio:'+date+':'+testament;
+ const cached=await db.get(key);
+ if(cached)return cached;
+ const token=date+':'+testament;
+ if(chineseAudioInflight.has(token))return chineseAudioInflight.get(token);
+ const task=(async()=>{
+  const data=await readingData(env,date),source=data?.[testament]?.audioUrl;
+  if(!source)throw new Error('Chinese audio unavailable');
+  const target=new URL(source);
+  if(!['dropbox.com','www.dropbox.com'].includes(target.hostname)||!/^\/s\//.test(target.pathname))throw new Error('Invalid audio source');
+  target.searchParams.set('raw','1');
+  const response=await fetch(target,{redirect:'follow',signal:AbortSignal.timeout(45000)});
+  if(!response.ok)throw new Error('Audio source '+response.status);
+  const length=Number(response.headers.get('content-length')||0);
+  if(length>25000000)throw new Error('Audio exceeds 25 MB');
+  const bytes=new Uint8Array(await response.arrayBuffer());
+  if(!bytes.length||bytes.length>25000000)throw new Error('Audio exceeds 25 MB');
+  await db.put(key,bytes);
+  return new Response(bytes,{headers:{'Content-Type':'audio/mpeg','Accept-Ranges':'bytes','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'}});
+ })().finally(()=>chineseAudioInflight.delete(token));
+ chineseAudioInflight.set(token,task);return task;
+}
+async function chineseAudioResponse(request,env,date,testament){
+ try{
+  planDay(date);
+  const response=await chineseAudio(env,date,testament);
+  const bytes=new Uint8Array(await response.arrayBuffer()),range=request.headers.get('range')?.match(/^bytes=(\d+)-(\d*)$/);
+  const headers={'Content-Type':'audio/mpeg','Accept-Ranges':'bytes','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'};
+  if(range){const start=+range[1],end=Math.min(range[2]?+range[2]:bytes.length-1,bytes.length-1);if(start>end)return new Response(null,{status:416,headers:{'Content-Range':'bytes */'+bytes.length}});return new Response(bytes.slice(start,end+1),{status:206,headers:{...headers,'Content-Length':String(end-start+1),'Content-Range':'bytes '+start+'-'+end+'/'+bytes.length}})}
+  return new Response(bytes,{headers:{...headers,'Content-Length':String(bytes.length)}});
+ }catch(e){console.error('[reading Chinese audio]',date,testament,e.message);return json({error:'Chinese audio is temporarily unavailable'},502)}
+}
+export async function readingApi(request,env,url){if(url.pathname==='/api/reading/today.json'){const now=Date.now(),date=publicationDate(now);return json({date,planDay:planDay(date),timezone:'Asia/Shanghai',serverTime:new Date(now).toISOString()})}let m;if((m=url.pathname.match(/^\/api\/reading\/(\d{4}-\d{2}-\d{2})\/zh-audio\/(ot|nt)\.mp3$/)))return chineseAudioResponse(request,env,m[1],m[2]);if((m=url.pathname.match(/^\/api\/reading\/(\d{4}-\d{2}-\d{2})\/audio\/(ot|nt)\.mp3$/))){let d;try{d=await readingData(env,m[1])}catch{return json({error:'Invalid date'},400)}const a=d?.[m[2]]?.englishAudio;if(a?.status!=='ready')return json({error:'Recording pending'},404);const blob=await store(env).get(a.scope==='full-passage'&&a.translation==='WEB'?`reading:web:audio:${a.hash}`:`reading:audio:${m[1]}:${m[2]}:${a.hash}`);if(!blob)return json({error:'Recording pending'},404);const bytes=new Uint8Array(await blob.arrayBuffer()),range=request.headers.get('range')?.match(/^bytes=(\d+)-(\d*)$/),headers={'Content-Type':'audio/mpeg','Accept-Ranges':'bytes','Cache-Control':'public, max-age=3600'};if(range){const start=+range[1],end=Math.min(range[2]?+range[2]:bytes.length-1,bytes.length-1);if(start>end)return new Response(null,{status:416,headers:{'Content-Range':`bytes */${bytes.length}`}});return new Response(bytes.slice(start,end+1),{status:206,headers:{...headers,'Content-Range':`bytes ${start}-${end}/${bytes.length}`}})}return new Response(bytes,{headers})}
  if((m=url.pathname.match(/^\/api\/reading\/(\d{4}-\d{2}-\d{2})\/transcript\/(ot|nt)\.json$/))){try{planDay(m[1]);const r=await store(env).get(`reading:web:transcript:${m[1]}:${m[2]}:v1`);return r?json(await r.json()):json({status:'pending'},404)}catch{return json({error:'Invalid date'},400)}}
  if((m=url.pathname.match(/^\/api\/reading\/(\d{4}-\d{2}-\d{2})\.json$/))){try{const data=await readingData(env,m[1]);if(data)for(const t of ['ot','nt']){data[t].readingUrlZh=chineseReadingURL(data[t]);data[t].webSources=data[t].ranges.map(r=>webURL(data[t],r.chapter));if(data[t]?.englishAudio?.translation==='WEB'&&data[t].englishAudio.status==='ready')continue;const progress=await webAudioProgress(env,m[1],t);if(progress)data[t].englishAudio=progress}return data?json(data):json({status:'pending',date:m[1]},404)}catch{return json({error:'Invalid date'},400)}}
  if((m=url.pathname.match(/^\/api\/reading\/calendar\/(\d{4})-(\d{2})\.json$/))){const y=+m[1],month=+m[2];if(y<2026||y>2100||month<1||month>12)return json({error:'Invalid month'},400);const index=(await readBlob(store(env),'reading:index'))||[];const seedResponse=await env.ASSETS.fetch(new Request(`${ORIGIN}/data/reading-index.json`));const seeds=seedResponse.ok?await seedResponse.json():['2026-10-17'];const dates=[...new Set([...seeds,...index])].filter(date=>date.startsWith(`${m[1]}-${m[2]}-`));return json({dates})}return json({error:'Not found'},404)}
