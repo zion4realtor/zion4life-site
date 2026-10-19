@@ -395,7 +395,7 @@ function reelsPage(lang, startSlug = '') {
         title: startSlug ? films[0][lang].title : (lang === 'zh' ? '视频' : 'Videos'), tab: 'home',
         styles: [`/css/reels.css?v=${ver('css/reels.css')}`],
         scripts: [`/js/reels.js?v=${ver('js/reels.js')}`],
-        body: `<div class="reels-top"><a href="${U(lang, '/')}" aria-label="${text('返回首页','Back to home')}">‹</a><h1>${text('视频','Videos')}<small>${text('在光里，看见生活','Life in the light')}</small></h1><a class="reels-language" href="${U(lang === 'zh' ? 'en' : 'zh', startSlug ? `/v/${startSlug}/` : '/t/video/')}">${text('EN','中')}</a></div>
+        body: `<div class="reels-top"><a href="${U(lang, '/')}" aria-label="${text('返回首页','Back to home')}">‹</a><h1>${text('视频','Videos')}</h1><nav class="reels-top-arrows" aria-label="${text('左右切换视频','Switch videos left or right')}"><button type="button" data-reel-step="-1" aria-label="${text('上一条视频','Previous video')}">←</button><button type="button" data-reel-step="1" aria-label="${text('下一条视频','Next video')}">→</button></nav><a class="reels-language" href="${U(lang === 'zh' ? 'en' : 'zh', startSlug ? `/v/${startSlug}/` : '/t/video/')}">${text('EN','中')}</a></div>
 <section class="reels-feed" data-reels tabindex="0" aria-label="${text('左右滑动切换视频','Swipe left or right to change video')}">${films.map((v,i) => {
         const source = v.sources.find(s => s.type === 'file');
         const c = v[lang];

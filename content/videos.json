@@ -1,5 +1,62 @@
 [
   {
+    "slug": "southeast-youth-singing",
+    "minutes": 1,
+    "seconds": 35.57,
+    "date": "2026-10-19",
+    "publishedAt": "2026-10-19T09:47:21Z",
+    "tags": [
+      "songs",
+      "students",
+      "stories",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "portrait",
+    "captionOptions": [],
+    "defaultCaption": "off",
+    "shortKicker": {
+      "zh": "美国东南大区 · 青少年唱诗",
+      "en": "SOUTHEASTERN U.S. · YOUNG PEOPLE SINGING"
+    },
+    "byline": {
+      "zh": "美国东南大区 · 青少年唱诗",
+      "en": "Southeastern U.S. · Young people singing"
+    },
+    "featureLabel": {
+      "zh": "美国东南大区 · 青少年唱诗",
+      "en": "SOUTHEASTERN U.S. · YOUNG PEOPLE"
+    },
+    "featureAction": {
+      "zh": "一起听听",
+      "en": "Listen together"
+    },
+    "zh": {
+      "title": "美国东南大区青少年聚在一起唱诗歌，你知道歌名吗？",
+      "summary": "美国东南大区的青少年聚在一起唱诗。你知道他们唱的是哪一首吗？"
+    },
+    "en": {
+      "title": "Young People from the Southeastern U.S. Sing Together—Do You Know the Hymn?",
+      "summary": "Young people from the southeastern United States gather to sing a hymn. Can you name it?"
+    },
+    "sourceNote": {
+      "zh": "保留完整竖屏画面和现场原声，不添加字幕。",
+      "en": "Full portrait video with original live audio. No added subtitles."
+    },
+    "poster": "/video/southeast-youth-singing.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/southeast-youth-singing.mp4",
+        "poster": "/video/southeast-youth-singing.jpg",
+        "label": "现场原声 / Original live audio"
+      }
+    ]
+  },
+  {
     "slug": "livingstone-lee-leaflet-2",
     "minutes": 3,
     "seconds": 180.09,

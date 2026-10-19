@@ -68,12 +68,12 @@
     document.title = reels[index].getAttribute('aria-label') + (en ? ' | Light' : '｜有光');
     document.querySelector('.reels-language').href = `${en ? '' : '/en'}/v/${slug}/`;
     count.textContent = `${index + 1} / ${reels.length}`;
-    steps.forEach(b => b.disabled = !reels[index + Number(b.dataset.reelStep)]);
+    steps.forEach(b => b.disabled = reels.length < 2);
     if (index > 0) hint.classList.add('is-hidden');
     if (!document.hidden && !manuallyPaused) play(reels[index]);
   }
   function step(delta) {
-    const next = Math.max(0, Math.min(reels.length - 1, active + delta));
+    const next = (active + delta + reels.length) % reels.length;
     reels[next]?.scrollIntoView({ behavior: motion ? 'instant' : 'smooth', block: 'nearest', inline: 'start' });
   }
   steps.forEach(b => b.addEventListener('click', () => step(Number(b.dataset.reelStep))));

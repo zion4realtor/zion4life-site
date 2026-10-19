@@ -30,7 +30,7 @@ test('portrait reactions follow the complete stage, and video library opens an i
  for(const pre of ['', 'en/']){
   const h=fs.readFileSync(`dist/${pre}t/video/index.html`,'utf8');
   assert.ok(h.includes('data-reels'));
-  assert.equal((h.match(/data-reel="/g)||[]).length,10);
+  assert.equal((h.match(/data-reel="/g)||[]).length,JSON.parse(fs.readFileSync('content/videos.json')).length);
   assert.ok(h.includes('playsinline aria-label='));
   assert.ok(!h.includes('playsinline loop'));
   assert.ok(h.includes('/js/reels.js?v='));
@@ -58,4 +58,19 @@ test('every video entry opens the selected film in the same horizontal feed',()=
  assert.ok(js.includes("error.name === 'NotAllowedError'"));
  assert.ok(js.includes("video.dataset.autoplayMuted = '1'"));
  assert.ok(js.includes("active = index; manuallyPaused = false"));
+});
+
+test('new youth hymn has no subtitles and every feed has top navigation arrows',()=>{
+ const films=JSON.parse(fs.readFileSync('content/videos.json'));
+ const film=films.find(v=>v.slug==='southeast-youth-singing');
+ assert.deepEqual(film.captionOptions,[]);
+ assert.equal(film.defaultCaption,'off');
+ assert.ok(!film.subtitles);
+ for(const pre of ['', 'en/']){
+  const h=fs.readFileSync(`dist/${pre}v/southeast-youth-singing/index.html`,'utf8');
+  assert.ok(h.includes('class="reels-top-arrows"'));
+  assert.equal(h.match(/data-reel="([^"]+)"/)[1],film.slug);
+  const first=h.split('<video class="reel-video"')[1].split('</video>')[0];
+  assert.ok(!first.includes('<track'));
+ }
 });
