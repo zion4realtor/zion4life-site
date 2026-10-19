@@ -411,7 +411,7 @@ function card(it, lang, current) {
 <span class="poster"><img src="${thumb}" alt="" loading="lazy" width="1200" height="675"><span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span></span>
 <span class="card-body" style="display:block"><span class="kind">${L.kind.video}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3><p>${esc(c.summary)}</p><span class="meta">${others}</span></span></a>`;
   }
-  return `<a class="card" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}"><span class="poster card-thumb"><img src="${thumb}" alt="" loading="lazy" width="1200" height="675"></span><span class="card-body" style="display:block">
+  return `<a class="card${dripThumb ? ' card--drip' : ''}" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}"><span class="poster card-thumb"><img src="${thumb}" alt="" loading="lazy" width="1200" height="675"></span><span class="card-body" style="display:block">
 <span class="kind">${L.kind[it.kind]}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
 <span class="meta">${readTime}${others}</span></span></a>`;
 }

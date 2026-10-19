@@ -338,6 +338,8 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .card-body { padding: 14px 16px 16px; }
 .card-thumb { margin:0; }
 .card-thumb img,.poster>img { display:block;width:100%;height:100%;object-fit:cover; }
+.card--drip .card-thumb { aspect-ratio: 3 / 1; }
+.card--drip .card-thumb img { object-position: center top; }
 .kind { display: inline-block; padding: 0 9px; border-radius: 999px; font-size: 12px; line-height: 22px; background: color-mix(in srgb, var(--tint, var(--t-aqua)) 20%, var(--paper)); }
 .card h2, .card h3 { margin: 8px 0 4px; font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1.4; letter-spacing: 0.03em; text-wrap: balance; }
 .card p { margin: 0; color: var(--mute); font-size: 15px; line-height: 1.7; }
