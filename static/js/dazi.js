@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 19096)
-Total output lines: 932
-
 // 搭子: the plaza, starting a group, the group page, one session's reading with bookmarks,
 // notes and 打卡, the initiator's table, the message board and the covenant signature pad.
 // Uses window.YG from app.js.
@@ -472,7 +469,175 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
     const slots = g.attendanceWeek || g.week || [];
     const available = [...new Set(slots.map((ms) => new Date(ms).getDay()))].sort(monFirst);
     const selected = me.attendanceDays == null ? available : [...new Set(slots.filter((ms) => me.attendanceDays.includes(weekdayIn(ms, me.attendanceTz || viewerTz))).map((ms) => new Date(ms).getDay()))];
-    return `${me.attendanceDays?.length && !selected.length ? `<p class="notice">${t('小组时间已调整，你原先的参加日可能已不适用，请重新选择。', 'The group schedule changed. Your previous days may no longer match; please choose again.')}</p>` : ''}<fieldset class="attendance-choice"><legend>${t('我可以参加哪几天', 'Which days can I attend?')}</legend><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" name="attendanceDay" value="${d}"${selected.includes(d) ? ' checked' : ''}${available.includes(d) ? '' : ' disabled'}><span>${EN ? WK[d] : `周${WK[d]}`}</span></label>`).jo…4096 tokens truncated…ws="3" maxlength="1000" placeholder="${t('跟搭子们说点什么', 'Say something to your buddies')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div></form></section>`;
+    return `${me.attendanceDays?.length && !selected.length ? `<p class="notice">${t('小组时间已调整，你原先的参加日可能已不适用，请重新选择。', 'The group schedule changed. Your previous days may no longer match; please choose again.')}</p>` : ''}<fieldset class="attendance-choice"><legend>${t('我可以参加哪几天', 'Which days can I attend?')}</legend><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" name="attendanceDay" value="${d}"${selected.includes(d) ? ' checked' : ''}${available.includes(d) ? '' : ' disabled'}><span>${EN ? WK[d] : `周${WK[d]}`}</span></label>`).join('')}</div><p class="hint">${t('按你手机上的星期选择，至少选一天。灰色日期没有聚会；选满所有可选日，表示跟随小组全部安排。只影响你的提醒和日历，不改变小组读经进度。', 'Choose at least one day in your phone’s time zone. Grey days have no meetings. Selecting all available days follows the full group schedule. This changes your reminders and calendar, not the group’s reading progress.')}</p></fieldset>`;
+  }
+  function attendanceBody(box) {
+    const all = $$('input[name="attendanceDay"]:not(:disabled)', box);
+    const days = all.filter((x) => x.checked).map((x) => Number(x.value));
+    return { attendanceDays: days.length === all.length && days.length ? null : days, attendanceTz: viewerTz };
+  }
+  const phoneDate = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  function covenantSheet(g, invite) {
+    return new Promise((resolve, reject) => {
+      const k = CFG.kinds[g.kind] || {};
+      const box = el(`<div class="sheet-wrap" role="dialog" aria-modal="true"><div class="sheet cov-sheet">
+<button type="button" class="sheet-x" aria-label="${t('关闭', 'Close')}">×</button>
+<h2>${t('立约', 'Make the covenant')}</h2>
+<div class="covenant"><dl class="terms"><dt>${t('搭子', 'Group')}</dt><dd>${esc(g.title)}</dd><dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}</small></dd><dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}</dd><dt>${t('在哪里', 'Where')}</dt><dd>${esc(CFG.venues[g.venue.type] ? CFG.venues[g.venue.type].name : '')}</dd></dl>
+${attendanceFields(g)}
+<p class="cov-line">${EN ? `I will ${esc(k.verb || '')} with my buddies on my selected days, faithfully, week after week.` : `我愿意在我选择的参加日，按约定时间和搭子们一起${esc(k.verb || '')}。`}</p>
+<p class="cov-sign-label">${t('在下面签个名', 'Sign below')}</p><div class="sigpad" data-sigpad><canvas></canvas><button type="button" class="link-btn" data-sig-clear>${t('重写', 'Clear')}</button></div></div>
+<p class="form-error" data-error hidden></p>
+<button type="button" class="btn btn-water btn-block" data-go>${t('签名立约', 'Sign and join')}</button></div></div>`);
+      document.body.appendChild(box);
+      document.documentElement.classList.add('sheet-on');
+      const pad = sigPad($('[data-sigpad]', box));
+      const close = () => { box.remove(); document.documentElement.classList.remove('sheet-on'); };
+      $('.sheet-x', box).addEventListener('click', () => { close(); reject(new Error('closed')); });
+      $('[data-go]', box).addEventListener('click', async () => {
+        const er = $('[data-error]', box);
+        if (attendanceBody(box).attendanceDays?.length === 0) { er.textContent = t('请至少选一个参加日', 'Select at least one day.'); er.hidden = false; return; }
+        if (pad.empty()) { er.textContent = t('请先签个名', 'Please sign first'); er.hidden = false; return; }
+        const btn = $('[data-go]', box);
+        btn.disabled = true;
+        const r = await api(`/api/dazi/${g.id}/join`, { body: { sig: pad.png(), invite, ...attendanceBody(box) } });
+        btn.disabled = false;
+        if (!r.ok) { er.textContent = r.error; er.hidden = false; return; }
+        if (window.ygTrack) window.ygTrack('join_group', { group_id: g.id, kind: g.kind });
+        close();
+        resolve();
+      });
+    });
+  }
+
+  function groupPage(gid) {
+    const root = $('[data-group]');
+    const q = new URLSearchParams(location.search);
+    const invite = q.get('i') || '';
+    let isNew = q.get('new') === '1';
+    if (isNew) history.replaceState(null, '', location.pathname + (invite ? `?i=${invite}` : ''));
+    let tab = ['progress', 'people', 'cal', 'set', 'stats'].includes(q.get('tab')) ? q.get('tab') : 'progress';
+    let data = null;
+
+    const load = async () => {
+      data = await api(`/api/dazi/${gid}${invite ? `?i=${encodeURIComponent(invite)}` : ''}`);
+      render();
+    };
+    function render() {
+      const r = data;
+      if (!r.ok) { root.innerHTML = `<div class="empty"><p>${esc(r.error)}</p><p><a class="btn btn-water" href="${pre}/dazi/">${t('去搭子广场', 'Go to the plaza')}</a></p></div>`; return; }
+      if (r.needInvite) {
+        root.innerHTML = `<div class="g-hero" style="--tint:${tintOf(r.group.kind)}"><h1 class="g-title">${esc(r.group.title)}</h1><p class="muted">${t(`这个搭子不公开，需要用${r.group.owner ? ` ${esc(r.group.owner)} ` : ''}发给你的邀请链接打开。`, `This group is not public. Open it with the invite link${r.group.owner ? ` from ${esc(r.group.owner)}` : ''}.`)}</p></div>`;
+        return;
+      }
+      const g = r.group;
+      document.title = `${g.title}｜${EN ? 'Light' : '有光'}`;
+      const k = CFG.kinds[g.kind] || {};
+      const member = !!(r.me && r.me.role);
+      const owner = r.me && r.me.role === 'owner';
+      const nx = g.current || g.next;
+      let h = '';
+      if (isNew && owner) {
+        h += `<div class="notice"><b>${t('搭子建好了。', 'Your group is ready.')}</b> ${t('把邀请链接发给朋友，他们打开、签名，就立约加入了。', 'Send the invite link to friends. They open it, sign, and they are in.')}<p class="btn-row"><button class="btn btn-dawn btn-sm" type="button" data-copy-invite>${t('复制邀请链接', 'Copy invite link')}</button></p></div>`;
+        isNew = false;
+      }
+      h += `<div class="g-hero" style="--tint:${tintOf(g.kind)}">${table(g.kind, seatsOf(g.members), g.max, true)}
+<p class="g-kind"><span class="ki">${k.icon || ''}</span>${esc(k.name || '')}<span class="pill">${g.lang === 'en' ? 'English' : '中文'}</span>${g.join === 'invite' ? `<span class="pill">🔒 ${t('邀请制', 'Invite only')}</span>` : ''}${g.status === 'closed' ? `<span class="pill">${t('已结束', 'Ended')}</span>` : ''}</p>
+<h1 class="g-title">${esc(g.title)}</h1>
+<p class="g-by">${esc(g.owner)} ${t('发起', 'started this')} · ${g.members.length}/${g.max} ${t('人', 'people')}</p>
+${g.intro ? `<p class="g-intro">${esc(g.intro)}</p>` : ''}</div>`;
+      // the covenant
+      const venue = CFG.venues[g.venue.type] || {};
+      h += `<section class="covenant"><h2>${t('搭子的约', 'The covenant')}</h2><dl class="terms">
+<dt>${t('时间', 'When')}</dt><dd>${esc(schedText(g))}<small>${t('按你手机上的时间', 'In your phone’s own time')}${g.first > Date.now() ? t(`，${esc(when(g.first))} 第一次`, `; first time ${esc(when(g.first))}`) : ''}</small></dd>
+${member && r.me.attendanceDays ? `<dt>${t('我参加', 'My days')}</dt><dd>${esc(daysWords(r.me.attendanceDays))}<small>${esc(r.me.attendanceTz || viewerTz)}</small></dd>` : ''}
+<dt>${t('读什么', 'What')}</dt><dd>${esc(g.planText)}${(g.later || []).map((l) => `<small>${t(`第 ${l.from} 次起：`, `From time ${l.from}: `)}${esc(l.text)}</small>`).join('')}</dd>
+<dt>${t('在哪里', 'Where')}</dt><dd><span class="venue">${venue.icon || ''}${esc(venue.name || '')}</span>${member && g.venue.info ? `<small class="venue-info">${venueText(g.venue.info)}</small>` : ''}</dd>
+${g.done ? `<dt>${t('进度', 'Progress')}</dt><dd>${t(`已经 ${g.done}${g.total ? ` / ${g.total}` : ''} 次`, `${g.done}${g.total ? ` of ${g.total}` : ''} so far`)}</dd>` : ''}
+</dl></section>`;
+      // now / next
+      if (nx && g.status === 'active') {
+        h += `<a class="now-card${g.current ? ' live' : ''}" href="${member ? `${pre}/g/${g.id}/${nx.n}` : '#join'}"><span class="now-h">${g.current ? t(`正在进行 · 第 ${nx.n} 次`, `On now · time ${nx.n}`) : t(`下次 · 第 ${nx.n} 次`, `Next · time ${nx.n}`)}</span>
+<span class="now-when">${esc(when(nx.start))}</span><span class="now-read">${esc(nx.reading.text)}</span>${member ? `<span class="now-go">${t('打开材料', 'Open the reading')} →</span>` : ''}</a>`;
+        if (owner && nx.start <= Date.now() + 2 * 3600000) h += `<p class="btn-row"><button type="button" class="btn btn-line" data-remind-now="${nx.n}">${t('立即提醒组员', 'Remind members now')}</button></p><p class="hint" data-remind-result aria-live="polite"></p>`;
+      } else if (g.finished) {
+        h += `<div class="notice">${t('这个计划已经读完了，感谢主。', 'This plan is finished. Thank the Lord.')}</div>`;
+      }
+      // joining
+      if (!member) {
+        h += '<section id="join" class="join-box">';
+        if (r.canJoin && r.inviteOk) {
+          h += `<p class="join-lead">${t(`${esc(g.owner)} 邀请你一起${esc(k.verb || '')}`, `${esc(g.owner)} invites you to ${esc(k.verb || '')} together`)}</p><p class="btn-row"><button class="btn btn-water" type="button" data-join>${t('接受邀请，立约', 'Accept and sign')}</button><button class="btn btn-line" type="button" data-join-days>${t('选择参加日再加入', 'Choose attendance days')}</button><button class="btn btn-line" type="button" data-decline>${t('婉拒', 'Decline')}</button></p>`;
+        } else if (r.canJoin) {
+          h += `<p class="btn-row"><button class="btn btn-water btn-block" type="button" data-join>${t('立约加入', 'Sign and join')}</button><button class="btn btn-line btn-block" type="button" data-join-days>${t('只参加部分日期', 'Attend selected days')}</button></p><p class="hint">${t('加入要先登录（不用密码），然后在约上签个名。', 'Sign in (no password) and sign the covenant to join.')}</p>`;
+        } else if (g.status !== 'active') {
+          h += `<p class="muted">${t('这个搭子已经结束了。', 'This group has ended.')}</p>`;
+        } else if (g.members.length >= g.max) {
+          h += `<p class="muted">${t('人已经满了。', 'The group is full.')}</p>`;
+        } else {
+          h += `<p class="muted">${t('这个搭子只接受邀请。想加入的话，可以请发起人发邀请链接给你。', 'This group is by invitation only. Ask the initiator for an invite link.')}</p>`;
+        }
+        if (r.me && r.me.status === 'declined') h += `<p class="hint">${t('你之前婉拒过这个邀请，现在也可以接受。', 'You declined before; you can still accept now.')}</p>`;
+        h += '</section>';
+        h += `<section class="more"><h2 class="sec-h">${t('搭子们', 'The buddies')}</h2>${membersHtml(g, false)}</section>`;
+      } else {
+        const tabs = [['progress', t('进度', 'Progress')], ['people', t('搭子们', 'Buddies')], ['cal', t('日历', 'Calendar')], ['set', t('设置', 'Settings')]];
+        if (owner) tabs.splice(1, 0, ['stats', t('统计', 'Stats')]);
+        h += `<div class="seg-tabs" role="tablist">${tabs.map(([key, label]) => `<button type="button" role="tab" data-tab="${key}" aria-selected="${tab === key}">${esc(label)}</button>`).join('')}</div><div data-tab-body></div>
+<section class="group-files" aria-labelledby="group-files-title"><h2 id="group-files-title">${t('小组资料', 'Group files')}</h2><div data-inline-files aria-live="polite"></div></section>
+<section class="group-board" aria-labelledby="group-board-title"><header class="group-board-heading"><h2 id="group-board-title">${t('大家的留言', 'Group conversation')}</h2><span class="group-board-count" data-board-count></span></header><p class="group-board-intro">${t('相聚前后，在这里分享、交流。只有本组搭子可见。', 'Keep the conversation going between meetings. Only this group’s members can see these messages.')}</p><div data-inline-board aria-live="polite"></div></section>`;
+      }
+      root.innerHTML = h;
+      bind(g);
+      if (member) { showTab(g); showFiles(g); showBoard(g); }
+    }
+    function membersHtml(g, member) {
+      return `<ul class="people">${g.members.map((m) => `<li><span class="seat static" style="--seat:${COLORS[m.c]}">${esc([...m.name][0] || '·')}</span><span class="pname"><b>${esc(m.name)}</b>${m.role === 'owner' ? `<em>${t('发起人', 'Initiator')}</em>` : ''}${m.me ? `<em>${t('我', 'Me')}</em>` : ''}${m.ids && m.ids.length ? `<small>${m.ids.map((x) => esc(Y.idName(x))).join(' · ')}</small>` : ''}</span>${member && m.sig ? `<img class="sig" src="${m.sig}" alt="${t('签名', 'Signature')}">` : ''}${member && data.me.role === 'owner' && m.role !== 'owner' ? `<button type="button" class="link-btn danger" data-remove="${esc(m.key)}" data-name="${esc(m.name)}">${t('移出', 'Remove')}</button>` : ''}</li>`).join('')}</ul>`;
+    }
+    function bind(g) {
+      const remind = $('[data-remind-now]', root);
+      if (remind) remind.addEventListener('click', async () => {
+        remind.disabled = true;
+        const result = $('[data-remind-result]', root);
+        result.textContent = t('正在发送提醒……', 'Sending reminders…');
+        const r = await api(`/api/dazi/${g.id}/remind`, { body: { n: Number(remind.dataset.remindNow) } });
+        if (!r.ok) { result.textContent = r.error; remind.disabled = false; return; }
+        result.textContent = r.alreadySent ? t('这次已手动提醒过，未重复发送。', 'This meeting has already been manually reminded; no duplicates sent.') : t(`已提交发送 ${r.sent} 封提醒${r.failed ? `，${r.failed} 封未成功` : ''}。`, `${r.sent} reminder emails accepted${r.failed ? `; ${r.failed} failed` : ''}.`);
+      });
+
+      $$('[data-copy-invite]', root).forEach((b) => b.addEventListener('click', () => copy(data.invite, t('邀请链接已复制，发给朋友就可以了', 'Invite link copied. Send it to a friend.'))));
+      $$('[data-join], [data-join-days]', root).forEach((j) => {
+        j.addEventListener('click', async () => {
+          try { await requireLogin(t('立约前先登录一下（不用密码）。', 'Sign in first (no password).')); } catch (x) { return; }
+          try { await covenantSheet(g, invite); } catch (x) { return; }
+          toast(t('立约好了，欢迎你！', 'You are in. Welcome!'));
+          load();
+        });
+      });
+      const d = $('[data-decline]', root);
+      if (d) {
+        d.addEventListener('click', async () => {
+          if (!confirm(t('确定婉拒这个邀请吗？', 'Decline this invitation?'))) return;
+          const r = await api(`/api/dazi/${g.id}/decline`, { body: { invite } });
+          if (r.ok) { toast(t('已经告诉发起人了', 'The initiator has been told')); root.querySelector('#join').innerHTML = `<p class="muted">${t('你婉拒了这个邀请。改变主意的话，再打开这个链接就能接受。', 'You declined. Change your mind? Open this link again to accept.')}</p>`; } else toast(r.error);
+        });
+      }
+      $$('[data-tab]', root).forEach((b) => b.addEventListener('click', () => {
+        tab = b.getAttribute('data-tab');
+        $$('[data-tab]', root).forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+        showTab(g);
+      }));
+    }
+    async function showBoard(g) {
+      const body = $('[data-inline-board]', root);
+      if (!body) return;
+      body.innerHTML = `<p class="muted">${t('正在载入留言……', 'Loading messages…')}</p>`;
+      const draw = async () => {
+          const b = await api(`/api/dazi/${g.id}/board`);
+          if (!body.isConnected) return;
+          if (!b.ok) { body.innerHTML = `<p class="form-error">${esc(b.error)}</p>`; return; }
+          $('[data-board-count]', root).textContent = t(`${b.posts.length} 条留言`, `${b.posts.length} messages`);
+          body.innerHTML = `<div class="talk-list">${b.posts.length ? b.posts.map((p) => `<div class="msg"><p class="msg-h"><span class="seat static sm" style="--seat:${COLORS[p.c]}">${esc([...p.name][0] || '·')}</span><b>${esc(p.name)}</b><time>${esc(ago(p.created))}</time></p>${p.noteN ? `<p class="group-note-source"><a href="${pre}/g/${g.id}/${p.noteN}">${t(`第 ${p.noteN} 次 · 阅读心得`, `Time ${p.noteN} · Reading note`)} →</a></p>` : ''}<p class="msg-b">${esc(p.body).replace(/\n/g, '<br>')}</p>${!p.noteN && (p.mine || b.canDelete) ? `<p class="msg-a"><button type="button" class="link-btn danger" data-del="${p.id}">${t('删除', 'Remove')}</button></p>` : ''}</div>`).join('') : `<p class="muted">${t('还没有人说话。', 'Nothing here yet.')}</p>`}</div><section class="board-compose"><h3>${t('留句话给搭子们', 'Leave a message')}</h3><form class="talk-form" data-board><textarea name="body" rows="3" maxlength="1000" placeholder="${t('跟搭子们说点什么', 'Say something to your buddies')}"></textarea><div class="talk-row"><span></span><button class="btn btn-water btn-sm" type="submit">${t('发送', 'Send')}</button></div></form></section>`;
           const f = $('[data-board]', body);
           f.addEventListener('submit', async (e) => {
             e.preventDefault();
