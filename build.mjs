@@ -357,7 +357,7 @@ ${styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
 <script src="/js/reading.js?v=${ver('js/reading.js')}" defer></script>
 ${p.startsWith('/read/') ? `<link rel="manifest" href="${U(lang, '/read/app.webmanifest')}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${lang === 'zh' ? '吃饭' : 'Daily Bible'}">` : ''}
 </head>
-<body${p === "/t/video/" ? ' class="reels-page"' : ''}>
+<body${(p === "/t/video/" || /^\/v\/[^/]+\/$/.test(p)) ? ' class="reels-page"' : ''}>
 <header class="topbar"><div class="wrap topbar-in">
 <a class="brand" href="${U(lang, '/')}">${LOGO}<span><b>${esc(name)}</b><small>zion4life.faith</small></span></a>
 <nav class="lang" aria-label="Language"><a href="${alt('zh')}" hreflang="zh-CN"${lang === 'zh' ? ' aria-current="true"' : ''} data-lang="zh">中</a><a href="${alt('en')}" hreflang="en"${lang === 'en' ? ' aria-current="true"' : ''} data-lang="en">EN</a></nav>
@@ -384,6 +384,32 @@ function write(urlPath, html) {
 function emit(lang, p, opts) {
   write(U(lang, p), page({ ...opts, lang, path: p }));
   if (!opts.noindex) urls.push(U(lang, p));
+}
+
+function reelsPage(lang, startSlug = '') {
+      const available = videos.filter(v => !v.sample && v.sources.some(s => s.type === 'file'));
+      const start = Math.max(0, available.findIndex(v => v.slug === startSlug));
+      const films = [...available.slice(start), ...available.slice(0, start)];
+      const text = (zh, en) => lang === 'zh' ? zh : en;
+      return {
+        title: startSlug ? films[0][lang].title : (lang === 'zh' ? '视频' : 'Videos'), tab: 'home',
+        styles: [`/css/reels.css?v=${ver('css/reels.css')}`],
+        scripts: [`/js/reels.js?v=${ver('js/reels.js')}`],
+        body: `<div class="reels-top"><a href="${U(lang, '/')}" aria-label="${text('返回首页','Back to home')}">‹</a><h1>${text('视频','Videos')}<small>${text('在光里，看见生活','Life in the light')}</small></h1><a class="reels-language" href="${U(lang === 'zh' ? 'en' : 'zh', startSlug ? `/v/${startSlug}/` : '/t/video/')}">${text('EN','中')}</a></div>
+<section class="reels-feed" data-reels tabindex="0" aria-label="${text('左右滑动切换视频','Swipe left or right to change video')}">${films.map((v,i) => {
+        const source = v.sources.find(s => s.type === 'file');
+        const c = v[lang];
+        const href = U(lang, `/v/${v.slug}/details/`);
+        return `<article class="reel${v.orientation === 'portrait' ? ' reel-portrait' : ''}" data-reel="${v.slug}" aria-label="${esc(c.title)}">
+<img class="reel-backdrop" src="${esc(v.poster || source.poster || '')}" alt="" loading="${i ? 'lazy' : 'eager'}">
+<video class="reel-video" data-src="${esc(source.url)}" poster="${esc(v.poster || source.poster || '')}" preload="none" playsinline loop aria-label="${esc(c.title)}">${(source.subtitles || v.subtitles || []).map(track => `<track kind="subtitles" src="${esc(track.url)}" srclang="${esc(track.lang)}" label="${esc(track.label || track.lang)}"${track.lang === (typeof v.defaultCaption === 'object' ? v.defaultCaption[lang] : (v.defaultCaption || lang)) ? ' default' : ''}>`).join('')}</video>
+<button class="reel-toggle" type="button" aria-label="${text('播放或暂停','Play or pause')}"><span class="reel-play">▶</span></button>
+<div class="reel-copy"><span class="reel-byline">${esc(v.byline?.[lang] || text('有光 · 生命的故事','LIGHT · STORIES OF LIFE'))}</span><h2><a href="${href}">${esc(c.title)}</a></h2><p>${esc(c.summary || '')}</p><a class="reel-details" href="${href}">${text('详情与留言','Details & comments')} ↗</a></div>
+<aside class="reel-actions" aria-label="${text('视频操作','Video actions')}">${videoLike(v.slug,lang,c.title)}<a class="reel-comment" href="${href}#reel-comments" aria-label="${text('查看留言','View comments')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 2V11.5a10 10 0 0 1 20 0Z"/></svg>${text('留言','Comments')}</a><button class="reel-mute" type="button" aria-label="${text('静音','Mute')}"><span>♫</span><small>${text('静音','Mute')}</small></button><button class="reel-fullscreen" type="button" aria-label="${text('全屏','Fullscreen')}">⛶<small>${text('全屏','Fullscreen')}</small></button></aside>
+<label class="reel-timeline"><span class="sr-only">${text('播放进度','Playback position')}</span><input type="range" min="0" max="100" value="0" step="0.1" aria-label="${text('播放进度','Playback position')}"></label>
+<p class="reel-status" role="status" hidden></p><noscript><a class="reel-fallback" href="${href}">${text('打开视频','Open video')}</a></noscript></article>`;
+      }).join('')}</section><div class="reels-step"><button type="button" data-reel-step="-1" aria-label="${text('上一条视频','Previous video')}">←</button><span data-reel-count>1 / ${films.length}</span><button type="button" data-reel-step="1" aria-label="${text('下一条视频','Next video')}">→</button></div><div class="reels-hint">${text('左滑，看下一条','Swipe left for the next video')} ←</div>`,
+      };
 }
 
 // ---------- shared pieces ----------
@@ -567,27 +593,7 @@ ${askBox(lang, true)}`,
   for (const t of TAGS) {
     const list = itemsOf(t.id);
     if (t.id === 'video') {
-      const films = list.filter(v => !v.sample && v.sources.some(s => s.type === 'file'));
-      const text = (zh, en) => lang === 'zh' ? zh : en;
-      emit(lang, '/t/video/', {
-        title: t[lang], tab: 'home',
-        styles: [`/css/reels.css?v=${ver('css/reels.css')}`],
-        scripts: [`/js/reels.js?v=${ver('js/reels.js')}`],
-        body: `<div class="reels-top"><a href="${U(lang, '/')}" aria-label="${text('返回首页','Back to home')}">‹</a><h1>${text('视频','Videos')}<small>${text('在光里，看见生活','Life in the light')}</small></h1><a class="reels-language" href="${U(lang === 'zh' ? 'en' : 'zh', '/t/video/')}">${text('EN','中')}</a></div>
-<section class="reels-feed" data-reels tabindex="0" aria-label="${text('上下滑动切换视频','Swipe up or down to change video')}">${films.map((v,i) => {
-        const source = v.sources.find(s => s.type === 'file');
-        const c = v[lang];
-        const href = U(lang, `/v/${v.slug}/`);
-        return `<article class="reel${v.orientation === 'portrait' ? ' reel-portrait' : ''}" data-reel="${v.slug}" aria-label="${esc(c.title)}">
-<img class="reel-backdrop" src="${esc(v.poster || source.poster || '')}" alt="" loading="${i ? 'lazy' : 'eager'}">
-<video class="reel-video" data-src="${esc(source.url)}" poster="${esc(v.poster || source.poster || '')}" preload="none" playsinline loop muted aria-label="${esc(c.title)}"></video>
-<button class="reel-toggle" type="button" aria-label="${text('播放或暂停','Play or pause')}"><span class="reel-play">▶</span></button>
-<div class="reel-copy"><span class="reel-byline">${esc(v.byline?.[lang] || text('有光 · 生命的故事','LIGHT · STORIES OF LIFE'))}</span><h2><a href="${href}">${esc(c.title)}</a></h2><p>${esc(c.summary || '')}</p><a class="reel-details" href="${href}">${text('详情与留言','Details & comments')} ↗</a></div>
-<aside class="reel-actions" aria-label="${text('视频操作','Video actions')}">${videoLike(v.slug,lang,c.title)}<a class="reel-comment" href="${href}#reel-comments" aria-label="${text('查看留言','View comments')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 2V11.5a10 10 0 0 1 20 0Z"/></svg>${text('留言','Comments')}</a><button class="reel-mute" type="button" aria-label="${text('开启声音','Turn sound on')}"><span>♪</span><small>${text('开启声音','Sound on')}</small></button><button class="reel-fullscreen" type="button" aria-label="${text('全屏','Fullscreen')}">⛶<small>${text('全屏','Fullscreen')}</small></button></aside>
-<label class="reel-timeline"><span class="sr-only">${text('播放进度','Playback position')}</span><input type="range" min="0" max="100" value="0" step="0.1" aria-label="${text('播放进度','Playback position')}"></label>
-<p class="reel-status" role="status" hidden></p><noscript><a class="reel-fallback" href="${href}">${text('打开视频','Open video')}</a></noscript></article>`;
-      }).join('')}</section><div class="reels-step"><button type="button" data-reel-step="-1" aria-label="${text('上一条视频','Previous video')}">↑</button><span data-reel-count>1 / ${films.length}</span><button type="button" data-reel-step="1" aria-label="${text('下一条视频','Next video')}">↓</button></div><div class="reels-hint">${text('上滑，看下一条','Swipe up for the next video')} ↑</div>`,
-      });
+      emit(lang, '/t/video/', reelsPage(lang));
       continue;
     }
     const reads = list.filter((i) => i.kind !== 'video').length;
@@ -689,6 +695,7 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
   // videos
   for (const v of videos) {
     const c = v[lang];
+    emit(lang, `/v/${v.slug}/`, reelsPage(lang, v.slug));
     const sources = v.sources.map((s, i) => ({ ...s, ...(s.type === 'file' ? { subtitles: s.subtitles || v.subtitles || [] } : {}), label: s.label || (lang === 'zh' ? `线路${i + 1}` : `Line ${i + 1}`) }));
     if (v.short || v.spotlight) {
       const group = v.shortGroup ? videos.filter(x => x.shortGroup === v.shortGroup) : [v];
@@ -709,12 +716,12 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
       const hymnLyrics = v.lyrics ? `<section class="hymn-lyrics-panel" aria-label="${lang === 'zh' ? '诗歌歌词' : 'Hymn lyrics'}"><h2>${esc(c.title)}</h2><div class="lyrics-stanza">${v.lyrics[lang].slice(0,1).map(stanza => `<p>${stanza.map(line => esc(line)).join('<br>')}</p>`).join('')}</div><details class="lyrics-more"><summary>${lang === 'zh' ? '展开全部歌词' : 'Show full lyrics'}</summary><div class="lyrics-stanza">${v.lyrics[lang].slice(1).map(stanza => `<p>${stanza.map(line => esc(line)).join('<br>')}</p>`).join('')}</div></details></section>` : '';
       const shortQuotes = v.quotes?.[lang]?.length ? `<blockquote class="short-quotes">${v.quotes[lang].map(q => `<p>${esc(q)}</p>`).join('')}</blockquote>` : '';
       const hymnLinks = v.fullSongUrl ? `<section class="hymn-links" aria-label="${lang === 'zh' ? '完整诗歌' : 'Full hymn'}"><a class="hymn-full" href="${v.fullSongUrl}" target="_blank" rel="noopener noreferrer">${lang === 'zh' ? '想要听整首' : 'Listen to the full hymn'} <span aria-hidden="true">↗</span></a></section>` : '';
-      emit(lang, `/v/${v.slug}/`, { title:c.title, desc:c.summary, tab:'home',
-        body:`${subscribe}<article class="short-watch${v.orientation === 'portrait' ? ' is-portrait' : ''}" data-caption-choice="${defaultCaption}"><div class="short-top"><a href="${U(lang,`/t/${backTag}/`)}">← ${esc(TAG[backTag]?.[lang] || L.back)}</a><span>${esc(shortKicker)}${group.length > 1 ? ` · ${i+1}/${group.length}` : ''}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster || sources[0]?.poster || ''}" alt="" width="540" height="960"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，播放视频' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}${videoSuggestions(v,true)}</div></div>${v.sample ? '' : videoLike(v.slug,lang,c.title)}<div class="short-copy"><div class="short-byline">${esc(byline)}</div><h1>${esc(c.title)}</h1>${v.slug === 'why-am-i-here' ? `<nav class="video-tag-links" aria-label="${lang === 'zh' ? '相关标签' : 'Related topics'}">${v.tags.map(id=>`<a href="${U(lang,`/t/${id}/`)}">${esc(TAG[id][lang])}</a>`).join('')}</nav>` : ''}${captionControls}<p class="short-summary">${esc(c.summary)}</p>${shortQuotes}${hymnLyrics}${hymnLinks}${shareBox(lang,lang === 'zh' ? '想分享这段视频？' : 'Want to share this video?',U(lang,`/v/${v.slug}/`),c.title)}${download}${nextLink}<div class="short-note" role="status" hidden></div></div></article>${videoSuggestions(v)}<section id="reel-comments" class="talk video-talk" data-talk="v:${v.slug}"></section>` });
+      emit(lang, `/v/${v.slug}/details/`, { title:c.title, desc:c.summary, tab:'home',
+        body:`${subscribe}<article class="short-watch${v.orientation === 'portrait' ? ' is-portrait' : ''}" data-caption-choice="${defaultCaption}"><div class="short-top"><a href="${U(lang,`/v/${v.slug}/`)}">← ${esc(TAG[backTag]?.[lang] || L.back)}</a><span>${esc(shortKicker)}${group.length > 1 ? ` · ${i+1}/${group.length}` : ''}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster || sources[0]?.poster || ''}" alt="" width="540" height="960"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，播放视频' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}${videoSuggestions(v,true)}</div></div>${v.sample ? '' : videoLike(v.slug,lang,c.title)}<div class="short-copy"><div class="short-byline">${esc(byline)}</div><h1>${esc(c.title)}</h1>${v.slug === 'why-am-i-here' ? `<nav class="video-tag-links" aria-label="${lang === 'zh' ? '相关标签' : 'Related topics'}">${v.tags.map(id=>`<a href="${U(lang,`/t/${id}/`)}">${esc(TAG[id][lang])}</a>`).join('')}</nav>` : ''}${captionControls}<p class="short-summary">${esc(c.summary)}</p>${shortQuotes}${hymnLyrics}${hymnLinks}${shareBox(lang,lang === 'zh' ? '想分享这段视频？' : 'Want to share this video?',U(lang,`/v/${v.slug}/`),c.title)}${download}${nextLink}<div class="short-note" role="status" hidden></div></div></article>${videoSuggestions(v)}<section id="reel-comments" class="talk video-talk" data-talk="v:${v.slug}"></section>` });
       continue;
     }
     const related = items.filter((x) => !x.tagOnly && x !== v && x.tags.some((t) => v.tags.includes(t))).slice(0, 4);
-    emit(lang, `/v/${v.slug}/`, {
+    emit(lang, `/v/${v.slug}/details/`, {
       title: c.title,
       desc: c.summary || c.title,
       tab: 'home',

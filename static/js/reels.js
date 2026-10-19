@@ -4,7 +4,7 @@
   const reels = [...feed.querySelectorAll('[data-reel]')];
   const en = document.documentElement.lang === 'en';
   const t = (zh, english) => en ? english : zh;
-  let active = -1, muted = true, manuallyPaused = false;
+  let active = -1, muted = false, manuallyPaused = false;
   const steps = [...document.querySelectorAll('[data-reel-step]')];
   const count = document.querySelector('[data-reel-count]');
   const hint = document.querySelector('.reels-hint');
@@ -28,7 +28,15 @@
       // A slow play request must never revive a reel that has already left the screen.
       if (reels[active] !== reel || document.hidden || manuallyPaused) video.pause();
       else { reel.classList.remove('is-paused'); reel.querySelector('.reel-status').hidden = true; }
-    } catch { reel.classList.add('is-paused'); }
+    } catch (error) {
+      reel.classList.add('is-paused');
+      if (error.name === 'NotAllowedError' && reels[active] === reel) {
+        const status = reel.querySelector('.reel-status');
+        status.textContent = t('点一下画面，有声播放', 'Tap the video to play with sound');
+        status.hidden = false;
+        status.style.pointerEvents = 'none';
+      }
+    }
   }
   function activate(index) {
     if (index === active || !reels[index]) return;
@@ -41,6 +49,11 @@
       }
       reel.classList.toggle('is-paused', i === index && manuallyPaused);
     });
+    const slug = reels[index].dataset.reel;
+    const prefix = en ? '/en' : '';
+    history.replaceState(null, '', `${prefix}/v/${slug}/`);
+    document.title = reels[index].getAttribute('aria-label') + (en ? ' | Light' : '｜有光');
+    document.querySelector('.reels-language').href = `${en ? '' : '/en'}/v/${slug}/`;
     count.textContent = `${index + 1} / ${reels.length}`;
     steps.forEach(b => b.disabled = !reels[index + Number(b.dataset.reelStep)]);
     if (index > 0) hint.classList.add('is-hidden');
@@ -48,12 +61,12 @@
   }
   function step(delta) {
     const next = Math.max(0, Math.min(reels.length - 1, active + delta));
-    reels[next]?.scrollIntoView({ behavior: motion ? 'instant' : 'smooth', block: 'start' });
+    reels[next]?.scrollIntoView({ behavior: motion ? 'instant' : 'smooth', block: 'nearest', inline: 'start' });
   }
   steps.forEach(b => b.addEventListener('click', () => step(Number(b.dataset.reelStep))));
   document.addEventListener('keydown', event => {
     if (event.target.matches('input,textarea,select,button,a') || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (['ArrowDown','PageDown','ArrowUp','PageUp'].includes(event.key)) { event.preventDefault(); step(['ArrowDown','PageDown'].includes(event.key) ? 1 : -1); }
+    if (['ArrowRight','PageDown','ArrowLeft','PageUp'].includes(event.key)) { event.preventDefault(); step(['ArrowRight','PageDown'].includes(event.key) ? 1 : -1); }
     if (event.code === 'Space') { event.preventDefault(); reels[active]?.querySelector('.reel-toggle').click(); }
   });
   const observer = new IntersectionObserver(entries => {
@@ -90,7 +103,7 @@
         if (document.fullscreenElement) await document.exitFullscreen();
         else if (feed.requestFullscreen) await feed.requestFullscreen();
         else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
-        else { status.textContent = t('此浏览器暂不支持全屏，请继续上下滑动观看。','Fullscreen is unavailable in this browser. Swipe to keep watching.'); status.hidden = false; }
+        else { status.textContent = t('此浏览器暂不支持全屏，请继续左右滑动观看。','Fullscreen is unavailable in this browser. Swipe left or right to keep watching.'); status.hidden = false; }
       } catch { status.textContent = t('请点击视频后再尝试全屏。','Tap the video, then try fullscreen again.'); status.hidden = false; }
     });
 
@@ -102,5 +115,6 @@
   window.addEventListener('pagehide', () => reels.forEach(r => r.querySelector('video').pause()));
   soundLabels();
   if (reels.length) activate(0);
+  window.addEventListener('pageshow', event => { if (event.persisted && reels[active] && !manuallyPaused) play(reels[active]); });
   setTimeout(() => hint.classList.add('is-hidden'), 6000);
 })();
