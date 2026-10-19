@@ -8,6 +8,7 @@
 import { json, fail, str, randomId, readBody, tr } from './util.js';
 import { currentUser, sameOrigin } from './auth.js';
 import { siteData } from './content.js';
+import { publicationDate, readingData } from './reading.js';
 
 export async function addMsg(db, { scope, title, body = { zh: '', en: '' }, url = '', author = null, now = Date.now() }) {
   return db('msgAdd', { id: randomId(12), scope, title, body, url, author, now });
@@ -40,6 +41,9 @@ export async function handleInbox(request, env, db, url, now, lang) {
 // The first run only records what is there already.
 export async function announce(env, db, url, now = Date.now()) {
   const data = await siteData(env, url);
+  const readDate = publicationDate(now);
+  let reading = null;
+  try { reading = await readingData(env, readDate); } catch { /* a reading may still be preparing */ }
   let days = [];
   try {
     const r = await env.ASSETS.fetch(new Request(new URL('/data/huxi.json', url)));
@@ -47,7 +51,10 @@ export async function announce(env, db, url, now = Date.now()) {
   } catch { /* the site is being deployed */ }
   // a 呼吸 day goes out as soon as it is on the site, whatever its date and wherever people are
   const items = Object.values(data.item || {});
-  const keys = [...items.map((i) => `i:${i.key}`), ...days.map((d) => `h:${d.date}`)];
+  const readingTags = reading?.status === 'ready'
+    ? (reading.tags || []).filter((tag) => data.tag[tag])
+    : [];
+  const keys = [...items.map((i) => `i:${i.key}`), ...days.map((d) => `h:${d.date}`), ...(readingTags.length ? [`r:${readDate}`] : [])];
   if (!keys.length) return { sent: 0 };
   const { fresh } = await db('announce', { keys, now });
   let sent = 0;
@@ -60,13 +67,26 @@ export async function announce(env, db, url, now = Date.now()) {
           title: { zh: `「${name.zh}」有新内容`, en: `New in “${name.en}”` }, body: { zh: it.zh, en: it.en } });
         sent++;
       }
-    } else {
+    } else if (k.startsWith('h:')) {
       const d = days.find((x) => `h:${x.date}` === k);
       const [, m, day] = d.date.split('-').map(Number);
       const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       await addMsg(db, { scope: 'huxi', now, url: `/huxi/${d.date}/`,
         title: { zh: `新的呼吸：${m}月${day}日`, en: `New Breathe: ${MON[m - 1]} ${day}` }, body: { zh: d.zh.title, en: d.en.title } });
       sent++;
+    } else {
+      const [, y, month, day] = k.match(/^r:(\d{4})-(\d{2})-(\d{2})$/) || [];
+      if (!y) continue;
+      const date = `${y}-${month}-${day}`;
+      const zhDate = `${Number(month)}月${Number(day)}日`;
+      const enDate = `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month) - 1]} ${Number(day)}`;
+      for (const tag of readingTags) {
+        const name = data.tag[tag];
+        await addMsg(db, { scope: `tag:${tag}`, now, url: `/read/${date}/ot/`,
+          title: { zh: `「${name.zh}」今日有新读经`, en: `New daily reading in “${name.en}”` },
+          body: { zh: `三旧一新 · ${zhDate}`, en: `Daily Bible reading · ${enDate}` } });
+        sent++;
+      }
     }
   }
   return { sent };
