@@ -218,6 +218,9 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 /* Home concept B: a guided practice landing page instead of a wall of topic tiles. */
 .home-hello { padding-block: 15px 22px; }
 .home-hello h1 { font-size: clamp(27px, 6.7vw, 34px); }
+@media (max-width: 600px) {
+  html[lang|="zh"] .home-hello h1 { font-size: clamp(18px, 5.6vw, 26px); letter-spacing: .02em; white-space: nowrap; text-wrap: nowrap; }
+}
 .home-command { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(225px, .82fr); gap: 14px; margin: 2px 0 44px; }
 .home-daily { min-width: 0; }
 .home-command .today-tile { position: relative; isolation: isolate; display: flex; min-height: 306px; flex-direction: column; justify-content: space-between; gap: 18px; overflow: hidden; padding: 28px 30px 25px; border: 1px solid rgba(213, 230, 221, .26); border-radius: 30px; color: #fff; text-decoration: none; background: radial-gradient(ellipse at 93% 5%, rgba(157, 197, 150, .25), transparent 44%), radial-gradient(ellipse at 0% 100%, rgba(40, 128, 128, .42), transparent 52%), linear-gradient(132deg, #142d42 0%, #1c4e61 57%, #367b76 100%); box-shadow: 0 22px 48px -30px rgba(13, 48, 64, .72); }
