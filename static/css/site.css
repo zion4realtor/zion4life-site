@@ -1005,3 +1005,10 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 /* Applause is cumulative: a reader's first tap fills the heart and later taps keep it filled. */
 .video-like:not(.is-liked)>svg{fill:none;stroke:currentColor}
 .video-like.is-liked>svg{fill:#ef4663;stroke:#ef4663}
+
+/* The video tag is a vertically browsable library; video links open the full-screen player. */
+.cards.video-library-list{grid-template-columns:minmax(0,1fr)}
+.video-library-list .card{display:grid;grid-template-columns:220px minmax(0,1fr);align-items:center}
+.video-library-list .poster{height:100%;min-height:150px;aspect-ratio:auto}
+.video-library-list .poster>img{position:absolute;inset:0}
+@media(max-width:600px){.video-library-list .card{grid-template-columns:115px minmax(0,1fr)}.video-library-list .poster{min-height:160px}.video-library-list .card-body{padding:12px}.video-library-list .card h3{font-size:17px}.video-library-list .card p{font-size:13px}.video-library-list .meta{display:none}}

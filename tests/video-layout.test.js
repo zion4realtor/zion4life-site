@@ -24,17 +24,17 @@ test('removed layout samples have no pages, tag links or search entries',()=>{
   }
  }
 });
-test('portrait reactions follow the complete stage, and video library opens an immersive feed',()=>{
+test('video tag is a static complete library while details retain portrait reactions',()=>{
  const h=fs.readFileSync('dist/v/o-glorious-divine-love/details/index.html','utf8');
  assert.match(h,/<\/div><\/div><div class="video-reactions">/);
+ const films=JSON.parse(fs.readFileSync('content/videos.json'));
  for(const pre of ['', 'en/']){
   const h=fs.readFileSync(`dist/${pre}t/video/index.html`,'utf8');
-  assert.ok(h.includes('data-reels'));
-  assert.equal((h.match(/data-reel="/g)||[]).length,JSON.parse(fs.readFileSync('content/videos.json')).length);
-  assert.ok(h.includes('playsinline aria-label='));
-  assert.ok(!h.includes('playsinline loop'));
-  assert.ok(h.includes('/js/reels.js?v='));
-  assert.ok(!h.includes('data-tag-tools="video"'));
+  assert.ok(!h.includes('data-reels'));
+  assert.ok(!h.includes('class="reels-page"'));
+  assert.ok(!h.includes('/js/reels.js?v='));
+  assert.ok(h.includes('video-library-list'));
+  for(const v of films) assert.ok(h.includes(`/v/${v.slug}/`));
  }
 });
 
@@ -43,6 +43,8 @@ test('every video entry opens the selected film in the same horizontal feed',()=
  for(const pre of ['', 'en/']) for(const film of films){
   const h=fs.readFileSync(`dist/${pre}v/${film.slug}/index.html`,'utf8');
   assert.ok(h.includes('class="reels-page"'));
+  assert.ok(!h.includes('reel-byline'));
+  assert.ok(!h.includes('short-byline'));
   assert.equal(h.match(/data-reel="([^"]+)"/)[1],film.slug);
   assert.equal((h.match(/data-reel="/g)||[]).length,films.length);
   assert.ok(h.includes(`/v/${film.slug}/details/#reel-comments`));
@@ -72,5 +74,12 @@ test('new youth hymn has no subtitles and every feed has top navigation arrows',
   assert.equal(h.match(/data-reel="([^"]+)"/)[1],film.slug);
   const first=h.split('<video class="reel-video"')[1].split('</video>')[0];
   assert.ok(!first.includes('<track'));
+ }
+});
+
+test('youth video appears under both songs and feelings',()=>{
+ for(const pre of ['', 'en/'])for(const tag of ['songs','feelings']){
+  const h=fs.readFileSync(`dist/${pre}t/${tag}/index.html`,'utf8');
+  assert.ok(h.includes('/v/southeast-youth-singing/'));
  }
 });

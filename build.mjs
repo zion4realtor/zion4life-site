@@ -357,7 +357,7 @@ ${styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
 <script src="/js/reading.js?v=${ver('js/reading.js')}" defer></script>
 ${p.startsWith('/read/') ? `<link rel="manifest" href="${U(lang, '/read/app.webmanifest')}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${lang === 'zh' ? '吃饭' : 'Daily Bible'}">` : ''}
 </head>
-<body${(p === "/t/video/" || /^\/v\/[^/]+\/$/.test(p)) ? ' class="reels-page"' : ''}>
+<body${/^\/v\/[^/]+\/$/.test(p) ? ' class="reels-page"' : ''}>
 <header class="topbar"><div class="wrap topbar-in">
 <a class="brand" href="${U(lang, '/')}">${LOGO}<span><b>${esc(name)}</b><small>zion4life.faith</small></span></a>
 <nav class="lang" aria-label="Language"><a href="${alt('zh')}" hreflang="zh-CN"${lang === 'zh' ? ' aria-current="true"' : ''} data-lang="zh">中</a><a href="${alt('en')}" hreflang="en"${lang === 'en' ? ' aria-current="true"' : ''} data-lang="en">EN</a></nav>
@@ -404,7 +404,7 @@ function reelsPage(lang, startSlug = '') {
 <img class="reel-backdrop" src="${esc(v.poster || source.poster || '')}" alt="" loading="${i ? 'lazy' : 'eager'}">
 <video class="reel-video" data-src="${esc(source.url)}" poster="${esc(v.poster || source.poster || '')}" preload="none" playsinline aria-label="${esc(c.title)}">${(source.subtitles || v.subtitles || []).map(track => `<track kind="subtitles" src="${esc(track.url)}" srclang="${esc(track.lang)}" label="${esc(track.label || track.lang)}"${track.lang === (typeof v.defaultCaption === 'object' ? v.defaultCaption[lang] : (v.defaultCaption || lang)) ? ' default' : ''}>`).join('')}</video>
 <button class="reel-toggle" type="button" aria-label="${text('播放或暂停','Play or pause')}"><span class="reel-play">▶</span></button>
-<div class="reel-copy"><span class="reel-byline">${esc(v.byline?.[lang] || text('有光 · 生命的故事','LIGHT · STORIES OF LIFE'))}</span><h2><a href="${href}">${esc(c.title)}</a></h2><p>${esc(c.summary || '')}</p><a class="reel-details" href="${href}">${text('详情与留言','Details & comments')} ↗</a></div>
+<div class="reel-copy"><h2><a href="${href}">${esc(c.title)}</a></h2><p>${esc(c.summary || '')}</p><a class="reel-details" href="${href}">${text('详情与留言','Details & comments')} ↗</a></div>
 <aside class="reel-actions" aria-label="${text('视频操作','Video actions')}">${videoLike(v.slug,lang,c.title)}<a class="reel-comment" href="${href}#reel-comments" aria-label="${text('查看留言','View comments')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 2V11.5a10 10 0 0 1 20 0Z"/></svg>${text('留言','Comments')}</a><button class="reel-mute" type="button" aria-label="${text('静音','Mute')}"><span>♫</span><small>${text('静音','Mute')}</small></button><button class="reel-fullscreen" type="button" aria-label="${text('全屏','Fullscreen')}">⛶<small>${text('全屏','Fullscreen')}</small></button></aside>
 <label class="reel-timeline"><span class="sr-only">${text('播放进度','Playback position')}</span><input type="range" min="0" max="100" value="0" step="0.1" aria-label="${text('播放进度','Playback position')}"></label>
 <p class="reel-status" role="status" hidden></p><noscript><a class="reel-fallback" href="${href}">${text('打开视频','Open video')}</a></noscript></article>`;
@@ -592,10 +592,6 @@ ${askBox(lang, true)}`,
   // tag pages
   for (const t of TAGS) {
     const list = itemsOf(t.id);
-    if (t.id === 'video') {
-      emit(lang, '/t/video/', reelsPage(lang));
-      continue;
-    }
     const reads = list.filter((i) => i.kind !== 'video').length;
     const vids = list.length - reads;
     const chips = list.length
@@ -612,7 +608,7 @@ ${askBox(lang, true)}`,
 <div class="tag-tools" data-tag-tools="${t.id}"${t.person ? ' data-person' : ''}></div>
 ${chips}
 <div class="cards" data-tag-posts="${t.id}" hidden></div>
-${list.length ? `<div class="cards">${list.map((it) => card(it, lang, t.id)).join('\n')}</div>` : `<div class="empty" data-empty>${MASCOT()}<p>${esc(L.empty)}</p></div>`}
+${list.length ? `<div class="cards${t.id === 'video' ? ' video-library-list' : ''}">${list.map((it) => card(it, lang, t.id)).join('\n')}</div>` : `<div class="empty" data-empty>${MASCOT()}<p>${esc(L.empty)}</p></div>`}
 <section class="talk" data-talk="tag:${t.id}"></section>
 </section>`,
     });
@@ -717,7 +713,7 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
       const shortQuotes = v.quotes?.[lang]?.length ? `<blockquote class="short-quotes">${v.quotes[lang].map(q => `<p>${esc(q)}</p>`).join('')}</blockquote>` : '';
       const hymnLinks = v.fullSongUrl ? `<section class="hymn-links" aria-label="${lang === 'zh' ? '完整诗歌' : 'Full hymn'}"><a class="hymn-full" href="${v.fullSongUrl}" target="_blank" rel="noopener noreferrer">${lang === 'zh' ? '想要听整首' : 'Listen to the full hymn'} <span aria-hidden="true">↗</span></a></section>` : '';
       emit(lang, `/v/${v.slug}/details/`, { title:c.title, desc:c.summary, tab:'home',
-        body:`${subscribe}<article class="short-watch${v.orientation === 'portrait' ? ' is-portrait' : ''}" data-caption-choice="${defaultCaption}"><div class="short-top"><a href="${U(lang,`/v/${v.slug}/`)}">← ${esc(TAG[backTag]?.[lang] || L.back)}</a><span>${esc(shortKicker)}${group.length > 1 ? ` · ${i+1}/${group.length}` : ''}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster || sources[0]?.poster || ''}" alt="" width="540" height="960"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，播放视频' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}${videoSuggestions(v,true)}</div></div>${v.sample ? '' : videoLike(v.slug,lang,c.title)}<div class="short-copy"><div class="short-byline">${esc(byline)}</div><h1>${esc(c.title)}</h1>${v.slug === 'why-am-i-here' ? `<nav class="video-tag-links" aria-label="${lang === 'zh' ? '相关标签' : 'Related topics'}">${v.tags.map(id=>`<a href="${U(lang,`/t/${id}/`)}">${esc(TAG[id][lang])}</a>`).join('')}</nav>` : ''}${captionControls}<p class="short-summary">${esc(c.summary)}</p>${shortQuotes}${hymnLyrics}${hymnLinks}${shareBox(lang,lang === 'zh' ? '想分享这段视频？' : 'Want to share this video?',U(lang,`/v/${v.slug}/`),c.title)}${download}${nextLink}<div class="short-note" role="status" hidden></div></div></article>${videoSuggestions(v)}<section id="reel-comments" class="talk video-talk" data-talk="v:${v.slug}"></section>` });
+        body:`${subscribe}<article class="short-watch${v.orientation === 'portrait' ? ' is-portrait' : ''}" data-caption-choice="${defaultCaption}"><div class="short-top"><a href="${U(lang,`/v/${v.slug}/`)}">← ${esc(TAG[backTag]?.[lang] || L.back)}</a><span>${esc(shortKicker)}${group.length > 1 ? ` · ${i+1}/${group.length}` : ''}</span></div><div class="short-stage"><div class="player" data-player data-short="${v.slug}"><button class="player-start" aria-label="${L.play}" type="button"><img src="${v.poster || sources[0]?.poster || ''}" alt="" width="540" height="960"><span class="short-play">${ICON.play}</span><span class="short-tap">${lang === 'zh' ? '点一下，播放视频' : 'Tap to watch'}</span></button>${json(`src-${v.slug}`,sources)}${videoSuggestions(v,true)}</div></div>${v.sample ? '' : videoLike(v.slug,lang,c.title)}<div class="short-copy"><h1>${esc(c.title)}</h1>${v.slug === 'why-am-i-here' ? `<nav class="video-tag-links" aria-label="${lang === 'zh' ? '相关标签' : 'Related topics'}">${v.tags.map(id=>`<a href="${U(lang,`/t/${id}/`)}">${esc(TAG[id][lang])}</a>`).join('')}</nav>` : ''}${captionControls}<p class="short-summary">${esc(c.summary)}</p>${shortQuotes}${hymnLyrics}${hymnLinks}${shareBox(lang,lang === 'zh' ? '想分享这段视频？' : 'Want to share this video?',U(lang,`/v/${v.slug}/`),c.title)}${download}${nextLink}<div class="short-note" role="status" hidden></div></div></article>${videoSuggestions(v)}<section id="reel-comments" class="talk video-talk" data-talk="v:${v.slug}"></section>` });
       continue;
     }
     const related = items.filter((x) => !x.tagOnly && x !== v && x.tags.some((t) => v.tags.includes(t))).slice(0, 4);
