@@ -37,7 +37,12 @@ export async function withTagItems(db, ctx, groups) {
   }
   return tags.length ? { ...ctx, tagItems } : ctx;
 }
-const FILE_TYPES = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic', 'image/heif': 'heif' };
+const FILE_TYPES = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic', 'image/heif': 'heif', 'image/avif': 'avif',
+  'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/ogg': 'ogg', 'audio/opus': 'opus', 'audio/flac': 'flac', 'audio/webm': 'webm',
+  'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-m4v': 'm4v', 'video/3gpp': '3gp', 'video/ogg': 'ogv', 'video/x-matroska': 'mkv',
+};
 const FILE_MAX = 20 * 1000000, GROUP_FILES_MAX = 200 * 1000000;
 
 // ---------- the "发起一个搭子" form ----------
@@ -471,6 +476,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
       if (!r) return fail(t('找不到这个资料', 'File not found'), 404);
       return new Response(r.body, { headers: {
         'Content-Type': f.type, 'Content-Length': String(f.size), 'Cache-Control': 'private, max-age=86400',
+        'X-Content-Type-Options': 'nosniff',
         'Content-Disposition': `${url.searchParams.get('dl') ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(f.name)}`,
       } });
     }
@@ -481,7 +487,7 @@ export async function handleDazi(request, env, db, url, now, lang) {
     }
     if (method === 'POST' && !arg) {
       const type = (request.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-      if (!FILE_TYPES[type]) return fail(t('只能放 PDF 或图片', 'Only PDFs and pictures'));
+      if (!FILE_TYPES[type]) return fail(t('可上传 PDF、图片、音频或视频文件', 'Upload a PDF, picture, audio, or video file'));
       const size = Number(request.headers.get('content-length') || 0);
       if (size > FILE_MAX) return fail(t('文件太大了，最多 20MB', 'The file is too big (20 MB at most)'), 413);
       if ((await db('dzFilesSize', { gid: g.id })).bytes + size > GROUP_FILES_MAX) return fail(t('这个搭子的资料已经放满了（200MB），先删掉一些', 'This group’s files are full (200 MB). Remove some first.'), 413);
