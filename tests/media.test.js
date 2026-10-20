@@ -28,3 +28,37 @@ test('MP4 ranges use build manifest when the asset binding omits Content-Length'
   const r=await serveVideo(new Request('https://example.com/video/test.mp4',{headers:{Range:'bytes=0-1'}}),env);
   assert.equal(r.status,206);assert.equal(r.headers.get('Content-Range'),'bytes 0-1/10');assert.equal(await r.text(),'01');
 });
+
+test('Workers range bodies use a fixed length and stop reading after the requested bytes', async () => {
+  const Original = globalThis.FixedLengthStream;
+  const lengths = [];
+  let cancelled = false;
+  globalThis.FixedLengthStream = class {
+    constructor(length) {
+      lengths.push(length);
+      let written = 0;
+      const stream = new TransformStream({
+        transform(chunk, controller) { written += chunk.byteLength; assert.ok(written <= length); controller.enqueue(chunk); },
+        flush() { assert.equal(written, length); },
+      });
+      this.readable = stream.readable; this.writable = stream.writable;
+    }
+  };
+  try {
+    const env = {ASSETS:{fetch:async()=>new Response(new ReadableStream({
+      pull(c) { c.enqueue(bytes); }, cancel() { cancelled = true; },
+    }),{headers:{'Content-Type':'video/mp4','Content-Length':'10'}})}};
+    const r=await serveVideo(new Request('https://example.com/video/test.mp4',{headers:{Range:'bytes=0-1'}}),env);
+    assert.equal(r.status,206);
+    assert.equal(r.headers.get('Content-Length'),'2');
+    assert.equal(await r.text(),'01');
+    assert.deepEqual(lengths,[2]);
+    assert.equal(cancelled,true);
+  } finally { if(Original)globalThis.FixedLengthStream=Original;else delete globalThis.FixedLengthStream; }
+});
+
+test('a truncated asset fails instead of silently completing a partial MP4 range', async () => {
+ const env={ASSETS:{fetch:async()=>new Response(bytes.slice(0,3),{headers:{'Content-Length':'10'}})}};
+ const r=await serveVideo(new Request('https://example.com/video/test.mp4',{headers:{Range:'bytes=0-8'}}),env);
+ await assert.rejects(r.arrayBuffer(),/ended before/);
+});

@@ -29,14 +29,20 @@
   }
   async function play(reel) {
     const video = reel.querySelector('video');
-    if (!video.src) video.src = video.dataset.src;
+    if (video.error || !video.hasAttribute('src')) {
+      // Reset Safari's failed media resource selection before retrying the URL.
+      video.removeAttribute('src');
+      video.load();
+      video.src = video.dataset.src;
+      video.load();
+    }
     video.muted = muted;
     delete video.dataset.autoplayMuted;
     try {
       await video.play();
       showPlaying(reel);
     } catch (error) {
-      if (reels[active] !== reel || document.hidden || manuallyPaused) return;
+      if (reels[active] !== reel || document.hidden || manuallyPaused || error.name === 'AbortError') return;
       // Browsers may reject sound before a gesture. Keep the picture playing automatically.
       if (error.name === 'NotAllowedError' && !muted) {
         video.muted = true;
@@ -109,7 +115,13 @@
     video.addEventListener('loadedmetadata', () => {
       reel.classList.toggle('reel-portrait', video.videoHeight > video.videoWidth);
     });
-    video.addEventListener('error', () => { status.textContent = t('视频暂时未能加载，点击画面重试，或打开详情。','Video could not load. Tap to retry, or open details.'); status.hidden = false; reel.classList.add('is-paused'); video.removeAttribute('src'); });
+    video.addEventListener('error', () => {
+      if (!video.hasAttribute('src') || reels[active] !== reel) return;
+      status.textContent = t('视频暂时未能加载，点击画面重试。','Video could not load. Tap the video to retry.');
+      status.hidden = false;
+      status.style.pointerEvents = 'none';
+      reel.classList.add('is-paused');
+    });
     video.addEventListener('timeupdate', () => { if (Number.isFinite(video.duration) && video.duration > 0) slider.value = String(video.currentTime / video.duration * 100); });
     slider.addEventListener('input', () => { if (Number.isFinite(video.duration)) video.currentTime = video.duration * Number(slider.value) / 100; });
     reel.querySelector('.reel-mute').addEventListener('click', () => {

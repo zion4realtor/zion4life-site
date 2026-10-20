@@ -9,6 +9,7 @@ export async function serveVideo(request, env) {
   if (asset.status !== 200) return asset;
   const out = new Headers(asset.headers);
   out.set('Accept-Ranges', 'bytes');
+  out.set('Cache-Control', 'public, max-age=0, must-revalidate, no-transform');
   let size = Number(out.get('Content-Length'));
   // The binding may omit this header even though the edge adds it to responses.
   // Use build-time lengths rather than buffering a whole video into memory.
@@ -25,7 +26,7 @@ export async function serveVideo(request, env) {
   const validator = request.headers.get('If-Range');
   const matches = !validator || validator === out.get('ETag') || validator === out.get('Last-Modified');
   const m = range && /^bytes=(\d*)-(\d*)$/.exec(range);
-  if (!m || (!m[1] && !m[2]) || !matches || !Number.isSafeInteger(size) || size <= 0) return new Response(asset.body, { headers: out });
+  if (!m || (!m[1] && !m[2]) || !matches || !Number.isSafeInteger(size) || size <= 0) return new Response(knownLength(asset.body, size), { headers: out });
   const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
   const end = m[1] ? (m[2] ? Math.min(Number(m[2]), size - 1) : size - 1) : size - 1;
   if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start >= size || start > end) {
@@ -43,7 +44,7 @@ export async function serveVideo(request, env) {
       try {
         while (true) {
           const { value, done } = await reader.read();
-          if (done) { controller.close(); return; }
+          if (done) { controller.error(new Error('Video range ended before its declared length')); return; }
           const from = Math.max(0, start - offset);
           const to = Math.min(value.byteLength, end + 1 - offset);
           offset += value.byteLength;
@@ -55,5 +56,15 @@ export async function serveVideo(request, env) {
     },
     cancel(reason) { return reader.cancel(reason); },
   });
-  return new Response(body, { status: 206, headers: out });
+  return new Response(knownLength(body, end - start + 1), { status: 206, headers: out });
+}
+
+// Workers ignores a manually set Content-Length on an arbitrary ReadableStream.
+// FixedLengthStream preserves it on the actual edge response (including Safari's
+// initial two-byte probe) while retaining backpressure and cancellation.
+function knownLength(body, size) {
+  if (!body || !Number.isSafeInteger(size) || size <= 0 || typeof FixedLengthStream === 'undefined') return body;
+  const fixed = new FixedLengthStream(size);
+  body.pipeTo(fixed.writable).catch(() => {});
+  return fixed.readable;
 }
