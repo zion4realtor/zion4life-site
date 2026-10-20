@@ -201,7 +201,7 @@
       var title = btn.getAttribute('data-share-title') || document.title;
       track('share', { method: isWeChat ? 'video_icon_wechat_copy' : navigator.share ? 'video_icon_system' : 'video_icon_copy' });
       if (!isWeChat && navigator.share) {
-        navigator.share({ title: title, text: title, url: url }).catch(function (err) {
+        navigator.share({ title: title, text: btn.closest('[data-reel]')?.dataset.shareDescription || document.querySelector('meta[name="description"]')?.content || title, url: url }).catch(function (err) {
           if (!err || err.name !== 'AbortError') copy(url).then(function () {
             toast(zh ? '链接已复制，可发送给朋友。' : 'Link copied. Send it to a friend.');
           }, function () { toast(url); });

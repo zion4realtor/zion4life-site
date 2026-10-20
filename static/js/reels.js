@@ -72,6 +72,26 @@
     const prefix = en ? '/en' : '';
     history.replaceState(null, '', `${prefix}/v/${slug}/`);
     document.title = reels[index].getAttribute('aria-label') + (en ? ' | Light' : '｜有光');
+    // The native share menu must follow the video currently on screen.
+    const current = reels[index];
+    const title = current.getAttribute('aria-label');
+    const description = current.dataset.shareDescription || title;
+    const image = new URL(current.dataset.shareImage, location.origin).href;
+    const url = `${location.origin}${prefix}/v/${slug}/`;
+    for (const [selector, value] of [
+      ['meta[name="description"]', description],
+      ['meta[property="og:title"]', title],
+      ['meta[property="og:description"]', description],
+      ['meta[property="og:url"]', url],
+      ['meta[property="og:image"]', image],
+      ['meta[property="og:image:secure_url"]', image],
+      ['meta[property="og:image:alt"]', title],
+      ['meta[name="twitter:title"]', title],
+      ['meta[name="twitter:description"]', description],
+      ['meta[name="twitter:image"]', image],
+    ]) document.querySelector(selector)?.setAttribute('content', value);
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', url);
+    document.querySelector('link[rel="image_src"]')?.setAttribute('href', image);
     document.querySelector('.reels-language').href = `${en ? '' : '/en'}/v/${slug}/`;
     count.textContent = `${index + 1} / ${reels.length}`;
     steps.forEach(b => b.disabled = reels.length < 2);

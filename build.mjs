@@ -320,33 +320,37 @@ function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scr
   const alt = (l) => (only ? U(l, '/') : U(l, p));
   const tabs = TABS.map(([k, href], i) =>
     `<a href="${U(lang, href)}"${tab === k ? ' aria-current="page"' : ''}>${ICON[k]}<span>${L.tabs[i]}</span></a>`).join('');
-  const socialPoster = videos.find(v => v.poster && U(lang, `/v/${v.slug}/`) === U(lang,p))?.poster;
+  const socialVideo = videos.find(v => p === `/v/${v.slug}/` || p === `/v/${v.slug}/details/`);
+  const socialPoster = socialVideo?.poster;
+  const description = desc || socialVideo?.[lang]?.summary || site[lang].description;
   return `<!doctype html>
 <html lang="${lang === 'zh' ? 'zh-CN' : 'en'}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(full)}</title>
-<meta name="description" content="${esc(desc || site[lang].description)}">
+<meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${canonical}">
 ${only ? '' : LANGS.map((l) => `<link rel="alternate" hreflang="${l === 'zh' ? 'zh-CN' : 'en'}" href="${site.url + U(l, p)}">`).join('\n')}
 ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(name)}">
 <meta property="og:title" content="${esc(title || name)}">
-<meta property="og:description" content="${esc(desc || site[lang].description)}">
+<meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
 <meta property="og:image" content="${site.url}${socialPoster || `/img/og-${lang}.png?v=20261015`}">
 <meta property="og:image:secure_url" content="${site.url}${socialPoster || `/img/og-${lang}.png?v=20261015`}">
 <meta property="og:image:type" content="${socialPoster ? 'image/jpeg' : 'image/png'}">
-<meta property="og:image:width" content="${socialPoster ? 540 : 1200}">
-<meta property="og:image:height" content="${socialPoster ? 360 : 630}">
-<meta property="og:image:alt" content="${esc(lang === 'en' ? 'In Your light, we see light · Light' : '在祂的光中，我们看见光 · 有光')}">
+${socialPoster ? '' : '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'}
+<meta property="og:image:alt" content="${esc(socialVideo ? socialVideo[lang].title : (lang === 'en' ? 'In Your light, we see light · Light' : '在祂的光中，我们看见光 · 有光'))}">
+${socialVideo ? `<meta name="twitter:title" content="${esc(title || name)}"><meta name="twitter:description" content="${esc(description)}">` : ''}
+<link rel="image_src" href="${site.url}${socialPoster || `/img/og-${lang}.png?v=20261015`}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="${site.url}${socialPoster || `/img/og-${lang}.png?v=20261015`}">
 <meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#eaf6ff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c1824" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 ${head}
@@ -392,7 +396,8 @@ function reelsPage(lang, startSlug = '') {
       const films = [...available.slice(start), ...available.slice(0, start)];
       const text = (zh, en) => lang === 'zh' ? zh : en;
       return {
-        title: startSlug ? films[0][lang].title : (lang === 'zh' ? '视频' : 'Videos'), tab: 'home',
+        title: startSlug ? films[0][lang].title : (lang === 'zh' ? '视频' : 'Videos'),
+        desc: startSlug ? films[0][lang].summary : undefined, tab: 'home',
         styles: [`/css/reels.css?v=${ver('css/reels.css')}`],
         scripts: [`/js/reels.js?v=${ver('js/reels.js')}`],
         body: `<div class="reels-top"><a href="${U(lang, '/')}" aria-label="${text('返回首页','Back to home')}">‹</a><h1>${text('视频','Videos')}</h1><nav class="reels-top-arrows" aria-label="${text('左右切换视频','Switch videos left or right')}"><button type="button" data-reel-step="-1" aria-label="${text('上一条视频','Previous video')}">←</button><button type="button" data-reel-step="1" aria-label="${text('下一条视频','Next video')}">→</button></nav><a class="reels-language" href="${U(lang === 'zh' ? 'en' : 'zh', startSlug ? `/v/${startSlug}/` : '/t/video/')}">${text('EN','中')}</a></div>
@@ -400,7 +405,7 @@ function reelsPage(lang, startSlug = '') {
         const source = v.sources.find(s => s.type === 'file');
         const c = v[lang];
         const href = U(lang, `/v/${v.slug}/details/`);
-        return `<article class="reel${v.orientation === 'portrait' ? ' reel-portrait' : ''}" data-reel="${v.slug}" aria-label="${esc(c.title)}">
+        return `<article class="reel${v.orientation === 'portrait' ? ' reel-portrait' : ''}" data-reel="${v.slug}" data-share-description="${esc(c.summary || c.title)}" data-share-image="${esc(v.poster || source.poster || '')}" aria-label="${esc(c.title)}">
 <img class="reel-backdrop" src="${esc(v.poster || source.poster || '')}" alt="" loading="${i ? 'lazy' : 'eager'}">
 <video class="reel-video" data-src="${esc(source.url)}" poster="${esc(v.poster || source.poster || '')}" preload="none" playsinline aria-label="${esc(c.title)}">${(source.subtitles || v.subtitles || []).map(track => `<track kind="subtitles" src="${esc(track.url)}" srclang="${esc(track.lang)}" label="${esc(track.label || track.lang)}"${track.lang === (typeof v.defaultCaption === 'object' ? v.defaultCaption[lang] : (v.defaultCaption || lang)) ? ' default' : ''}>`).join('')}</video>
 <button class="reel-toggle" type="button" aria-label="${text('播放或暂停','Play or pause')}"><span class="reel-play">▶</span></button>
