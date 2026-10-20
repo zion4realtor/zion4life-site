@@ -1,5 +1,120 @@
 [
   {
+    "slug": "prayer-and-job-search",
+    "minutes": 3,
+    "seconds": 182.4,
+    "date": "2026-10-20",
+    "publishedAt": "2026-10-20T12:39:36.468259Z",
+    "tags": [
+      "work",
+      "feelings",
+      "goodnews",
+      "students",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "找工作很焦虑，祷告能换来一份工作吗？",
+      "summary": "王嘉玲分享一位即将毕业的 MBA 学生面对求职焦虑的经历，谈祷告与神的关系。"
+    },
+    "en": {
+      "title": "Can Prayer Guarantee You a Job?",
+      "summary": "Wang Jialing shares an encounter with an MBA student anxious about finding a job, and reflects on prayer and a relationship with God."
+    },
+    "sourceNote": {
+      "zh": "摘自《我们与神的关系——是交往，而不是交易》（上），2017年6月。原片 56:08.600–59:11.000。 保留中文原声与原始画面；配中英文字幕。",
+      "en": "Excerpt from “Our Relationship with God: A Relationship, Not a Transaction” (Part 1), June 2017. Source 56:08.600–59:11.000. Original Chinese audio and framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/prayer-and-job-search.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/prayer-and-job-search.mp4",
+        "poster": "/video/prayer-and-job-search.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/prayer-and-job-search.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/prayer-and-job-search.zh.vtt"
+      }
+    ]
+  },
+  {
+    "slug": "hearing-and-meeting-jesus",
+    "minutes": 4,
+    "seconds": 228.2,
+    "date": "2026-10-20",
+    "publishedAt": "2026-10-20T12:39:36.468482Z",
+    "tags": [
+      "lgh",
+      "goodnews",
+      "life",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "听过耶稣，和真正认识祂有什么不同？",
+      "summary": "李光弘在《福乐人生》中分享：从听过耶稣，到用信心亲自认识祂。"
+    },
+    "en": {
+      "title": "Hearing About Jesus—or Meeting Him for Yourself?",
+      "summary": "In “A Blessed and Joyful Life,” Livingstone Lee speaks about moving from hearing about Jesus to knowing Him personally by faith."
+    },
+    "sourceNote": {
+      "zh": "摘自李光弘《福乐人生》，1998年。原片 49:33.700–53:21.900。 保留中文原声与原始画面；配中英文字幕。",
+      "en": "Excerpt from Livingstone Lee’s “A Blessed and Joyful Life” (1998). Source 49:33.700–53:21.900. Original Chinese audio and framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/hearing-and-meeting-jesus.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/hearing-and-meeting-jesus.mp4",
+        "poster": "/video/hearing-and-meeting-jesus.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/hearing-and-meeting-jesus.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/hearing-and-meeting-jesus.zh.vtt"
+      }
+    ]
+  },
+  {
     "slug": "southeast-youth-singing",
     "minutes": 1,
     "seconds": 35.57,
