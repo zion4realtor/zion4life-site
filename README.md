@@ -97,12 +97,12 @@ text.recoveryversion.bible or bibleread.online), never from memory.
   takes about half an hour), kept as 16 kHz μ-law WAV, about 1 MB a minute (`src/wav.js`),
   for 30 days. Until a recording is ready the
   page reads with the phone's own voice. Changing the text records it again.
-- **Video:** add an entry to `content/videos.json` with `slug`, `minutes`, `date`,
+- **Video:** every video must include the `video` tag, alongside its topic tags; `build.mjs` also adds it automatically. Add an entry to `content/videos.json` with `slug`, `minutes`, `date`,
   `tags`, `zh` and `en` (`title`, `summary`) and `sources`, places to play it from:
   `{ "type": "youtube", "id": "…", "label": "海外线路" }`,
   `{ "type": "bunny", "url": "https://iframe.mediadelivery.net/embed/LIB/ID", "label": "国内线路" }`,
-  `{ "type": "iframe", "url": "…" }` or `{ "type": "file", "url": "….mp4" }`. Video files
-  are never stored in this repository.
+  `{ "type": "iframe", "url": "…" }` or `{ "type": "file", "url": "….mp4" }`. File videos and posters are stored in `static/video/`; keep each file below 25 MiB,
+  use fast-start H.264/AAC MP4, and use 44.1 or 48 kHz audio for mobile compatibility.
 
 ## Question box (有问题想问？)
 

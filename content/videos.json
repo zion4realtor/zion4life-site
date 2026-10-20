@@ -1,5 +1,47 @@
 [
   {
+    "slug": "atlanta-baptisms",
+    "minutes": 1,
+    "seconds": 57.002,
+    "date": "2026-10-20",
+    "publishedAt": "2026-10-20T13:51:40.642810Z",
+    "tags": [
+      "video",
+      "goodnews",
+      "newfriends",
+      "students",
+      "mystery"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "portrait",
+    "captionOptions": [],
+    "defaultCaption": "off",
+    "zh": {
+      "title": "亚特兰大受浸｜神愿意万人得救",
+      "summary": "亚特兰大受浸现场。神愿意万人得救，并且完全认识真理。"
+    },
+    "en": {
+      "title": "Baptisms in Atlanta | God Desires All to Be Saved",
+      "summary": "Scenes of baptisms in Atlanta. God desires all men to be saved and to come to the full knowledge of the truth."
+    },
+    "sourceNote": {
+      "zh": "保留用户提供的完整竖屏视频与现场原声，不添加字幕。",
+      "en": "Full portrait video and original live audio, supplied by Zion. No added subtitles."
+    },
+    "poster": "/video/atlanta-baptisms.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/atlanta-baptisms.mp4?v=20261020",
+        "poster": "/video/atlanta-baptisms.jpg",
+        "label": "现场原声 / Original live audio"
+      }
+    ]
+  },
+  {
     "slug": "prayer-and-job-search",
     "minutes": 3,
     "seconds": 182.4,
