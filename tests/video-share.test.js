@@ -25,7 +25,7 @@ test('swiping updates native share metadata to the new video, including language
  });
  const feed={querySelectorAll:()=>reels};let observe;
  const document={documentElement:{lang:'en'},hidden:false,querySelector(s){if(s==='[data-reels]')return feed;if(!nodes.has(s))nodes.set(s,element());return nodes.get(s);},querySelectorAll:()=>[],addEventListener(){}};
- const context={document,location:{origin:'https://zion4life.faith'},history:{replaceState(){}},matchMedia:()=>({matches:false}),IntersectionObserver:class{constructor(cb){observe=cb;}observe(){}},window:{addEventListener(){}},setTimeout(){},URL};
+ const context={document,navigator:{userAgent:'Safari'},location:{origin:'https://zion4life.faith'},history:{replaceState(){}},matchMedia:()=>({matches:false}),IntersectionObserver:class{constructor(cb){observe=cb;}observe(){}},window:{addEventListener(){}},setTimeout(){},URL};
  vm.runInNewContext(fs.readFileSync('static/js/reels.js','utf8'),context);
  observe([{isIntersecting:true,intersectionRatio:1,target:reels[1]}]);
  await Promise.resolve();
@@ -33,4 +33,10 @@ test('swiping updates native share metadata to the new video, including language
  assert.equal(nodes.get('meta[property="og:description"]').content,'Summary 1');
  assert.equal(nodes.get('meta[property="og:image"]').content,'https://zion4life.faith/video/second.jpg');
  assert.equal(nodes.get('link[rel="canonical"]').href,'https://zion4life.faith/en/v/second/');
+ let navigation;
+ context.navigator.userAgent='MicroMessenger/8.0 iPhone';
+ context.location.replace=url=>{navigation=url;};
+ vm.runInNewContext(fs.readFileSync('static/js/reels.js','utf8'),context);
+ observe([{isIntersecting:true,intersectionRatio:1,target:reels[1]}]);
+ assert.equal(navigation,'/en/v/second/?share=video2');
 });

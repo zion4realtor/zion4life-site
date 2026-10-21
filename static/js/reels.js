@@ -3,6 +3,7 @@
   if (!feed) return;
   const reels = [...feed.querySelectorAll('[data-reel]')];
   const en = document.documentElement.lang === 'en';
+  const wechat = /MicroMessenger/i.test(navigator.userAgent);
   const t = (zh, english) => en ? english : zh;
   let active = -1, muted = false, manuallyPaused = false;
   const steps = [...document.querySelectorAll('[data-reel-step]')];
@@ -59,6 +60,13 @@
   }
   function activate(index) {
     if (index === active || !reels[index]) return;
+    // WeChat's menu can retain the entry document's share card despite history
+    // and meta updates. Load the selected video's own document in that browser.
+    if (wechat && index !== 0) {
+      reels.forEach(reel => reel.querySelector('video').pause());
+      location.replace(`${en ? '/en' : ''}/v/${reels[index].dataset.reel}/?share=video2`);
+      return;
+    }
     active = index; manuallyPaused = false;
     reels.forEach((reel, i) => {
       const video = reel.querySelector('video');
@@ -70,7 +78,7 @@
     });
     const slug = reels[index].dataset.reel;
     const prefix = en ? '/en' : '';
-    history.replaceState(null, '', `${prefix}/v/${slug}/`);
+    history.replaceState(null, '', `${prefix}/v/${slug}/${wechat ? '?share=video2' : ''}`);
     document.title = reels[index].getAttribute('aria-label') + (en ? ' | Light' : '｜有光');
     // The native share menu must follow the video currently on screen.
     const current = reels[index];

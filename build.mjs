@@ -423,7 +423,7 @@ function itemHref(it, lang) {
 }
 function videoLike(slug, lang, title) {
   const sharePath = U(lang, `/v/${slug}/`);
-  const shareUrl = site.url + sharePath;
+  const shareUrl = site.url + sharePath + '?share=video2';
   return `<div class="video-reactions"><button type="button" class="video-share" data-video-share data-share-url="${esc(shareUrl)}" data-share-title="${esc(title)}" aria-label="${lang === 'zh' ? '分享转发这段视频' : 'Share this video'}" title="${lang === 'zh' ? '分享转发' : 'Share'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg><span>${lang === 'zh' ? '分享' : 'Share'}</span></button><button type="button" class="video-like" data-video-like="v:${slug}" aria-label="${lang === 'zh' ? '点赞，可连续点击' : 'Like, tap again to add more'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg><span data-like-label>${lang === 'zh' ? '点赞' : 'Like'}</span><b data-like-count title="258">258</b></button><span class="like-error" role="status"></span></div>`;
 }
 function card(it, lang, current) {
