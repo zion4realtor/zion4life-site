@@ -46,7 +46,7 @@ test('every video entry opens the selected film in the same horizontal feed',()=
   assert.ok(!h.includes('reel-byline'));
   assert.ok(!h.includes('short-byline'));
   assert.equal(h.match(/data-reel="([^"]+)"/)[1],film.slug);
-  assert.equal((h.match(/data-reel="/g)||[]).length,films.length);
+  assert.equal((h.match(/data-reel="/g)||[]).length,1);
   assert.ok(h.includes(`/v/${film.slug}/details/#reel-comments`));
   assert.ok(!h.includes('playsinline loop'));
   const detail=fs.readFileSync(`dist/${pre}v/${film.slug}/details/index.html`,'utf8');
@@ -54,7 +54,7 @@ test('every video entry opens the selected film in the same horizontal feed',()=
  }
  const css=fs.readFileSync('static/css/reels.css','utf8');
  assert.ok(css.includes('scroll-snap-type:x mandatory'));
- assert.ok(css.includes('touch-action:pan-x'));
+ assert.ok(css.includes('touch-action:pan-y'));
  const js=fs.readFileSync('static/js/reels.js','utf8');
  assert.ok(js.includes('muted = false'));
  assert.ok(js.includes("error.name === 'NotAllowedError'"));

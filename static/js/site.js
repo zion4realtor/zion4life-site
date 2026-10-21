@@ -209,7 +209,7 @@
         return;
       }
       copy(url).then(function () {
-        toast(zh ? '链接已复制。请点右上角“···”分享给朋友。' : 'Link copied. Use the browser menu to share it.');
+        toast(zh ? '当前视频链接已复制，可粘贴到微信聊天发送。' : 'Current video link copied. Paste it into a chat to share.');
       }, function () {
         toast(zh ? '请点右上角“···”分享给朋友。' : 'Open the browser menu to share this page.');
       });

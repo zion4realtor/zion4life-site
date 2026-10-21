@@ -337,7 +337,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta property="og:site_name" content="${esc(name)}">
 <meta property="og:title" content="${esc(title || name)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${canonical}">
+<meta property="og:url" content="${socialVideo ? `${site.url}${U(lang, `/v/${socialVideo.slug}/`)}?share=v3-${socialVideo.slug}` : canonical}">
 <meta property="og:image" content="${site.url}${socialPoster || `/img/og-${lang}.png?v=20261015`}">
 <meta property="og:image:secure_url" content="${site.url}${socialPoster || `/img/og-${lang}.png?v=20261015`}">
 <meta property="og:image:type" content="${socialPoster ? 'image/jpeg' : 'image/png'}">
@@ -393,7 +393,10 @@ function emit(lang, p, opts) {
 function reelsPage(lang, startSlug = '') {
       const available = videos.filter(v => !v.sample && v.sources.some(s => s.type === 'file'));
       const start = Math.max(0, available.findIndex(v => v.slug === startSlug));
-      const films = [...available.slice(start), ...available.slice(0, start)];
+      const films = available.length ? [available[start]] : [];
+      const videoURL = (v) => `${U(lang, `/v/${v.slug}/`)}?share=v3-${v.slug}`;
+      const previous = available.length > 1 ? videoURL(available[(start - 1 + available.length) % available.length]) : '';
+      const next = available.length > 1 ? videoURL(available[(start + 1) % available.length]) : '';
       const text = (zh, en) => lang === 'zh' ? zh : en;
       return {
         title: startSlug ? films[0][lang].title : (lang === 'zh' ? '视频' : 'Videos'),
@@ -401,7 +404,7 @@ function reelsPage(lang, startSlug = '') {
         styles: [`/css/reels.css?v=${ver('css/reels.css')}`],
         scripts: [`/js/reels.js?v=${ver('js/reels.js')}`],
         body: `<div class="reels-top"><a href="${U(lang, '/')}" aria-label="${text('返回首页','Back to home')}">‹</a><h1>${text('视频','Videos')}</h1><nav class="reels-top-arrows" aria-label="${text('左右切换视频','Switch videos left or right')}"><button type="button" data-reel-step="-1" aria-label="${text('上一条视频','Previous video')}">←</button><button type="button" data-reel-step="1" aria-label="${text('下一条视频','Next video')}">→</button></nav><a class="reels-language" href="${U(lang === 'zh' ? 'en' : 'zh', startSlug ? `/v/${startSlug}/` : '/t/video/')}">${text('EN','中')}</a></div>
-<section class="reels-feed" data-reels tabindex="0" aria-label="${text('左右滑动切换视频','Swipe left or right to change video')}">${films.map((v,i) => {
+<section class="reels-feed" data-reels data-previous="${esc(previous)}" data-next="${esc(next)}" data-position="${start + 1}" data-total="${available.length}" tabindex="0" aria-label="${text('左右滑动切换视频','Swipe left or right to change video')}">${films.map((v,i) => {
         const source = v.sources.find(s => s.type === 'file');
         const c = v[lang];
         const href = U(lang, `/v/${v.slug}/details/`);
@@ -413,7 +416,7 @@ function reelsPage(lang, startSlug = '') {
 <aside class="reel-actions" aria-label="${text('视频操作','Video actions')}">${videoLike(v.slug,lang,c.title)}<a class="reel-comment" href="${href}#reel-comments" aria-label="${text('查看留言','View comments')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 2V11.5a10 10 0 0 1 20 0Z"/></svg>${text('留言','Comments')}</a><button class="reel-mute" type="button" aria-label="${text('静音','Mute')}"><span>♫</span><small>${text('静音','Mute')}</small></button><button class="reel-fullscreen" type="button" aria-label="${text('全屏','Fullscreen')}">⛶<small>${text('全屏','Fullscreen')}</small></button></aside>
 <label class="reel-timeline"><span class="sr-only">${text('播放进度','Playback position')}</span><input type="range" min="0" max="100" value="0" step="0.1" aria-label="${text('播放进度','Playback position')}"></label>
 <p class="reel-status" role="status" hidden></p><noscript><a class="reel-fallback" href="${href}">${text('打开视频','Open video')}</a></noscript></article>`;
-      }).join('')}</section><div class="reels-step"><button type="button" data-reel-step="-1" aria-label="${text('上一条视频','Previous video')}">←</button><span data-reel-count>1 / ${films.length}</span><button type="button" data-reel-step="1" aria-label="${text('下一条视频','Next video')}">→</button></div><div class="reels-hint">${text('右滑，看下一条','Swipe right for the next video')} →</div>`,
+      }).join('')}</section><div class="reels-step"><button type="button" data-reel-step="-1" aria-label="${text('上一条视频','Previous video')}">←</button><span data-reel-count>${start + 1} / ${available.length}</span><button type="button" data-reel-step="1" aria-label="${text('下一条视频','Next video')}">→</button></div><div class="reels-hint">${text('右滑，看下一条','Swipe right for the next video')} →</div>`,
       };
 }
 
@@ -423,7 +426,7 @@ function itemHref(it, lang) {
 }
 function videoLike(slug, lang, title) {
   const sharePath = U(lang, `/v/${slug}/`);
-  const shareUrl = site.url + sharePath + '?share=video2';
+  const shareUrl = site.url + sharePath + `?share=v3-${slug}`;
   return `<div class="video-reactions"><button type="button" class="video-share" data-video-share data-share-url="${esc(shareUrl)}" data-share-title="${esc(title)}" aria-label="${lang === 'zh' ? '分享转发这段视频' : 'Share this video'}" title="${lang === 'zh' ? '分享转发' : 'Share'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg><span>${lang === 'zh' ? '分享' : 'Share'}</span></button><button type="button" class="video-like" data-video-like="v:${slug}" aria-label="${lang === 'zh' ? '点赞，可连续点击' : 'Like, tap again to add more'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg><span data-like-label>${lang === 'zh' ? '点赞' : 'Like'}</span><b data-like-count title="258">258</b></button><span class="like-error" role="status"></span></div>`;
 }
 function card(it, lang, current) {

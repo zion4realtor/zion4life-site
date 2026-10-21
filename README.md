@@ -271,3 +271,5 @@ Reading is an independent workflow maintained in its dedicated reading chat. Its
 
 ### Chinese reading recording storage
 Chinese reading audio must be served from `/api/reading/<date>/audio/zh/<ot|nt>.mp3`, never from a third-party URL in the browser. The reading preparation cron copies original MP3s into permanent `reading:zh:audio:<source-hash>` blobs and date-specific `reading:zh:manifest:` entries ahead of time. Older dates are also copied on first playback. Validated files are fully stored before serving, support GET/HEAD and byte ranges, and are independent of prayer recording cleanup. Original source metadata remains available to the server for retrieval; failed copies retry and never redirect the visitor to Dropbox.
+
+Video share identity: each `/v/<slug>/` document contains only that film. Horizontal gestures, arrows and completion navigate to another document; do not embed the full library or rewrite history to impersonate another video. Video URLs resolve to a per-slug `share=v3-<slug>` query before rendering, and metadata remains fixed for the document.

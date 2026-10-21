@@ -68,3 +68,27 @@ function knownLength(body, size) {
   body.pipeTo(fixed.writable).catch(() => {});
   return fixed.readable;
 }
+
+// Give each video its own fresh share identity. Old bare/common-query links
+// resolve to that identity before any script runs, including for preview crawlers.
+export async function serveVideoPage(request, env) {
+  const url = new URL(request.url);
+  const match = url.pathname.match(/^\/(?:en\/)?v\/([a-z0-9-]+)\/?$/);
+  if (!match || !['GET', 'HEAD'].includes(request.method)) return env.ASSETS.fetch(request);
+  const headers = new Headers(request.headers);
+  headers.delete('If-None-Match');
+  headers.delete('If-Modified-Since');
+  const asset = await env.ASSETS.fetch(new Request(request.url, {method:request.method, headers}));
+  if (asset.status !== 200) return asset;
+  const version = `v3-${match[1]}`;
+  const canonicalPath = url.pathname.replace(/\/?$/, '/');
+  if (url.searchParams.get('share') !== version || url.pathname !== canonicalPath) {
+    await asset.body?.cancel();
+    url.pathname = canonicalPath;
+    url.searchParams.set('share', version);
+    return new Response(null, {status:302, headers:{Location:url.href, 'Cache-Control':'no-store'}});
+  }
+  const out = new Headers(asset.headers);
+  out.set('Cache-Control','no-store');
+  return new Response(asset.body,{status:200,headers:out});
+}

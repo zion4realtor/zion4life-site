@@ -62,3 +62,21 @@ test('a truncated asset fails instead of silently completing a partial MP4 range
  const r=await serveVideo(new Request('https://example.com/video/test.mp4',{headers:{Range:'bytes=0-8'}}),env);
  await assert.rejects(r.arrayBuffer(),/ended before/);
 });
+
+test('video share entry redirects old links per slug without loops, preserves language, and rejects missing videos',async()=>{
+ const {serveVideoPage}=await import('../src/media.js');
+ const env={ASSETS:{fetch:async req=>{
+  assert.equal(req.headers.has('If-None-Match'),false);
+  return new Response('only this video',{headers:{'Content-Type':'text/html'}});
+ }}};
+ for(const pre of ['', '/en'])for(const slug of ['prayer-and-job-search','atlanta-baptisms']){
+  for(const query of ['', '?share=video2', '?share=v3-other']){
+   const r=await serveVideoPage(new Request(`https://example.com${pre}/v/${slug}/${query}`,{headers:{'If-None-Match':'old'}}),env);
+   assert.equal(r.status,302);assert.equal(r.headers.get('Location'),`https://example.com${pre}/v/${slug}/?share=v3-${slug}`);
+  }
+  const r=await serveVideoPage(new Request(`https://example.com${pre}/v/${slug}/?share=v3-${slug}`),env);
+  assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.equal(await r.text(),'only this video');
+ }
+ const missing={ASSETS:{fetch:async()=>new Response('missing',{status:404})}};
+ assert.equal((await serveVideoPage(new Request('https://example.com/v/missing/'),missing)).status,404);
+});

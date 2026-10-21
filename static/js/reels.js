@@ -3,9 +3,9 @@
   if (!feed) return;
   const reels = [...feed.querySelectorAll('[data-reel]')];
   const en = document.documentElement.lang === 'en';
-  const wechat = /MicroMessenger/i.test(navigator.userAgent);
   const t = (zh, english) => en ? english : zh;
   let active = -1, muted = false, manuallyPaused = false;
+  try { muted = window.sessionStorage?.getItem('reels-muted') === '1'; } catch {}
   const steps = [...document.querySelectorAll('[data-reel-step]')];
   const count = document.querySelector('[data-reel-count]');
   const hint = document.querySelector('.reels-hint');
@@ -60,13 +60,6 @@
   }
   function activate(index) {
     if (index === active || !reels[index]) return;
-    // WeChat's menu can retain the entry document's share card despite history
-    // and meta updates. Load the selected video's own document in that browser.
-    if (wechat && index !== 0) {
-      reels.forEach(reel => reel.querySelector('video').pause());
-      location.replace(`${en ? '/en' : ''}/v/${reels[index].dataset.reel}/?share=video2`);
-      return;
-    }
     active = index; manuallyPaused = false;
     reels.forEach((reel, i) => {
       const video = reel.querySelector('video');
@@ -76,40 +69,42 @@
       }
       reel.classList.toggle('is-paused', i === index && manuallyPaused);
     });
-    const slug = reels[index].dataset.reel;
-    const prefix = en ? '/en' : '';
-    history.replaceState(null, '', `${prefix}/v/${slug}/${wechat ? '?share=video2' : ''}`);
-    document.title = reels[index].getAttribute('aria-label') + (en ? ' | Light' : '｜有光');
-    // The native share menu must follow the video currently on screen.
-    const current = reels[index];
-    const title = current.getAttribute('aria-label');
-    const description = current.dataset.shareDescription || title;
-    const image = new URL(current.dataset.shareImage, location.origin).href;
-    const url = `${location.origin}${prefix}/v/${slug}/`;
-    for (const [selector, value] of [
-      ['meta[name="description"]', description],
-      ['meta[property="og:title"]', title],
-      ['meta[property="og:description"]', description],
-      ['meta[property="og:url"]', url],
-      ['meta[property="og:image"]', image],
-      ['meta[property="og:image:secure_url"]', image],
-      ['meta[property="og:image:alt"]', title],
-      ['meta[name="twitter:title"]', title],
-      ['meta[name="twitter:description"]', description],
-      ['meta[name="twitter:image"]', image],
-    ]) document.querySelector(selector)?.setAttribute('content', value);
-    document.querySelector('link[rel="canonical"]')?.setAttribute('href', url);
-    document.querySelector('link[rel="image_src"]')?.setAttribute('href', image);
-    document.querySelector('.reels-language').href = `${en ? '' : '/en'}/v/${slug}/`;
-    count.textContent = `${index + 1} / ${reels.length}`;
-    steps.forEach(b => b.disabled = reels.length < 2);
-    if (index > 0) hint.classList.add('is-hidden');
+    // A document owns exactly one video and immutable share metadata.
+    // Never use replaceState to make another video impersonate this URL.
+    count.textContent = `${feed.dataset.position} / ${feed.dataset.total}`;
+    steps.forEach(b => b.disabled = !feed.dataset.next);
     if (!document.hidden && !manuallyPaused) play(reels[index]);
   }
+  let navigating = false;
   function step(delta) {
-    const next = (active + delta + reels.length) % reels.length;
-    reels[next]?.scrollIntoView({ behavior: motion ? 'instant' : 'smooth', block: 'nearest', inline: 'start' });
+    const url = delta > 0 ? feed.dataset.next : feed.dataset.previous;
+    if (!url || navigating) return;
+    navigating = true;
+    reels.forEach(reel => reel.querySelector('video').pause());
+    location.assign(url);
   }
+  let touch;
+  feed.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1 || event.target.closest('input,a,.reel-actions button')) { touch = null; return; }
+    touch = {x:event.touches[0].clientX, y:event.touches[0].clientY};
+  }, {passive:true});
+  feed.addEventListener('touchend', event => {
+    if (!touch || !event.changedTouches.length) return;
+    const dx = event.changedTouches[0].clientX - touch.x;
+    const dy = event.changedTouches[0].clientY - touch.y;
+    touch = null;
+    if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.3) { event.preventDefault(); step(dx < 0 ? 1 : -1); }
+  }, {passive:false});
+  feed.addEventListener('touchcancel', () => { touch = null; }, {passive:true});
+  let wheelX = 0, wheelTime = 0;
+  feed.addEventListener('wheel', event => {
+    if (event.ctrlKey || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+    event.preventDefault();
+    const now = Date.now();
+    wheelX = now - wheelTime > 200 ? event.deltaX : wheelX + event.deltaX;
+    wheelTime = now;
+    if (Math.abs(wheelX) > 60) step(wheelX > 0 ? 1 : -1);
+  }, {passive:false});
   steps.forEach(b => b.addEventListener('click', () => step(Number(b.dataset.reelStep))));
   document.addEventListener('keydown', event => {
     if (event.target.matches('input,textarea,select,button,a') || event.ctrlKey || event.metaKey || event.altKey) return;
@@ -130,10 +125,8 @@
       else { manuallyPaused = true; video.pause(); }
     });
     video.addEventListener('ended', () => {
-      if (reels[active] !== reel || document.hidden || reels.length < 2) return;
-      const next = (active + 1) % reels.length;
-      reels[next].scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'start' });
-      activate(next);
+      if (reels[active] !== reel || document.hidden) return;
+      step(1);
     });
     video.addEventListener('pause', () => reel.classList.add('is-paused'));
     video.addEventListener('play', () => {
@@ -154,6 +147,7 @@
     slider.addEventListener('input', () => { if (Number.isFinite(video.duration)) video.currentTime = video.duration * Number(slider.value) / 100; });
     reel.querySelector('.reel-mute').addEventListener('click', () => {
       muted = !video.muted;
+      try { window.sessionStorage?.setItem('reels-muted', muted ? '1' : '0'); } catch {}
       reels.forEach(r => r.querySelector('video').muted = muted);
       soundLabels();
       if (!manuallyPaused) play(reel);
@@ -175,6 +169,6 @@
   window.addEventListener('pagehide', () => reels.forEach(r => r.querySelector('video').pause()));
   soundLabels();
   if (reels.length) activate(0);
-  window.addEventListener('pageshow', event => { if (event.persisted && reels[active] && !manuallyPaused) play(reels[active]); });
+  window.addEventListener('pageshow', event => { navigating = false; if (event.persisted && reels[active] && !manuallyPaused) play(reels[active]); });
   setTimeout(() => hint.classList.add('is-hidden'), 6000);
 })();
