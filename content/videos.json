@@ -1,5 +1,280 @@
 [
   {
+    "slug": "christ-return-purpose",
+    "minutes": 3,
+    "seconds": 179.4,
+    "date": "2026-10-21",
+    "publishedAt": "2026-10-21T18:51:02.955934Z",
+    "tags": [
+      "video",
+      "mystery"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "主耶稣再来，要完成什么？",
+      "summary": "王生台从圣经谈主再来的两个目的、千年国与新耶路撒冷，以及生命成熟的意义。选自2026年5月15日分享。"
+    },
+    "en": {
+      "title": "What Will Christ Accomplish When He Returns?",
+      "summary": "Wang Shengtai discusses two purposes of Christ's return, the millennial kingdom, the New Jerusalem, and maturity in life. From a talk dated May 15, 2026."
+    },
+    "sourceNote": {
+      "zh": "摘自王生台《世界局势与主的再来》（1），原片标注2026年5月15日。原片 00:03:54.850–00:06:54.250。保留中文原声和横屏画面，配中英文字幕。",
+      "en": "Excerpt from Wang Shengtai, World Events and the Lord's Return (Part 1), dated May 15, 2026 on the source. Source 00:03:54.850–00:06:54.250. Original Chinese audio and landscape framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/christ-return-purpose.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/christ-return-purpose.mp4?v=20261021",
+        "poster": "/video/christ-return-purpose.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/christ-return-purpose.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/christ-return-purpose.zh.vtt"
+      }
+    ]
+  },
+  {
+    "slug": "kingdom-and-daily-life",
+    "minutes": 2,
+    "seconds": 120.54999999999995,
+    "date": "2026-10-21",
+    "publishedAt": "2026-10-21T18:51:02.955934Z",
+    "tags": [
+      "video",
+      "life"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "神的国，和今天的生活有什么关系？",
+      "summary": "神的国与今天的生活有什么关系？王生台用种子、鱼和鸟的比喻，分享生命成长的环境，以及让基督掌权的实际。"
+    },
+    "en": {
+      "title": "What Does God's Kingdom Have to Do with Life Today?",
+      "summary": "What does God's kingdom mean for life today? Wang Shengtai uses seeds, fish, and birds to explain an environment for spiritual growth and letting Christ rule."
+    },
+    "sourceNote": {
+      "zh": "摘自王生台《世界局势与主的再来》（1），原片标注2026年5月15日。原片 00:22:03.050–00:24:03.600。保留中文原声和横屏画面，配中英文字幕。",
+      "en": "Excerpt from Wang Shengtai, World Events and the Lord's Return (Part 1), dated May 15, 2026 on the source. Source 00:22:03.050–00:24:03.600. Original Chinese audio and landscape framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/kingdom-and-daily-life.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/kingdom-and-daily-life.mp4?v=20261021",
+        "poster": "/video/kingdom-and-daily-life.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/kingdom-and-daily-life.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/kingdom-and-daily-life.zh.vtt"
+      }
+    ]
+  },
+  {
+    "slug": "human-fall-and-conflict",
+    "minutes": 3,
+    "seconds": 195.20000000000027,
+    "date": "2026-10-21",
+    "publishedAt": "2026-10-21T18:51:02.955934Z",
+    "tags": [
+      "video",
+      "mystery"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "世界的纷争，圣经怎么看？",
+      "summary": "王生台从圣经的信仰视角，分享神造人的目的、人的堕落，以及纷争与彼此控告背后的属灵问题。"
+    },
+    "en": {
+      "title": "How Does the Bible Explain Conflict in the World?",
+      "summary": "From a biblical faith perspective, Wang Shengtai reflects on God's purpose for humanity, the fall, and the spiritual issues behind conflict and mutual accusation."
+    },
+    "sourceNote": {
+      "zh": "摘自王生台《世界局势与主的再来》（1），原片标注2026年5月15日。原片 00:31:36.850–00:34:52.050。保留中文原声和横屏画面，配中英文字幕。",
+      "en": "Excerpt from Wang Shengtai, World Events and the Lord's Return (Part 1), dated May 15, 2026 on the source. Source 00:31:36.850–00:34:52.050. Original Chinese audio and landscape framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/human-fall-and-conflict.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/human-fall-and-conflict.mp4?v=20261021",
+        "poster": "/video/human-fall-and-conflict.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/human-fall-and-conflict.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/human-fall-and-conflict.zh.vtt"
+      }
+    ]
+  },
+  {
+    "slug": "war-and-signs",
+    "minutes": 3,
+    "seconds": 187.66999999999996,
+    "date": "2026-10-21",
+    "publishedAt": "2026-10-21T18:51:02.955934Z",
+    "tags": [
+      "video",
+      "mystery"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "战争与动荡，怎样看主再来的兆头？",
+      "summary": "选自王生台2026年5月15日分享：从战争、动荡与灾难谈他对主再来兆头的理解。本段保留当时的局势背景与讲者信仰解读。"
+    },
+    "en": {
+      "title": "Wars and Unrest: How Should We Read the Signs?",
+      "summary": "From Wang Shengtai's May 15, 2026 talk: his interpretation of wars, unrest, and disasters as signs of the Lord's return, preserving the context and faith perspective of that talk."
+    },
+    "sourceNote": {
+      "zh": "摘自王生台《世界局势与主的再来》（2），原片标注2026年5月15日。原片 00:01:36.980–00:04:44.650。保留中文原声和横屏画面，配中英文字幕。",
+      "en": "Excerpt from Wang Shengtai, World Events and the Lord's Return (Part 2), dated May 15, 2026 on the source. Source 00:01:36.980–00:04:44.650. Original Chinese audio and landscape framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/war-and-signs.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/war-and-signs.mp4?v=20261021",
+        "poster": "/video/war-and-signs.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/war-and-signs.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/war-and-signs.zh.vtt"
+      }
+    ]
+  },
+  {
+    "slug": "prepare-in-daily-life",
+    "minutes": 2,
+    "seconds": 137.05000000000018,
+    "date": "2026-10-21",
+    "publishedAt": "2026-10-21T18:51:02.955934Z",
+    "tags": [
+      "video",
+      "life"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "等候主再来，今天可以怎样预备？",
+      "summary": "等候主再来，日常生活可以怎样预备？王生台分享警醒、正常工作、忠信事奉、实行主的话，以及让生命成熟。"
+    },
+    "en": {
+      "title": "Waiting for the Lord's Return: How Can We Prepare Today?",
+      "summary": "How can we prepare for the Lord's return in everyday life? Wang Shengtai discusses watchfulness, normal work, faithful service, practicing the Lord's word, and maturity in life."
+    },
+    "sourceNote": {
+      "zh": "摘自王生台《世界局势与主的再来》（2），原片标注2026年5月15日。原片 00:38:34.500–00:40:51.550。保留中文原声和横屏画面，配中英文字幕。",
+      "en": "Excerpt from Wang Shengtai, World Events and the Lord's Return (Part 2), dated May 15, 2026 on the source. Source 00:38:34.500–00:40:51.550. Original Chinese audio and landscape framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/prepare-in-daily-life.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/prepare-in-daily-life.mp4?v=20261021",
+        "poster": "/video/prepare-in-daily-life.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/prepare-in-daily-life.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/prepare-in-daily-life.zh.vtt"
+      }
+    ]
+  },
+  {
     "slug": "work-and-priorities",
     "minutes": 5,
     "seconds": 292.208583,
