@@ -1,5 +1,61 @@
 [
   {
+    "slug": "work-and-priorities",
+    "minutes": 5,
+    "seconds": 292.208583,
+    "date": "2026-10-20",
+    "publishedAt": "2026-10-21T02:30:11.903218Z",
+    "tags": [
+      "work",
+      "feelings",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": "en",
+    "zh": {
+      "title": "工作遇到难处，你先找谁？",
+      "summary": "王嘉玲从几十年的职场经历谈起，分享工作遇到困难时先寻求什么，以及顺境、逆境中的优先次序。"
+    },
+    "en": {
+      "title": "When Work Gets Hard, Where Do You Turn First?",
+      "summary": "Drawing on decades in the workplace, Wang Jialing reflects on where to turn when work becomes difficult, and on priorities in both good times and adversity."
+    },
+    "sourceNote": {
+      "zh": "摘自《我们与神的关系——是交往，而不是交易》（上），2017年6月。原片 01:08:01.700–01:12:53.900。保留中文原声与横屏画面，配中英文字幕。",
+      "en": "Excerpt from “Our Relationship with God: A Relationship, Not a Transaction” (Part 1), June 2017. Source 01:08:01.700–01:12:53.900. Original Chinese audio and landscape framing, with Chinese and English subtitles."
+    },
+    "poster": "/video/work-and-priorities.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/work-and-priorities.mp4?v=20261020",
+        "poster": "/video/work-and-priorities.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/work-and-priorities.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/work-and-priorities.zh.vtt"
+      }
+    ]
+  },
+  {
     "slug": "atlanta-baptisms",
     "minutes": 1,
     "seconds": 57.002,
