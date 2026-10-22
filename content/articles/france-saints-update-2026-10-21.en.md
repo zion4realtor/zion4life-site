@@ -32,4 +32,5 @@ We continue to spread the gospel at several major universities in the Paris area
 2. May the Lord preserve all the young vessels and open them to the Holy Spirit.
 3. May the Lord cause many residents of France to know Him and enter into the church life.
 
-<div class="article-signoff">Yours in Christ, Sister Jiang<br>October 21, 2026</div>
+**Yours in Christ, Sister Lin**  
+October 21, 2026
