@@ -1,5 +1,60 @@
 [
   {
+    "slug": "summer-school-of-truth-everyday-life",
+    "minutes": 2,
+    "seconds": 114.26,
+    "date": "2026-10-23",
+    "tags": [
+      "life",
+      "students",
+      "feelings",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "portrait",
+    "captionOptions": [
+      "zh",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "off"
+    },
+    "burnedInCaptionLanguage": "en",
+    "zh": {
+      "title": "暑期真理学校｜在日常生活中经历基督",
+      "summary": "“耶稣对他说，我就是道路、实际、生命。”（约翰福音14:6）\n\n暑期真理学校注重真理，不只是学习道理，更是经历那位就是真理的耶稣基督。今年，来自田纳西州、佐治亚州和阿拉巴马州的初高中学生，一同学习神完整的救恩与召会，并认识如何将这些真理应用在每天的基督徒生活中。\n\n例如，有一堂课鼓励学生，遇到难处时，转向住在他们里面的主（加拉太书2:20；哥林多后书13:5）。谈到最难忘的收获，一位学生说：“我们都有责任参与召会的建造。凡事都当为建造。”\n\n信息和课程之间，学生们一起打排球、玩桌上足球、共享饭食。当被问到这一周最难忘的事时，一位学生简单地回答：“和圣徒们在一起。”这正是诗人在诗篇133篇所描绘的喜乐与合一，不只在聚会中，更在日常召会生活的点滴里。"
+    },
+    "en": {
+      "title": "Summer School of Truth: Experiencing Christ in Everyday Life",
+      "summary": "“Jesus said to him, I am the way and the truth and the life” (John 14:6)\n\nSummer Schools of Truth are focused on the truth – not in the way of doctrine, but in the way of experiencing Jesus Christ, who is the truth. This year, junior high and high school students from Tennessee, Georgia, and Alabama studied God’s full salvation and the church, and how these apply to their everyday Christian life.\n\nFor example, one lesson encouraged students to turn to the Lord within them when faced with difficult situations (Gal. 2:20, 2 Cor. 13:5). Asked for a highlight, one student responded, “We all have the responsibility in building up the church. Let all things be done for building up.\"\n\nBetween messages and lessons, students enjoyed volleyball games, foosball, and shared meals. Asked for his highlight of the week, one student answered simply: “Being together with the saints.” It’s the same joy and oneness the psalmist describes in Psalm 133, found not just in meetings but in everyday moments with the church."
+    },
+    "sourceNote": {
+      "zh": "用户提供的完整暑期真理学校集锦。保留英文原声、背景音乐、原片英文字幕与片尾。另配可切换中文字幕，并附中英文VTT/SRT。中文译字幕对照原片英文字幕、口述与访谈校订；英文介绍保留用户原文。",
+      "en": "Complete Summer School of Truth montage supplied by the user. Original English audio, music, embedded English captions, and closing frames preserved. Optional Chinese subtitles and separate Chinese/English VTT and SRT files are included. The English introduction is the text supplied by the user."
+    },
+    "poster": "/video/summer-school-of-truth-everyday-life.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/summer-school-of-truth-everyday-life.mp4?v=20261023",
+        "poster": "/video/summer-school-of-truth-everyday-life.jpg",
+        "label": "英文原声 / Original English"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文翻译",
+        "url": "/video/summer-school-of-truth-everyday-life.zh.vtt"
+      }
+    ],
+    "publishedAt": "2026-10-23T21:39:51.333077Z"
+  },
+  {
     "slug": "southeast-youth-bible-camp-2026",
     "minutes": 1,
     "seconds": 85.8,
