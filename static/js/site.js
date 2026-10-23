@@ -341,7 +341,7 @@
           caption.srclang = sub.lang;
           caption.label = sub.label || sub.lang;
           var captionOwner = player.closest('.short-watch');
-          var defaultLanguage = captionOwner ? captionOwner.getAttribute('data-caption-choice') || 'en' : (zh ? 'zh' : 'en');
+          var defaultLanguage = captionOwner ? captionOwner.getAttribute('data-caption-choice') || (zh ? 'zh' : 'en') : (zh ? 'zh' : 'en');
           caption.default = sub.lang.split('-')[0] === defaultLanguage;
           el.appendChild(caption);
         });
@@ -367,7 +367,7 @@
       }
       if (s.type === 'file' && player.hasAttribute('data-short')) {
         var watch = player.closest('.short-watch');
-        var captionLanguage = watch.getAttribute('data-caption-choice') || 'en';
+        var captionLanguage = watch.getAttribute('data-caption-choice') || (zh ? 'zh' : 'en');
         function selectCaptions() {
           Array.from(el.textTracks).forEach(function (t) { t.mode = t.language.split('-')[0] === captionLanguage ? 'showing' : 'disabled'; });
         }

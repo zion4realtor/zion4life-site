@@ -1,5 +1,64 @@
 [
   {
+    "slug": "bethsaida-open-our-eyes",
+    "minutes": 2,
+    "seconds": 134.528,
+    "date": "2026-10-22",
+    "tags": [
+      "stories",
+      "goodnews",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "zh",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
+    "zh": {
+      "title": "伯赛大｜求主开我们的眼睛",
+      "summary": "以色列圣地游学之旅，循着马可福音去探寻奴仆救主的脚踪。"
+    },
+    "en": {
+      "title": "Bethsaida: Lord, Open Our Eyes",
+      "summary": "A study journey through the Holy Land of Israel, following the Gospel of Mark in the footsteps of the Slave-Savior."
+    },
+    "sourceNote": {
+      "zh": "用户提供《伯赛大》完整视频。保留中文原声、配乐和横屏画面；重新整理字幕区，配可切换的中英文字幕。",
+      "en": "Full Bethsaida video supplied by the user. Original Chinese audio, music, and landscape framing preserved, with a redesigned caption area and selectable Chinese and English subtitles."
+    },
+    "poster": "/video/bethsaida-open-our-eyes.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/bethsaida-open-our-eyes.mp4?v=20261022",
+        "poster": "/video/bethsaida-open-our-eyes.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/bethsaida-open-our-eyes.en.vtt"
+      },
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/bethsaida-open-our-eyes.zh.vtt"
+      }
+    ],
+    "publishedAt": "2026-10-23T02:25:40.392168Z"
+  },
+  {
     "slug": "christ-return-purpose",
     "minutes": 3,
     "seconds": 179.4,
@@ -19,7 +78,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "主耶稣再来，要完成什么？",
       "summary": "王生台从圣经谈主再来的两个目的、千年国与新耶路撒冷，以及生命成熟的意义。选自2026年5月15日分享。"
@@ -74,7 +136,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "神的国，和今天的生活有什么关系？",
       "summary": "神的国与今天的生活有什么关系？王生台用种子、鱼和鸟的比喻，分享生命成长的环境，以及让基督掌权的实际。"
@@ -129,7 +194,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "世界的纷争，圣经怎么看？",
       "summary": "王生台从圣经的信仰视角，分享神造人的目的、人的堕落，以及纷争与彼此控告背后的属灵问题。"
@@ -184,7 +252,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "战争与动荡，怎样看主再来的兆头？",
       "summary": "选自王生台2026年5月15日分享：从战争、动荡与灾难谈他对主再来兆头的理解。本段保留当时的局势背景与讲者信仰解读。"
@@ -239,7 +310,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "等候主再来，今天可以怎样预备？",
       "summary": "等候主再来，日常生活可以怎样预备？王生台分享警醒、正常工作、忠信事奉、实行主的话，以及让生命成熟。"
@@ -295,7 +369,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "工作遇到难处，你先找谁？",
       "summary": "王嘉玲从几十年的职场经历谈起，分享工作遇到困难时先寻求什么，以及顺境、逆境中的优先次序。"
@@ -393,7 +470,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "找工作很焦虑，祷告能换来一份工作吗？",
       "summary": "王嘉玲分享一位即将毕业的 MBA 学生面对求职焦虑的经历，谈祷告与神的关系。"
@@ -449,7 +529,10 @@
       "zh",
       "off"
     ],
-    "defaultCaption": "en",
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
     "zh": {
       "title": "听过耶稣，和真正认识祂有什么不同？",
       "summary": "李光弘在《福乐人生》中分享：从听过耶稣，到用信心亲自认识祂。"
@@ -910,7 +993,11 @@
         "label": "中文",
         "url": "/video/meaning-of-life.zh.vtt"
       }
-    ]
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    }
   },
   {
     "slug": "more-than-material",
@@ -953,7 +1040,11 @@
         "label": "中文",
         "url": "/video/more-than-material.zh.vtt"
       }
-    ]
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    }
   },
   {
     "slug": "lgh-gospel-sharing",
@@ -1074,7 +1165,7 @@
       "en": "Livingstone Lee · Chinese audio · English subtitles"
     },
     "defaultCaption": {
-      "zh": "en",
+      "zh": "zh",
       "en": "en"
     },
     "captionOptions": [

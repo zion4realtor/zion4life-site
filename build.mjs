@@ -390,6 +390,10 @@ function emit(lang, p, opts) {
   if (!opts.noindex) urls.push(U(lang, p));
 }
 
+function videoCaptionLanguage(video, lang, tracks = video.subtitles || []) {
+  return tracks.some(track => track.lang.split('-')[0] === lang) ? lang : 'off';
+}
+
 function reelsPage(lang, startSlug = '') {
       const available = videos.filter(v => !v.sample && v.sources.some(s => s.type === 'file'));
       const start = Math.max(0, available.findIndex(v => v.slug === startSlug));
@@ -410,7 +414,7 @@ function reelsPage(lang, startSlug = '') {
         const href = U(lang, `/v/${v.slug}/details/`);
         return `<article class="reel${v.orientation === 'portrait' ? ' reel-portrait' : ''}" data-reel="${v.slug}" data-share-description="${esc(c.summary || c.title)}" data-share-image="${esc(v.poster || source.poster || '')}" aria-label="${esc(c.title)}">
 <img class="reel-backdrop" src="${esc(v.poster || source.poster || '')}" alt="" loading="${i ? 'lazy' : 'eager'}">
-<video class="reel-video" data-src="${esc(source.url)}" poster="${esc(v.poster || source.poster || '')}" preload="none" playsinline aria-label="${esc(c.title)}">${(source.subtitles || v.subtitles || []).map(track => `<track kind="subtitles" src="${esc(track.url)}" srclang="${esc(track.lang)}" label="${esc(track.label || track.lang)}"${track.lang === (typeof v.defaultCaption === 'object' ? v.defaultCaption[lang] : (v.defaultCaption || lang)) ? ' default' : ''}>`).join('')}</video>
+<video class="reel-video" data-src="${esc(source.url)}" poster="${esc(v.poster || source.poster || '')}" preload="none" playsinline aria-label="${esc(c.title)}">${(source.subtitles || v.subtitles || []).map(track => `<track kind="subtitles" src="${esc(track.url)}" srclang="${esc(track.lang)}" label="${esc(track.label || track.lang)}"${track.lang.split('-')[0] === videoCaptionLanguage(v, lang, source.subtitles || v.subtitles || []) ? ' default' : ''}>`).join('')}</video>
 <button class="reel-toggle" type="button" aria-label="${text('播放或暂停','Play or pause')}"><span class="reel-play">▶</span></button>
 <div class="reel-copy"><h2><a href="${href}">${esc(c.title)}</a></h2><p>${esc(c.summary || '')}</p><a class="reel-details" href="${href}">${text('详情与留言','Details & comments')} ↗</a></div>
 <aside class="reel-actions" aria-label="${text('视频操作','Video actions')}">${videoLike(v.slug,lang,c.title)}<a class="reel-comment" href="${href}#reel-comments" aria-label="${text('查看留言','View comments')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 2V11.5a10 10 0 0 1 20 0Z"/></svg>${text('留言','Comments')}</a><button class="reel-mute" type="button" aria-label="${text('静音','Mute')}"><span>♫</span><small>${text('静音','Mute')}</small></button><button class="reel-fullscreen" type="button" aria-label="${text('全屏','Fullscreen')}">⛶<small>${text('全屏','Fullscreen')}</small></button></aside>
@@ -707,7 +711,7 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
       const backTag = v.tags[0];
       const subscribeTag = v.subscribeTag === false ? '' : (v.subscribeTag || (v.spotlight ? 'lgh' : ''));
       const captionOptions = v.captionOptions || ['en', 'zh', 'off'];
-      const defaultCaption = typeof v.defaultCaption === 'object' ? v.defaultCaption[lang] : (v.defaultCaption || 'en');
+      const defaultCaption = videoCaptionLanguage(v, lang, sources.find(source => source.type === 'file')?.subtitles || v.subtitles || []);
       const captionLabel = (key) => key === 'en' ? 'English' : key === 'zh' ? '中文' : (lang === 'zh' ? '关' : 'Off');
       const shortKicker = v.shortKicker?.[lang] || (lang === 'zh' ? '有光 · 故事与分享' : 'LIGHT · STORIES & REFLECTIONS');
       const byline = v.byline?.[lang] || (lang === 'zh' ? '李光弘 · 中文原声 · 英文字幕' : 'Livingstone Lee · Chinese audio · English subtitles');

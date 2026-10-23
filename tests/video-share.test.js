@@ -59,3 +59,18 @@ test('all videos navigate to matching documents on arrows, swipes and completion
   }
  }
 });
+
+test('playback and detail captions default to the page language when that track exists',()=>{
+ const videos=JSON.parse(fs.readFileSync('content/videos.json'));
+ for(const lang of ['zh','en'])for(const v of videos){
+  const pre=lang==='en'?'en/':'';
+  const tracks=v.sources.find(source=>source.type==='file')?.subtitles||v.subtitles||[];
+  const expected=tracks.some(track=>track.lang.split('-')[0]===lang)?lang:'off';
+  const playback=fs.readFileSync(`dist/${pre}v/${v.slug}/index.html`,'utf8');
+  const defaults=[...playback.matchAll(/<track\b[^>]*\bdefault[^>]*>/g)].map(match=>match[0]);
+  assert.equal(defaults.length,expected==='off'?0:1,`${lang} ${v.slug}`);
+  if(expected!=='off')assert.ok(defaults[0].includes(`srclang="${lang}"`));
+  const detail=fs.readFileSync(`dist/${pre}v/${v.slug}/details/index.html`,'utf8');
+  if(detail.includes('data-caption-choice='))assert.ok(detail.includes(`data-caption-choice="${expected}"`),`${lang} ${v.slug} detail`);
+ }
+});
