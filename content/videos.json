@@ -1,5 +1,59 @@
 [
   {
+    "slug": "southeast-youth-bible-camp-2026",
+    "minutes": 1,
+    "seconds": 85.8,
+    "date": "2026-10-23",
+    "tags": [
+      "feelings",
+      "life",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "portrait",
+    "captionOptions": [
+      "zh",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "off"
+    },
+    "burnedInCaptionLanguage": "en",
+    "zh": {
+      "title": "2026美国东南大区青少年圣经夏令营",
+      "summary": "2026年美国东南大区青少年圣经夏令营的片段：一起唱诗，一起读经，也一起分享青春里的欢笑与心事。在主的话语里得着供应，在彼此的陪伴中学习相爱，让心有安息，让生命慢慢长大。"
+    },
+    "en": {
+      "title": "2026 Southeast U.S. Youth Bible Summer Camp",
+      "summary": "Moments from the 2026 Southeast U.S. Youth Bible Summer Camp: singing, reading the Bible, and sharing the joys and cares of growing up. Nourished by the Lord's word and encouraged by one another, learning to love, finding rest for the heart, and growing in life together."
+    },
+    "sourceNote": {
+      "zh": "用户提供的完整夏令营集锦，活动年份与地区由用户确认。保留原片剪辑、声音、英文歌词和活动文字；另配画面歌词与活动说明的中文翻译字幕。原片英文已烧录在画面中，不能单独关闭。",
+      "en": "Complete camp montage supplied by the user, who confirmed the year and region. Original editing, audio, English lyrics, and activity labels preserved. An optional Chinese translation track covers the visible lyrics and activity labels. English text is part of the picture and cannot be switched off."
+    },
+    "poster": "/video/southeast-youth-bible-camp-2026.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/southeast-youth-bible-camp-2026.mp4?v=20261023",
+        "poster": "/video/southeast-youth-bible-camp-2026.jpg",
+        "label": "现场原声 / Original audio"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文翻译",
+        "url": "/video/southeast-youth-bible-camp-2026.zh.vtt"
+      }
+    ],
+    "publishedAt": "2026-10-23T12:15:54.276500Z"
+  },
+  {
     "slug": "bethsaida-open-our-eyes",
     "minutes": 2,
     "seconds": 134.528,
