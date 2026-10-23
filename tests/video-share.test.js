@@ -74,3 +74,16 @@ test('playback and detail captions default to the page language when that track 
   if(detail.includes('data-caption-choice='))assert.ok(detail.includes(`data-caption-choice="${expected}"`),`${lang} ${v.slug} detail`);
  }
 });
+
+test('full introductions are retained on detail pages while listing and sharing summaries stay concise',()=>{
+ for(const video of JSON.parse(fs.readFileSync('content/videos.json'))){
+  for(const lang of ['zh','en']){
+   const copy=video[lang];if(!copy.description)continue;
+   const pre=lang==='en'?'en/':'';
+   const detail=fs.readFileSync(`dist/${pre}v/${video.slug}/details/index.html`,'utf8');
+   assert.ok(detail.includes(`<p class="short-summary">${esc(copy.description)}</p>`));
+   assert.ok(detail.includes(`<meta property="og:description" content="${esc(copy.summary)}">`));
+   assert.notEqual(copy.summary,copy.description);
+  }
+ }
+});
