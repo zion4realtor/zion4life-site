@@ -620,7 +620,7 @@ ${askBox(lang, true)}`,
       tab: 'home',
       body: `<section class="page updates-page">
 <a class="back" href="${U(lang, '/') }">← ${esc(L.back)}</a>
-<div class="banner"><h1>${lang === 'zh' ? '全部更新' : 'All updates'}</h1><p>${lang === 'zh' ? `共 ${directoryItems.length} 条，按发布时间从新到旧排列` : `${directoryItems.length} updates, newest first`}</p></div>
+<div class="banner updates-banner" style="--banner-image:url('/img/updates-directory-banner.webp?v=1')"><h1>${lang === 'zh' ? '全部更新' : 'All updates'}</h1><p>${lang === 'zh' ? `共 ${directoryItems.length} 条，按发布时间从新到旧排列` : `${directoryItems.length} updates, newest first`}</p></div>
 <div class="recent-list updates-list">${rows}</div>
 </section>`,
     });
