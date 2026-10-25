@@ -323,16 +323,52 @@ function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scr
   const socialVideo = videos.find(v => p === `/v/${v.slug}/` || p === `/v/${v.slug}/details/`);
   const socialPoster = socialVideo?.poster;
   const description = desc || socialVideo?.[lang]?.summary || site[lang].description;
+  const articlePage = articles.find((item) => p === `/a/${item.slug}/`);
+  const assetURL = (url) => /^https?:\/\//i.test(url || '') ? url : `${site.url}${String(url || '').startsWith('/') ? '' : '/'}${url || ''}`;
+  const organizationId = `${site.url}/#organization`;
+  const websiteId = `${site.url}/#website`;
+  const mainEntity = articlePage ? {
+    '@type': 'Article',
+    headline: articlePage[lang].title || title || name,
+    description: articlePage[lang].summary || description,
+    inLanguage: lang === 'zh' ? 'zh-CN' : 'en',
+    mainEntityOfPage: canonical,
+    ...(articlePage.date ? { datePublished: articlePage.date } : {}),
+    publisher: { '@id': organizationId },
+  } : socialVideo ? {
+    '@type': 'VideoObject',
+    name: socialVideo[lang].title || title || name,
+    description: socialVideo[lang].summary || description,
+    inLanguage: lang === 'zh' ? 'zh-CN' : 'en',
+    thumbnailUrl: assetURL(socialPoster || `/img/og-${lang}.png?v=20261015`),
+    embedUrl: canonical,
+    ...(socialVideo.date ? { uploadDate: socialVideo.date } : {}),
+    ...(socialVideo.sources?.find((source) => source.type === 'file')?.url
+      ? { contentUrl: assetURL(socialVideo.sources.find((source) => source.type === 'file').url) }
+      : {}),
+    publisher: { '@id': organizationId },
+  } : undefined;
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'Organization', '@id': organizationId, name: site[lang].name, url: site.url, logo: assetURL('/icons/icon-192.png') },
+      { '@type': 'WebSite', '@id': websiteId, name: site[lang].name, url: site.url, inLanguage: lang === 'zh' ? 'zh-CN' : 'en', publisher: { '@id': organizationId } },
+      { '@type': 'WebPage', '@id': canonical, url: canonical, name: full, description, inLanguage: lang === 'zh' ? 'zh-CN' : 'en', isPartOf: { '@id': websiteId }, ...(mainEntity ? { mainEntity } : {}) },
+    ],
+  };
+  const schemaTag = `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`;
   return `<!doctype html>
 <html lang="${lang === 'zh' ? 'zh-CN' : 'en'}">
 <head>
 <meta charset="utf-8">
+<meta name="google-site-verification" content="Li7hscCszUEg08Ij3D_4dy-3Fu50Huqqf_z7SVfU5LA">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(full)}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${canonical}">
 ${only ? '' : LANGS.map((l) => `<link rel="alternate" hreflang="${l === 'zh' ? 'zh-CN' : 'en'}" href="${site.url + U(l, p)}">`).join('\n')}
 ${noindex ? '<meta name="robots" content="noindex">' : ''}
+${noindex ? '' : '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">'}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(name)}">
 <meta property="og:title" content="${esc(title || name)}">
@@ -354,6 +390,7 @@ ${socialVideo ? `<meta name="twitter:title" content="${esc(title || name)}"><met
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 ${head}
+${schemaTag}
 <link rel="stylesheet" href="${FONT}">
 <link rel="stylesheet" href="${CSS}">
 ${styles.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
