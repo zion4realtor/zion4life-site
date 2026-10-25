@@ -361,6 +361,7 @@ function page({ lang, title, desc, path: p, body, tab = '', noindex = false, scr
 <html lang="${lang === 'zh' ? 'zh-CN' : 'en'}">
 <head>
 <meta charset="utf-8">
+<meta name="google-site-verification" content="Li7hscCszUEg08Ij3D_4dy-3Fu50Huqqf_z7SVfU5LA">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(full)}</title>
 <meta name="description" content="${esc(description)}">
