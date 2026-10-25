@@ -596,8 +596,33 @@ for (const lang of LANGS) {
       body: `<section class="hello home-hello"><span class="hello-kicker">${esc(homeEditorial[lang].eyebrow)}</span><h1>${esc(homeEditorial[lang].title)}</h1><p>${esc(homeEditorial[lang].subtitle)}</p></section>
 <div class="home-fresh-sections" data-home-fresh-sections><section class="home-command" data-home-fresh="community" data-updated="${tp?Date.parse(tp.date):0}" aria-label="${lang==='zh'?'每日读经与搭子':'Daily reading and buddies'}"><div class="home-daily">${`<a class="daily-preview" data-reading-home href="${U(lang, '/read/today/ot/')}"><small data-reading-label>${lang === 'zh' ? '今日吃饭 · 三旧一新' : 'DAILY BIBLE READING'}</small><h2>${lang === 'zh' ? '三旧一新<br>一年一遍' : 'A little<br>every day'}</h2><p data-reading-summary>${lang === 'zh' ? '读经 · 听经 · 记在心里' : 'Read · Listen · Remember'}</p><p>${lang === 'zh' ? '读经 · 听经' : 'Read & listen'} →</p></a>`}</div><div class="home-companion">${daziTile}</div></section>${spotlight}</div>
 <section class="home-discover" aria-labelledby="home-discover-title"><div class="home-section-head"><span class="home-eyebrow">${lang === 'zh' ? '照着你的需要开始' : 'FIND YOUR NEXT STEP'}</span><h2 id="home-discover-title">${lang === 'zh' ? '一个入口，看见所有主题' : 'Every topic, one place to begin'}</h2><p>${lang === 'zh' ? '照着此刻的需要，找到愿意读下去的那一篇。' : 'Find something to read, hear, or carry into your day.'}</p></div><div class="home-paths" data-home-grid>${pathHTML}</div></section>
-<section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/t/mystery/')}" class="recent-more">${lang === 'zh' ? '浏览粮仓' : 'Explore'} ↗</a></div><div class="recent-list">${recentItems}</div></section>
+<section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/updates/')}" class="recent-more">${lang === 'zh' ? '全部更新' : 'All updates'} ↗</a></div><div class="recent-list">${recentItems}</div></section>
 ${askBox(lang, true)}`,
+    });
+  }
+
+  // Complete chronological directory of published content, including daily prayer burdens.
+  {
+    const directoryItems = [
+      ...homeItems.filter((it) => !it.sample).map((it) => ({
+        date: it.date, href: itemHref(it, lang), title: it[lang].title, summary: it[lang].summary || '',
+        kind: it.kind === 'video' ? (lang === 'zh' ? '视频' : 'VIDEO') : (lang === 'zh' ? '文章' : 'READ'),
+      })),
+      ...huxi.filter((day) => !day.sample).map((day) => ({
+        date: day.date, href: U(lang, `/huxi/${day.date}/`), title: day[lang].title,
+        summary: day[lang].lede || '', kind: lang === 'zh' ? '祷告负担' : 'PRAYER',
+      })),
+    ].sort((a, b) => b.date.localeCompare(a.date));
+    const rows = directoryItems.map((it) => `<a class="recent-row" href="${esc(it.href)}"><time class="recent-date" datetime="${esc(it.date)}">${esc(it.date)}</time><span class="recent-text"><b>${esc(it.title)}</b>${it.summary ? `<small>${esc(it.summary)}</small>` : ''}</span><span class="recent-kind">${esc(it.kind)}<i aria-hidden="true">↗</i></span></a>`).join('');
+    emit(lang, '/updates/', {
+      title: lang === 'zh' ? '全部更新' : 'All updates',
+      desc: lang === 'zh' ? '粮仓所有文章、视频和每日祷告负担，按发布时间从新到旧排列。' : 'All articles, videos, and daily prayer burdens, listed from newest to oldest.',
+      tab: 'home',
+      body: `<section class="page updates-page">
+<a class="back" href="${U(lang, '/') }">← ${esc(L.back)}</a>
+<div class="banner"><h1>${lang === 'zh' ? '全部更新' : 'All updates'}</h1><p>${lang === 'zh' ? `共 ${directoryItems.length} 条，按发布时间从新到旧排列` : `${directoryItems.length} updates, newest first`}</p></div>
+<div class="recent-list updates-list">${rows}</div>
+</section>`,
     });
   }
 
