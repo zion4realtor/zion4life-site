@@ -1,5 +1,60 @@
 [
   {
+    "slug": "song-of-songs-unnamed-beloved",
+    "minutes": 2,
+    "seconds": 144.010159,
+    "date": "2026-10-25",
+    "tags": [
+      "eat",
+      "family",
+      "love",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "off",
+      "en": "en"
+    },
+    "burnedInCaptionLanguage": "zh",
+    "zh": {
+      "title": "雅歌中的佳偶，为什么没有名字？",
+      "summary": "雅歌中的佳偶，为什么迟迟没有名字？直到第六章出现“书拉密”，其中有什么意义？这段短讲从新郎与新妇、所罗门与书拉密的对应，分享基督与新妇的关系，以及生命成熟的意义。"
+    },
+    "en": {
+      "title": "Why Is the Beloved in the Song of Songs Unnamed?",
+      "summary": "Why is the beloved unnamed until chapter six of the Song of Songs? This short message reflects on Solomon and the Shulammite, Christ and His bride, and the meaning of maturity."
+    },
+    "sourceNote": {
+      "zh": "来源：台北市召会主日聚会话语服事《真理短讲》；原题《雅歌中的佳偶，为什么没有名字？》。完整保留用户提供的原片、中文原声、原有中文字幕与画面署名，新增英文字幕；不推定原片录制日期。",
+      "en": "Source: the Church in Taipei, Lord’s Day message ministry, “Short Messages on the Truth.” Original title: “Why Is the Beloved in the Song of Songs Unnamed?” Full user-supplied video, Chinese audio, embedded Chinese captions, and original attribution preserved; English subtitles added. The recording date has not been inferred."
+    },
+    "poster": "/video/song-of-songs-unnamed-beloved.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/song-of-songs-unnamed-beloved.mp4?v=20261025",
+        "poster": "/video/song-of-songs-unnamed-beloved.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/song-of-songs-unnamed-beloved.en.vtt"
+      }
+    ],
+    "publishedAt": "2026-10-26T01:45:44.038295Z"
+  },
+  {
     "slug": "summer-school-of-truth-everyday-life",
     "minutes": 2,
     "seconds": 114.26,
