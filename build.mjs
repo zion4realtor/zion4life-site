@@ -433,7 +433,7 @@ function emit(lang, p, opts) {
       .replace(/<script src="\/js\/reading\.js[^>]*><\/script>\n/, '')
       .replace('</head>', `${style}</head>`)
       .replace(/<body[^>]*>[\s\S]*?<div class="tab-space">/, `<body>${body}<div class="tab-space">`);
-    const cover = `${site.url}/stories/${path.basename(opts.illustratedReader).replace('.zh.html', '')}/hero.webp`;
+    const cover = `${site.url}/stories/${path.basename(opts.illustratedReader).replace(/\.(zh|en)\.html$/, '')}/hero.webp`;
     output = output.replace(/(<meta (?:property="og:image(?::secure_url)?"|name="twitter:image") content=")[^"]*/g, `$1${cover}`)
       .replace(/(<link rel="image_src" href=")[^"]*/, `$1${cover}`)
       .replace('property="og:image:type" content="image/png"', 'property="og:image:type" content="image/webp"')
@@ -723,7 +723,7 @@ ${list.length ? `<div class="cards${t.id === 'video' ? ' video-library-list' : '
       tab: 'home',
       noindex: a.sample,
       scripts: dripAudio ? [HUXI_JS] : [],
-      illustratedReader: lang === 'zh' && fs.existsSync(path.join(CONTENT, 'readers', `${a.slug}.zh.html`)) ? path.join(CONTENT, 'readers', `${a.slug}.zh.html`) : null,
+      illustratedReader: fs.existsSync(path.join(CONTENT, 'readers', `${a.slug}.${lang}.html`)) ? path.join(CONTENT, 'readers', `${a.slug}.${lang}.html`) : null,
       body: `<article class="article${mystery ? ' mystery-article' : ''}${dripShepherding ? ' drip-article' : ''}" style="--tint:${TINTS[TAG[a.tags[0]]?.tint] || TINTS.aqua}">
 <a class="back" href="${U(lang, mystery ? '/' : a.tags[0] ? `/t/${a.tags[0]}/` : '/')}">← ${esc(mystery ? L.home : a.tags[0] ? TAG[a.tags[0]][lang] : L.back)}</a>
 <h1 class="a-title">${esc(c.title)}</h1>
