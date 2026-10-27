@@ -4,6 +4,7 @@
  const en=document.documentElement.lang==='en';
  const key='zion4life-huang-full-reader-v1'+(en?'-en':'');
  let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{}
+ const resumeState={...saved};
  let current=0,mode='chapter',font=Number.isFinite(saved.font)?Math.min(27,Math.max(18,saved.font)):21,night=!!saved.night,timer;
  const sections=$$('.chapter'),weights=BOOK_META.map(x=>x.weight),total=weights.reduce((a,b)=>a+b,0);
  const notify=t=>{$('#status').textContent=t};
@@ -38,7 +39,7 @@
   const chapter=event.target.closest('[data-chapter]');if(chapter){go(Number(chapter.dataset.chapter));return}
  });
  $('#start-reading').onclick=()=>go(0);
- if(Number.isInteger(saved.index)&&saved.index>=0&&saved.index<8){const resume=$('#resume-reading');resume.classList.add('visible');resume.textContent=en?`Resume chapter ${saved.index+1} →`:`继续第${saved.index+1}章 →`;resume.onclick=()=>{const idx=saved.index,relative=saved.relative||0;mode=saved.mode==='full'?'full':'chapter';go(idx,false);requestAnimationFrame(()=>{const r=sections[idx].getBoundingClientRect();window.scrollTo({top:window.scrollY+r.top-110+relative*Math.max(1,r.height-150),behavior:'instant'});update()})}}
+ if(Number.isInteger(resumeState.index)&&resumeState.index>=0&&resumeState.index<8){const resume=$('#resume-reading');resume.classList.add('visible');resume.textContent=en?`Resume chapter ${resumeState.index+1} →`:`继续第${resumeState.index+1}章 →`;resume.onclick=()=>{const idx=resumeState.index,relative=resumeState.relative||0;mode=resumeState.mode==='full'?'full':'chapter';go(idx,false);requestAnimationFrame(()=>{const r=sections[idx].getBoundingClientRect();window.scrollTo({top:window.scrollY+r.top-110+relative*Math.max(1,r.height-150),behavior:'instant'});update()})}}
  $('#chapter-mode').onclick=()=>{mode='chapter';go(current)};
  $('#full-mode').onclick=()=>{mode='full';go(current)};
  function setFont(change){font=Math.min(27,Math.max(18,font+change));document.documentElement.style.setProperty('--reader-size',font+'px');$('#font-down').disabled=font<=18;$('#font-up').disabled=font>=27;store(false)}
