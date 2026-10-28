@@ -41,9 +41,9 @@ const S = {
     shareBtn: '分享给朋友', shareWx: '在微信里，点右上角“···”，就能发送给朋友或分享到朋友圈。',
     more: '继续吃', play: '播放', soon: '视频即将上线', lineTip: '播放不了的话，换一条线路试试。',
     huxi: '呼吸', huxiSub: '什么时候打开这个链接，都是最新的一篇。', huxiShare: '把这个链接发给弟兄姊妹，他们什么时候打开，看到的都是最新的呼吸。',
-    huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', todayLink: '看今天的呼吸', huxiBurden: '活力排祷告负担',
+    huxiDayShare: '把这一天的呼吸发给弟兄姊妹。', past: '往期', archiveAll: '查看全部往期', archiveTitle: '往期祷告负担', archiveIntro: '按年份和月份浏览以往的祷告负担。', todayLink: '看今天的呼吸', huxiBurden: '活力排祷告负担',
     listen: '读给我听', listenPlay: '播放', listenPause: '暂停', listenAbout: (m) => `约 ${m} 分钟`, speed: '语速',
-    subHuxi: '订阅每天的呼吸', subHuxiOn: '已订阅', subHuxiHint: '订阅以后，呼吸一上新，“我的”里马上会收到消息，每日早晨 4 点更新当日负担。',
+    subHuxi: '订阅每天的呼吸', subHuxiOn: '已订阅', subHuxiHint: '订阅以后，呼吸一上新，“我的”里马上会收到消息；每天早晨 4 点更新当日负担。',
     week: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'], weekShort: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
     md: (m, d) => `${m}月${d}日`, full: (y, m, d) => `${y}年${m}月${d}日`,
     me: '我的', meSub: '你的搭子、打卡和留言，都会在这里。', loading: '正在载入……',
@@ -69,9 +69,9 @@ const S = {
     shareBtn: 'Share', shareWx: 'In WeChat, tap "···" at the top right to send it to a friend or to Moments.',
     more: 'Keep eating', play: 'Play', soon: 'Video coming soon', lineTip: 'If it will not play, try another line.',
     huxi: 'Breathe', huxiSub: 'Open this link any time and you see the newest day.', huxiShare: 'Send this link to brothers and sisters. Whenever they open it, they see the newest Breathe.',
-    huxiDayShare: 'Send this day to brothers and sisters.', past: 'Earlier days', todayLink: 'See today', huxiBurden: 'Vital Groups Prayer Burden',
+    huxiDayShare: 'Send this day to brothers and sisters.', past: 'Earlier days', archiveAll: 'View all earlier days', archiveTitle: 'Earlier Prayer Burdens', archiveIntro: 'Browse earlier prayer burdens by year and month.', todayLink: 'See today', huxiBurden: 'Vital Groups Prayer Burden',
     listen: 'Read it to me', listenPlay: 'Play', listenPause: 'Pause', listenAbout: (m) => `about ${m} min`, speed: 'Speed',
-    subHuxi: 'Subscribe to Breathe', subHuxiOn: 'Subscribed', subHuxiHint: 'Subscribers get a message in “Me” as soon as a new Breathe is up, with the next day’s prayer burden updated daily at 4:00 PM Eastern Time.',
+    subHuxi: 'Subscribe to Breathe', subHuxiOn: 'Subscribed', subHuxiHint: 'Subscribers get a message in “Me” as soon as a new Breathe is up. The next day’s prayer burden is updated daily at 4:00 PM Eastern Time.',
     week: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], weekShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     md: (m, d) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${d}`,
     full: (y, m, d) => `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${d}, ${y}`,
@@ -884,11 +884,37 @@ ${listen(p)}
 <meta name="apple-mobile-web-app-title" content="${esc(site[lang].name)}">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">`;
     const homeScreen = HOME_SCREEN[lang];
-    const archive = (current) => `<section class="more" id="archive"><h2 class="sec-h">${esc(L.past)}</h2><ul class="arch">${huxi.map((p) => {
-      const d = dateParts(p.date, lang);
-      const hide = p.date === current;
-      return `<li data-arch="${p.date}"${hide ? ' hidden' : ''}><a href="${U(lang, `/huxi/${p.date}/`)}"><time datetime="${p.date}">${esc(d.md)} ${esc(d.wdShort)}</time><span>${esc(p[lang].title)}</span></a></li>`;
-    }).join('')}</ul></section>`;
+    const archiveMonth = (date) => {
+      const [year, month] = date.split('-');
+      return lang === 'en'
+        ? `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][Number(month) - 1]} ${year}`
+        : `${year}年${Number(month)}月`;
+    };
+    const archive = (current) => {
+      const days = huxi.filter((p) => p.date < current).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+      if (!days.length) return '';
+      const items = days.map((p) => {
+        const d = dateParts(p.date, lang);
+        return `<li data-arch="${p.date}"><a href="${U(lang, `/huxi/${p.date}/`)}"><time datetime="${p.date}">${esc(d.md)} ${esc(d.wdShort)}</time><span>${esc(p[lang].title)}</span></a></li>`;
+      }).join('');
+      return `<section class="more" id="archive"><h2 class="sec-h">${esc(L.past)}</h2><ul class="arch">${items}</ul><p class="hx-archive-more"><a class="btn btn-line btn-sm" href="${U(lang, '/huxi/archive/')}">${esc(L.archiveAll)} <span aria-hidden="true">↗</span></a></p></section>`;
+    };
+    const fullArchive = () => {
+      const years = new Map();
+      for (const p of [...huxi].sort((a, b) => b.date.localeCompare(a.date))) {
+        const year = p.date.slice(0, 4);
+        if (!years.has(year)) years.set(year, new Map());
+        const months = years.get(year);
+        const month = p.date.slice(0, 7);
+        if (!months.has(month)) months.set(month, []);
+        months.get(month).push(p);
+      }
+      const sections = [...years.entries()].map(([year, months]) => `<section class="more hx-archive-year"><h2 class="sec-h">${esc(year)}</h2>${[...months.entries()].map(([month, days]) => `<section class="hx-archive-month"><h3>${esc(archiveMonth(month + '-01'))}</h3><ul class="arch">${days.map((p) => {
+        const d = dateParts(p.date, lang);
+        return `<li><a href="${U(lang, `/huxi/${p.date}/`)}"><time datetime="${p.date}">${esc(d.md)} ${esc(d.wdShort)}</time><span>${esc(p[lang].title)}</span></a></li>`;
+      }).join('')}</ul></section>`).join('')}</section>`).join('');
+      return `<section class="page hx-page"><a class="back" href="${U(lang, '/huxi/')}">← ${esc(L.todayLink)}</a><h1 class="page-title">${esc(L.archiveTitle)}</h1><p class="page-lead">${esc(L.archiveIntro)}</p>${sections}</section>`;
+    };
     emit(lang, '/huxi/', {
       title: heading(todayHuxi),
       desc: preview(todayHuxi),
@@ -919,6 +945,12 @@ ${archive(p.date)}
 </section>`,
       });
     }
+    emit(lang, '/huxi/archive/', {
+      title: L.archiveTitle,
+      desc: L.archiveIntro,
+      tab: 'huxi',
+      body: fullArchive(),
+    });
   }
 
   // voices to choose from for 读给我听 (not linked from anywhere)
