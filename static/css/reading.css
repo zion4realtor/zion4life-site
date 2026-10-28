@@ -15,3 +15,37 @@
 
 /* Keep the Bible reading footer close to the reading card. */
 .reading[data-reading-page]+.foot{padding-top:8px}
+
+
+/* Homepage: give the selected testimony a clean image-and-copy split.
+   Leave the daily Bible card's content and visual rules intact. */
+.home-command{align-items:stretch}
+.home-command .home-companion{display:flex;min-width:0}
+.home-command .home-testimony{display:flex;min-width:0;height:100%;min-height:306px;flex-direction:column;border:1px solid #c6ddd5;border-radius:26px;color:#172c3b;background:#fff;box-shadow:0 16px 34px -26px rgba(22,84,76,.48);transition:transform .18s ease,box-shadow .18s ease}
+.home-command .home-testimony:hover{transform:translateY(-2px);box-shadow:0 20px 38px -24px rgba(22,84,76,.45)}
+.home-command .home-testimony-image{position:relative;inset:auto;display:block;flex:0 0 43%;height:43%;min-height:0;overflow:hidden;background:#dce8e4}
+.home-command .home-testimony-image img{width:100%;height:100%;object-fit:cover;object-position:68% 46%}
+.home-command .home-testimony-image::after{display:none}
+.home-command .home-testimony-copy{display:flex;min-height:0;flex:1;flex-direction:column;padding:13px 18px 15px;color:#172c3b}
+.home-command .home-testimony-label{padding:5px 9px;color:#155e4e;background:#e5f3ed;font-size:10px;line-height:1.35;letter-spacing:.02em}
+.home-command .home-testimony-copy strong{margin-top:8px;color:#172c3b;font-size:clamp(17px,2vw,22px);line-height:1.38;-webkit-line-clamp:2}
+.home-command .home-testimony-summary{margin-top:5px;color:#5b7280;font-size:11px;line-height:1.5;-webkit-line-clamp:2}
+.home-command .home-testimony-cta{margin-top:auto;padding-top:8px;border-color:#e0ebe6;color:#145f50;font-size:12px}
+@media(max-width:560px){
+ .home-command .home-testimony{height:100%;min-height:306px;border-radius:19px}
+ .home-command .home-testimony-image{flex-basis:47%;height:47%}
+ .home-command .home-testimony-image img{object-position:68% 46%}
+ .home-command .home-testimony-copy{padding:10px 11px 12px}
+ .home-command .home-testimony-label{max-width:100%;padding:4px 6px;font-size:8px;white-space:nowrap}
+ .home-command .home-testimony-copy strong{margin-top:6px;font-size:clamp(15px,4vw,17px);line-height:1.38;-webkit-line-clamp:3}
+ .home-command .home-testimony-summary{display:none}
+ .home-command .home-testimony-cta{padding-top:7px;font-size:10px}
+}
+@media(max-width:380px){
+ .home-command .home-testimony{min-height:326px;border-radius:18px}
+ .home-command .home-testimony-copy{padding:9px 9px 10px}
+ .home-command .home-testimony-label{font-size:7px}
+ .home-command .home-testimony-copy strong{font-size:15px}
+ .home-command .home-testimony-cta{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){.home-command .home-testimony{transition:none}.home-command .home-testimony:hover{transform:none}}
