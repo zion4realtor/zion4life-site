@@ -348,6 +348,11 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 .card-body { padding: 14px 16px 16px; }
 .card-thumb { margin:0; }
 .card-thumb img,.poster>img { display:block;width:100%;height:100%;object-fit:cover; }
+.card-thumb-fallback { position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;padding:18px;background:radial-gradient(circle at 78% 20%,hsl(var(--thumb-hue) 62% 68% / .85),transparent 36%),linear-gradient(135deg,hsl(var(--thumb-hue) 50% 34%),hsl(calc(var(--thumb-hue) + 48) 47% 22%));color:#fff; }
+.card-thumb-fallback::before,.card-thumb-fallback::after { content:"";position:absolute;border:1px solid #ffffff35;border-radius:50%;width:58%;aspect-ratio:1;right:-14%;top:-44%; }
+.card-thumb-fallback::after { width:42%;right:5%;top:-25%; }
+.card-thumb-fallback>span { position:relative;z-index:1;max-width:86%;font-family:var(--display);font-size:clamp(18px,3vw,30px);line-height:1.4;text-align:center;text-wrap:balance;text-shadow:0 2px 12px #0005; }
+
 .card--drip .card-thumb { aspect-ratio: 3 / 1; }
 .card--drip .card-thumb img { object-position: center top; }
 .kind { display: inline-block; padding: 0 9px; border-radius: 999px; font-size: 12px; line-height: 22px; background: color-mix(in srgb, var(--tint, var(--t-aqua)) 20%, var(--paper)); }

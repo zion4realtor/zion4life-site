@@ -496,17 +496,28 @@ function card(it, lang, current) {
   const tint = TINTS[TAG[it.tags[0]]?.tint || 'aqua'];
   const others = it.tags.filter((x) => x !== current).map((x) => `<span class="other">${esc(TAG[x][lang])}</span>`).join('');
   const readTime = it.slug === 'rensheng-aomi' ? '' : `<span>${esc(L.min(it.minutes[lang]))}</span>`;
-  const tagThumb = `/tags/${current || it.tags[0]}.jpg`;
+  const articleThumbs = {
+    'france-saints-update-2026-10-21': '/img/articles/france-saints-update-2026-10-21.jpg',
+    'huang-learn-to-let-go': '/img/articles/huang-learn-to-let-go.jpg',
+    'huang-lord-can': '/img/articles/huang-lord-can.jpg',
+    'huang-all-things-in-christ': '/img/articles/huang-all-things-in-christ.jpg',
+    'why-christians-skip-halloween': '/img/articles/why-christians-skip-halloween.jpg',
+    'rensheng-aomi': '/img/articles/rensheng-aomi.jpg',
+  };
   const dripThumb = /^diguan-muyang-/.test(it.slug) && ['png', 'jpg']
     .map((ext) => `/files/drip-shepherding-${it.date}-${lang}.${ext}`)
     .find((src) => fs.existsSync(path.join(STATIC, src.slice(1))));
-  const thumb = it.poster || dripThumb || tagThumb;
+  const thumb = it.poster || articleThumbs[it.slug] || dripThumb;
+  const thumbHue = [...it.slug].reduce((h, ch) => (h * 31 + ch.codePointAt(0)) % 360, 17);
+  const thumbVisual = thumb
+    ? `<img src="${thumb}" alt="" loading="lazy" width="1200" height="675">`
+    : `<span class="card-thumb-fallback" style="--thumb-hue:${thumbHue}"><span>${esc(c.title)}</span></span>`;
   if (it.kind === 'video') {
     return `<a class="card" href="${itemHref(it, lang)}" data-kind="videos" style="--tint:${tint}">
-<span class="poster"><img src="${thumb}" alt="" loading="lazy" width="1200" height="675"><span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span></span>
+<span class="poster">${thumbVisual}<span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span></span>
 <span class="card-body" style="display:block"><span class="kind">${L.kind.video}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3><p>${esc(c.summary)}</p><span class="meta">${others}</span></span></a>`;
   }
-  return `<a class="card${dripThumb ? ' card--drip' : ''}" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}"><span class="poster card-thumb"><img src="${thumb}" alt="" loading="lazy" width="1200" height="675"></span><span class="card-body" style="display:block">
+  return `<a class="card${dripThumb ? ' card--drip' : ''}" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}"><span class="poster card-thumb">${thumbVisual}</span><span class="card-body" style="display:block">
 <span class="kind">${L.kind[it.kind]}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
 <span class="meta">${readTime}${others}</span></span></a>`;
 }
