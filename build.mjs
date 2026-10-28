@@ -249,6 +249,9 @@ const items = [...articles, ...videos].sort((a, b) => String(b.date).localeCompa
 const itemsOf = (tagId) => items.filter((i) => i.tags.includes(tagId));
 const homeItems = items.filter((i) => !i.tagOnly);
 const homeItemsOf = (tagId) => homeItems.filter((i) => i.tags.includes(tagId));
+const latestTestimony = items
+  .filter((item) => item.kind === 'article' && !item.sample && item.tags.includes('stories'))
+  .sort((a, b) => b.date.localeCompare(a.date))[0] || null;
 
 // 呼吸 days: a headline (title), a lede, then ## sections (verses as > quotes, the burden,
 // the ministry with ### headings and (source) lines). huxiHtml() shapes them for reading;
@@ -423,7 +426,23 @@ function write(urlPath, html) {
   fs.writeFileSync(file, html);
 }
 function emit(lang, p, opts) {
-  write(U(lang, p), page({ ...opts, lang, path: p }));
+  let output = page({ ...opts, lang, path: p });
+  if (opts.illustratedReader) {
+    // Reuse site metadata, navigation and analytics around the approved reader.
+    const reader = fs.readFileSync(opts.illustratedReader, 'utf8');
+    const style = reader.match(/<style>([\s\S]*?)<\/style>/)[0];
+    const body = reader.match(/<body>([\s\S]*?)<\/body>/)[1];
+    output = output.replace(/<link rel="stylesheet"[^>]*>\n/g, '')
+      .replace(/<script src="\/js\/reading\.js[^>]*><\/script>\n/, '')
+      .replace('</head>', `${style}</head>`)
+      .replace(/<body[^>]*>[\s\S]*?<div class="tab-space">/, `<body>${body}<div class="tab-space">`);
+    const cover = `${site.url}/stories/${path.basename(opts.illustratedReader).replace(/\.(zh|en)\.html$/, '')}/hero.webp`;
+    output = output.replace(/(<meta (?:property="og:image(?::secure_url)?"|name="twitter:image") content=")[^"]*/g, `$1${cover}`)
+      .replace(/(<link rel="image_src" href=")[^"]*/, `$1${cover}`)
+      .replace('property="og:image:type" content="image/png"', 'property="og:image:type" content="image/webp"')
+      .replace(/<meta property="og:image:(?:width|height)"[^>]*>/g, '');
+  }
+  write(U(lang, p), output);
   if (!opts.noindex) urls.push(U(lang, p));
 }
 
@@ -592,7 +611,7 @@ function askBox(lang, compact = false) {
 for (const lang of LANGS) {
   const L = S[lang];
 
-  // 粮仓 (home): today's 呼吸 and 搭子 stay pinned; tag tiles follow newest content date.
+  // 粮仓 (home): daily reading and the newest testimony stay in the first two cards.
   {
     const tp = todayHuxi;
     const tpd = tp && dateParts(tp.date, lang);
@@ -601,6 +620,12 @@ for (const lang of LANGS) {
 <span class="today-title" data-f="title" data-fit-title>${tp ? esc(tp[lang].title) : esc(L.today)}</span>
 <span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
     const daziTile = `<a class="dazi-tile" href="${U(lang, '/dazi/') }" data-ripple><span class="dazi-top"><span class="dazi-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.3A4.7 4.7 0 0 1 8.2 13h1.6a4.7 4.7 0 0 1 4.7 4.7V19M16 5.5a3 3 0 0 1 0 5.8M17 13h.8a3.7 3.7 0 0 1 3.7 3.7V19"/></svg></span><span class="dazi-kicker">${lang === 'zh' ? '同行操练' : 'GROW TOGETHER'}</span></span><span class="dazi-name">${esc(L.dazi)}</span><span class="dazi-about">${lang === 'zh' ? '读经 · 祷告 · 彼此关心' : 'Read · Pray · Care together'}</span><span class="dazi-countline" data-dazi-countline hidden><b data-dazi-count></b><span>${lang === 'zh' ? '个公开小组' : 'public groups'}</span></span><span class="dazi-latest" data-dazi-summary>${lang === 'zh' ? '看看大家正在一起操练什么' : 'See what others are practicing together'}</span><span class="dazi-link">${lang === 'zh' ? '找一个搭子' : 'Find a buddy'} <span aria-hidden="true">↗</span></span></a>`;
+    const testimonyImage = latestTestimony && fs.existsSync(path.join(STATIC, 'stories', latestTestimony.slug, 'hero.webp'))
+      ? `/stories/${latestTestimony.slug}/hero.webp`
+      : '';
+    const testimonyTile = latestTestimony ? `<a class="home-testimony" href="${itemHref(latestTestimony, lang)}" data-ripple data-feature-testimony="${esc(latestTestimony.slug)}">
+${testimonyImage ? `<span class="home-testimony-image"><img src="${testimonyImage}" alt="${lang === 'zh' ? '见证故事插画' : 'Illustration for this testimony'}" width="960" height="540" loading="eager"></span>` : '<span class="home-testimony-art" aria-hidden="true">✦</span>'}
+<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '最新见证 · 人生故事' : 'LATEST TESTIMONY · LIFE STORY'}</span><strong>${esc(latestTestimony[lang].title)}</strong><span class="home-testimony-summary">${esc(latestTestimony[lang].summary || '')}</span><span class="home-testimony-cta">${lang === 'zh' ? '读这个故事' : 'Read this story'} <b aria-hidden="true">↗</b></span></span></a>` : daziTile;
     const pathDefs = [{ id:'all', title:lang === 'zh' ? '认识信仰，也照顾生活' : 'Faith for the whole of life', note:lang === 'zh' ? '从一个问题、一段故事、一首诗歌开始。' : 'Begin with a question, a story, or a song.', tags:TAGS.map(t => t.id) }];
     const tagMap = new Map(TAGS.map((tag) => [tag.id, tag]));
     const pathHTML = pathDefs.map((group, index) => {
@@ -631,7 +656,7 @@ for (const lang of LANGS) {
       title: '',
       tab: 'home',
       body: `<section class="hello home-hello"><span class="hello-kicker">${esc(homeEditorial[lang].eyebrow)}</span><h1>${esc(homeEditorial[lang].title)}</h1><p>${esc(homeEditorial[lang].subtitle)}</p></section>
-<div class="home-fresh-sections" data-home-fresh-sections><section class="home-command" data-home-fresh="community" data-updated="${tp?Date.parse(tp.date):0}" aria-label="${lang==='zh'?'每日读经与搭子':'Daily reading and buddies'}"><div class="home-daily">${`<a class="daily-preview" data-reading-home href="${U(lang, '/read/today/ot/')}"><small data-reading-label>${lang === 'zh' ? '今日吃饭 · 三旧一新' : 'DAILY BIBLE READING'}</small><h2>${lang === 'zh' ? '三旧一新<br>一年一遍' : 'A little<br>every day'}</h2><p data-reading-summary>${lang === 'zh' ? '读经 · 听经 · 记在心里' : 'Read · Listen · Remember'}</p><p>${lang === 'zh' ? '读经 · 听经' : 'Read & listen'} →</p></a>`}</div><div class="home-companion">${daziTile}</div></section>${spotlight}</div>
+<div class="home-fresh-sections" data-home-fresh-sections><section class="home-command" data-home-fresh="community" data-updated="${Math.max(tp ? Date.parse(tp.date) : 0, latestTestimony ? Date.parse(latestTestimony.date) : 0)}" aria-label="${lang==='zh'?'每日读经与最新见证':'Daily reading and the latest testimony'}"><div class="home-daily">${`<a class="daily-preview" data-reading-home href="${U(lang, '/read/today/ot/')}"><small data-reading-label>${lang === 'zh' ? '今日吃饭 · 三旧一新' : 'DAILY BIBLE READING'}</small><h2>${lang === 'zh' ? '三旧一新<br>一年一遍' : 'A little<br>every day'}</h2><p data-reading-summary>${lang === 'zh' ? '读经 · 听经 · 记在心里' : 'Read · Listen · Remember'}</p><p>${lang === 'zh' ? '读经 · 听经' : 'Read & listen'} →</p></a>`}</div><div class="home-companion">${testimonyTile}</div></section>${spotlight}</div>
 <section class="home-discover" aria-labelledby="home-discover-title"><div class="home-section-head"><span class="home-eyebrow">${lang === 'zh' ? '照着你的需要开始' : 'FIND YOUR NEXT STEP'}</span><h2 id="home-discover-title">${lang === 'zh' ? '一个入口，看见所有主题' : 'Every topic, one place to begin'}</h2><p>${lang === 'zh' ? '照着此刻的需要，找到愿意读下去的那一篇。' : 'Find something to read, hear, or carry into your day.'}</p></div><div class="home-paths" data-home-grid>${pathHTML}</div></section>
 <section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/updates/')}" class="recent-more">${lang === 'zh' ? '全部更新' : 'All updates'} ↗</a></div><div class="recent-list">${recentItems}</div></section>
 ${askBox(lang, true)}`,
@@ -707,6 +732,7 @@ ${list.length ? `<div class="cards${t.id === 'video' ? ' video-library-list' : '
       tab: 'home',
       noindex: a.sample,
       scripts: dripAudio ? [HUXI_JS] : [],
+      illustratedReader: fs.existsSync(path.join(CONTENT, 'readers', `${a.slug}.${lang}.html`)) ? path.join(CONTENT, 'readers', `${a.slug}.${lang}.html`) : null,
       body: `<article class="article${mystery ? ' mystery-article' : ''}${dripShepherding ? ' drip-article' : ''}" style="--tint:${TINTS[TAG[a.tags[0]]?.tint] || TINTS.aqua}">
 <a class="back" href="${U(lang, mystery ? '/' : a.tags[0] ? `/t/${a.tags[0]}/` : '/')}">← ${esc(mystery ? L.home : a.tags[0] ? TAG[a.tags[0]][lang] : L.back)}</a>
 <h1 class="a-title">${esc(c.title)}</h1>
