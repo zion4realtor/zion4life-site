@@ -436,10 +436,11 @@ function emit(lang, p, opts) {
       .replace(/<script src="\/js\/reading\.js[^>]*><\/script>\n/, '')
       .replace('</head>', `${style}</head>`)
       .replace(/<body[^>]*>[\s\S]*?<div class="tab-space">/, `<body>${body}<div class="tab-space">`);
-    const cover = `${site.url}/stories/${path.basename(opts.illustratedReader).replace(/\.(zh|en)\.html$/, '')}/hero.webp`;
+    const customCover = reader.match(/<meta name="story-cover" content="([^"]+)"/)?.[1];
+    const cover = customCover ? `${site.url}${customCover}` : `${site.url}/stories/${path.basename(opts.illustratedReader).replace(/\.(zh|en)\.html$/, '')}/hero.webp`;
     output = output.replace(/(<meta (?:property="og:image(?::secure_url)?"|name="twitter:image") content=")[^"]*/g, `$1${cover}`)
       .replace(/(<link rel="image_src" href=")[^"]*/, `$1${cover}`)
-      .replace('property="og:image:type" content="image/png"', 'property="og:image:type" content="image/webp"')
+      .replace('property="og:image:type" content="image/png"', `property="og:image:type" content="${customCover ? 'image/jpeg' : 'image/webp'}"`)
       .replace(/<meta property="og:image:(?:width|height)"[^>]*>/g, '');
   }
   write(U(lang, p), output);
