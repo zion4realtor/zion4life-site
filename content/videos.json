@@ -1,5 +1,66 @@
 [
   {
+    "slug": "liao-shutao-truth-and-freedom",
+    "minutes": 10,
+    "seconds": 614.678639,
+    "date": "2026-10-31",
+    "tags": [
+      "goodnews",
+      "stories",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "off",
+      "en": "en"
+    },
+    "burnedInCaptionLanguage": "zh",
+    "zh": {
+      "title": "真理使我得自由｜廖述涛的三重顾虑",
+      "summary": "信耶稣，会失去理性、自由和关爱人的心吗？廖述涛坦诚分享信主前的三重顾虑，以及他如何在耶稣关于真理与自由的话里找到回应。",
+      "description": "理工背景的廖述涛，曾对信仰抱有三重顾虑：相信圣经，会不会放弃追求真理？成为基督徒，会不会背上道德重担、失去自由？爱神，会不会让自己忽略身边的人？\n\n一次夜读见证集的经历，让他在自己熟悉的大学校训里，看见耶稣关于真理与自由的话。这条视频保留台湾福音书房官方下集的完整内容，包括三项顾虑、受浸后的挣扎，以及后来观念转变的过程。"
+    },
+    "en": {
+      "title": "The Truth Set Me Free: Liao Shutao's Testimony",
+      "summary": "Would believing in Jesus cost him truth, freedom, and concern for others? Liao Shutao shares his three concerns and how he found an answer in Jesus' words.",
+      "description": "With a background in science and engineering, Liao Shutao had three concerns about faith: Would believing the Bible mean giving up his pursuit of truth? Would becoming a Christian impose moral burdens and take away his freedom? Would loving God make him neglect the people around him?\n\nOne night, while reading a collection of testimonies, he recognized Jesus' words about truth and freedom in a familiar university motto. This video preserves the complete second part published by Taiwan Gospel Book Room, including his three concerns, his struggle after baptism, and the change in his understanding."
+    },
+    "sourceNote": {
+      "zh": "来源：台湾福音书房官方频道《真理使我得自由2（福音见证）》；内容为讲到三大遗憾及其回应的完整下集，保留中文原声、原有中文字幕、原片署名与结尾。新增英文字幕；原片录制日期未推定。",
+      "en": "Source: Taiwan Gospel Book Room’s official channel, The Truth Set Me Free, Part 2. Complete second part covering the three regrets and their resolution. Original Chinese audio, embedded captions, attribution, and ending preserved; English subtitles added. The recording date has not been inferred."
+    },
+    "sourceAttribution": {
+      "url": "https://www.youtube.com/watch?v=sEVilM89xlc",
+      "zh": "台湾福音书房《真理使我得自由2》",
+      "en": "Taiwan Gospel Book Room: The Truth Set Me Free, Part 2"
+    },
+    "poster": "/video/liao-shutao-truth-and-freedom.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/liao-shutao-truth-and-freedom.mp4?v=20261031",
+        "poster": "/video/liao-shutao-truth-and-freedom.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/liao-shutao-truth-and-freedom.en.vtt"
+      }
+    ],
+    "publishedAt": "2026-10-31T20:49:07.580960+00:00"
+  },
+  {
     "slug": "song-of-songs-unnamed-beloved",
     "minutes": 2,
     "seconds": 144.010159,
