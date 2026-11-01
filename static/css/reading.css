@@ -86,3 +86,33 @@
  .home-command .home-testimony-summary{font-size:13px;line-height:1.7}
 }
 @media(prefers-reduced-motion:reduce){.home-command .home-testimony{transition:none}.home-command .home-testimony:hover{transform:none}}
+
+/* Make the daily purpose and Beijing publication date readable at a glance. */
+.home-command .daily-preview{height:auto;min-height:306px;gap:10px;padding:24px 26px}
+.daily-preview .reading-home-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.reading-home-badge{display:inline-block;border:1px solid #f5df9e88;background:#f6e5af;color:#234844;border-radius:99px;padding:5px 12px;font-size:14px;line-height:1.4;font-weight:700}
+.daily-preview .reading-home-top small{max-width:none;font-size:12px;letter-spacing:.04em;color:#eee8ce}
+.reading-home-date-row{display:flex;align-items:baseline;gap:12px;min-width:0}
+.reading-home-date-row time{font-family:var(--display);font-size:clamp(38px,8vw,52px);line-height:1.12;letter-spacing:.025em;font-weight:500;color:#fff8df;white-space:nowrap;text-shadow:0 2px 14px #12354066}
+.reading-home-date-row>span{font-size:14px;color:#e5e7d3}
+.daily-preview h2{display:block;max-width:100%;margin:0;font-size:clamp(21px,4.9vw,26px);line-height:1.4;letter-spacing:.02em;color:#f6df9c;-webkit-line-clamp:unset;overflow:visible}
+.daily-preview p[data-reading-summary]{max-width:72%;font-size:13px;line-height:1.65;margin:0;color:#edf2e9}
+.daily-preview p.reading-home-cta{display:flex;align-items:center;gap:9px;max-width:100%;width:fit-content;margin:2px 0 0;padding:8px 13px;border:1px solid #fff8df66;border-radius:99px;background:#e8f0dded;color:#234d45;font-size:14px;font-weight:700;line-height:1.5}
+.daily-preview .reading-home-cta>span:first-child{font-size:12px}
+.daily-preview:focus-visible{outline:3px solid #f0d277;outline-offset:4px}
+@media(max-width:560px){.home-command .daily-preview{height:auto;min-height:306px;padding:21px 22px;gap:11px}.daily-preview p[data-reading-summary]{max-width:78%;font-size:12px}.reading-home-date-row time{font-size:clamp(36px,10vw,46px)}}
+
+/* Match the prayer capsule visually while keeping reading playback independent. */
+.reading-player{margin:24px 0 36px;padding:10px 12px 10px 10px;isolation:isolate}
+.reading-player.is-started{position:sticky;top:calc(env(safe-area-inset-top,0px) + 66px);z-index:15;box-shadow:0 0 0 1px var(--line),0 10px 25px -12px #16375e66}
+.reading-player audio{display:none!important}
+.reading-player .hx-a-top{flex-wrap:wrap;row-gap:3px}
+.reading-player .hx-a-top b{font-size:15px}
+.reading-player .hx-a-top span{font-size:12px}
+.reading-player .hx-a-bar{touch-action:none}
+.reading-player .hx-a-bar::after{content:"";position:absolute;inset:-12px 0}
+.reading-player .hx-a-bar:focus-visible{outline:3px solid var(--water);outline-offset:6px}
+.reading-player .hx-play:disabled{opacity:.45;cursor:wait}
+.reading-player .reading-status{margin:2px 5px 0}
+.reading-player .reading-status:empty,.reading-player .reading-status[hidden]{display:none}
+@media(max-width:380px){.reading-player{gap:8px;padding-right:8px}.reading-player .hx-play{width:44px;height:44px}.reading-player .hx-speed{min-width:40px;padding-inline:5px}.reading-player .hx-a-top b{font-size:14px}}
