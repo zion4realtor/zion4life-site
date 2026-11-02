@@ -250,7 +250,7 @@ const itemsOf = (tagId) => items.filter((i) => i.tags.includes(tagId));
 const homeItems = items.filter((i) => !i.tagOnly);
 const homeItemsOf = (tagId) => homeItems.filter((i) => i.tags.includes(tagId));
 // The homepage testimony card is editorially pinned; change it only when Zion requests a different story.
-const pinnedHomeTestimonySlug = 'huang-all-things-in-christ';
+const pinnedHomeTestimonySlug = 'zeng-grace-through-generations';
 const pinnedHomeTestimony = items.find((item) => item.kind === 'article' && item.slug === pinnedHomeTestimonySlug) || null;
 
 // 呼吸 days: a headline (title), a lede, then ## sections (verses as > quotes, the burden,
@@ -633,12 +633,18 @@ for (const lang of LANGS) {
 <span class="today-title" data-f="title" data-fit-title>${tp ? esc(tp[lang].title) : esc(L.today)}</span>
 <span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
     const daziTile = `<a class="dazi-tile" href="${U(lang, '/dazi/') }" data-ripple><span class="dazi-top"><span class="dazi-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.3A4.7 4.7 0 0 1 8.2 13h1.6a4.7 4.7 0 0 1 4.7 4.7V19M16 5.5a3 3 0 0 1 0 5.8M17 13h.8a3.7 3.7 0 0 1 3.7 3.7V19"/></svg></span><span class="dazi-kicker">${lang === 'zh' ? '同行操练' : 'GROW TOGETHER'}</span></span><span class="dazi-name">${esc(L.dazi)}</span><span class="dazi-about">${lang === 'zh' ? '读经 · 祷告 · 彼此关心' : 'Read · Pray · Care together'}</span><span class="dazi-countline" data-dazi-countline hidden><b data-dazi-count></b><span>${lang === 'zh' ? '个公开小组' : 'public groups'}</span></span><span class="dazi-latest" data-dazi-summary>${lang === 'zh' ? '看看大家正在一起操练什么' : 'See what others are practicing together'}</span><span class="dazi-link">${lang === 'zh' ? '找一个搭子' : 'Find a buddy'} <span aria-hidden="true">↗</span></span></a>`;
-    const testimonyImage = pinnedHomeTestimony && fs.existsSync(path.join(STATIC, 'stories', pinnedHomeTestimony.slug, 'hero.webp'))
-      ? `/stories/${pinnedHomeTestimony.slug}/hero.webp`
-      : '';
-    const testimonyTile = pinnedHomeTestimony ? `<a class="home-testimony" href="${itemHref(pinnedHomeTestimony, lang)}" data-ripple data-feature-testimony="${esc(pinnedHomeTestimony.slug)}">
-${testimonyImage ? `<span class="home-testimony-image"><img src="${testimonyImage}" alt="${lang === 'zh' ? '见证故事插画' : 'Illustration for this testimony'}" width="960" height="540" loading="eager"></span>` : '<span class="home-testimony-art" aria-hidden="true">✦</span>'}
-<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '黄弟兄的见证 · 完整版' : 'BROTHER HUANG · FULL TESTIMONY'}</span><strong>${esc(pinnedHomeTestimony[lang].title)}</strong><span class="home-testimony-summary">${lang === 'zh' ? '从印尼到中国，从事业的风浪到生命的转向。沿着他的讲述，读一段走过来的路。' : 'From Indonesia to China, from the storms of business to a turning point in life. Follow his story and the road he has traveled.'}</span><span class="home-testimony-cta">${lang === 'zh' ? '阅读完整见证' : 'Read the full testimony'} <b aria-hidden="true">↗</b></span></span></a>` : daziTile;
+    const testimonyImage = pinnedHomeTestimony ? `/stories/${pinnedHomeTestimony.slug}/family-recent.jpg` : '';
+    const testimonyTile = pinnedHomeTestimony ? `<style>
+.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"]{height:auto;min-height:0;flex-direction:column}
+.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-image{width:100%;height:218px;flex:0 0 218px}
+.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-copy{padding:22px 27px 24px;gap:0}
+.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-copy strong{font-size:26px;line-height:1.5;margin-top:10px;display:block}
+.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-summary{display:block;-webkit-line-clamp:unset;margin-top:11px;font-size:15px;line-height:1.9;color:#526b70}
+.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-cta{margin-top:19px;padding-top:15px}
+@media(max-width:560px){.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-image{height:170px;flex-basis:170px}.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-copy{padding:18px 20px 21px}.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-copy strong{font-size:23px}.home-command .home-testimony[data-feature-testimony="zeng-grace-through-generations"] .home-testimony-summary{font-size:14px;line-height:1.85}}
+</style><a class="home-testimony" href="${itemHref(pinnedHomeTestimony, lang)}" data-ripple data-feature-testimony="${esc(pinnedHomeTestimony.slug)}">
+${testimonyImage ? `<span class="home-testimony-image"><img src="${testimonyImage}" alt="${lang === 'zh' ? '曾启华弟兄与家人、亲友相聚' : 'Brother Zeng gathered with family and friends'}" width="1800" height="1350" style="object-position:50% 55%" loading="eager"></span>` : '<span class="home-testimony-art" aria-hidden="true">✦</span>'}
+<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '曾启华弟兄的见证' : 'BROTHER ZENG · TESTIMONY'}</span><strong>${esc(pinnedHomeTestimony[lang].title)}</strong><span class="home-testimony-summary">${lang === 'zh' ? '一位助产士不收红包，送鸡蛋、帮婴儿洗澡，却从未开口求过回报。这份爱，叩开了曾弟兄父母的心。从台湾到新加坡、越南，他带着职业服事主；多年以后，一家三代又在线上同读圣经。恩典，就这样传到下一代。' : 'A midwife refused payment, brought eggs, and bathed the baby—never asking for anything in return. Her kindness opened his parents’ hearts. From Taiwan to Singapore and Vietnam, Brother Zeng served the Lord while working. Years later, three generations of his family gathered online to read the Bible together.'}</span><span class="home-testimony-cta">${lang === 'zh' ? '阅读完整见证' : 'Read the full testimony'} <b aria-hidden="true">↗</b></span></span></a>` : daziTile;
     const pathDefs = [{ id:'all', title:lang === 'zh' ? '认识信仰，也照顾生活' : 'Faith for the whole of life', note:lang === 'zh' ? '从一个问题、一段故事、一首诗歌开始。' : 'Begin with a question, a story, or a song.', tags:TAGS.map(t => t.id) }];
     const tagMap = new Map(TAGS.map((tag) => [tag.id, tag]));
     const pathHTML = pathDefs.map((group, index) => {
