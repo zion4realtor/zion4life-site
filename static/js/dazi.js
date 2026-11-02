@@ -97,7 +97,7 @@
   // ---------- the plaza: presentation over the existing read-only group APIs ----------
   function spot(g) {
     return `<a class="spot${g.next?.live ? ' is-live' : ''}${g.mine ? ' is-mine' : ''}" href="${pre}/g/${g.id}" data-plaza-group="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.title)}" style="--tint:${tintOf(g.kind)}">
-${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span><span class="gather-count">${g.seats.length} / ${g.max} ${t('人', 'members')}</span></a>`;
+${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}</span><span class="gather-count">${g.seats.length} / ${g.max} ${t('人', 'members')}</span><span class="spot-next">${g.next ? esc(g.next.live ? t('正在相聚', 'Meeting now') : when(g.next.start)) : t('时间待定', 'Time to be confirmed')}</span><span class="spot-access${g.join === 'open' && g.seats.length < g.max && !g.finished ? ' is-open' : ''}">${g.finished ? t('本轮已结束', 'Round completed') : g.seats.length >= g.max ? t('本组已满', 'Full group') : g.join === 'invite' ? t('需发起人邀请', 'Invitation needed') : t(`还有 ${g.max-g.seats.length} 个位置`, `${g.max-g.seats.length} places open`)}</span></a>`;
   }
   function plaza() {
     const box = $('[data-plaza]');
@@ -165,6 +165,7 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
         if (members && popup.open && selected === g.id) popupContent(g, members);
       });
     };
+    document.addEventListener('yg:plaza:open', e => { if(e.detail?.group?.id) openTable(e.detail.group,e.detail.trigger); });
     $('[data-popup-close]').addEventListener('click', () => popup.close());
     popup.addEventListener('click', (event) => {
       if (event.target !== popup) return;
@@ -173,7 +174,7 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
     });
     popup.addEventListener('close', () => { selected = null; if (lastFocus?.isConnected) lastFocus.focus({ preventScroll: true }); });
     const render = () => {
-      const filtered = groups.filter((g) => !vacant.checked || g.seats.length < g.max);
+      const filtered = groups.filter((g) => !vacant.checked || g.seats.length < g.max).sort((a,b) => window.YGPlazaDiscovery?.compare(a,b,$('[data-plaza-sort]')?.value || 'recommended') || 0);
       const limit = pageSize(), pages = Math.max(1, Math.ceil(filtered.length / limit));
       pageIndex = Math.min(pageIndex, pages);
       const visible = filtered.slice((pageIndex - 1) * limit, pageIndex * limit);
@@ -217,6 +218,7 @@ ${table(g.kind, g.seats, g.max, false)}<span class="spot-title">${esc(g.title)}<
       history.replaceState(null, '', kind ? `?kind=${encodeURIComponent(kind)}` : location.pathname);
       load();
     }));
+    $('[data-plaza-sort]')?.addEventListener('change', () => { pageIndex=1;render(); });
     vacant.addEventListener('change', () => { pageIndex = 1; render(); });
     window.matchMedia('(min-width: 620px)').addEventListener('change', () => { pageIndex = 1; render(); });
     load();

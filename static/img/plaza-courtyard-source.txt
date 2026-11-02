@@ -1,0 +1,4 @@
+Photograph: Darya Luganskaya / Unsplash, patio in Ourika, Morocco.
+Source: https://unsplash.com/photos/z1aK63bImcU
+Image: https://images.unsplash.com/photo-1674336743476-5835628c117f
+Local optimized JPEG for design preview. Soft colour/brightness treatment applied in CSS.
