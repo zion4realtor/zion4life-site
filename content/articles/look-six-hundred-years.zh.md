@@ -6,6 +6,9 @@ type: article
 tags: goodnews, songs
 ---
 
+[▶ 观看演唱视频](/v/look-six-hundred-years/)
+
+
 以下为《看六百年奔十年》的中文简谱与歌词。点击任一段可放大查看。
 
 [![《看六百年奔十年》第一段简谱与歌词](/img/articles/look-six-hundred-1.jpg)](/img/articles/look-six-hundred-1.jpg)

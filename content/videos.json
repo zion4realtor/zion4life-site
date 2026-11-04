@@ -1,5 +1,57 @@
 [
   {
+    "slug": "look-six-hundred-years",
+    "minutes": 4,
+    "seconds": 264.733333,
+    "date": "2026-11-04",
+    "tags": [
+      "songs",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [],
+    "defaultCaption": "off",
+    "zh": {
+      "title": "看六百年奔十年｜诗歌视频",
+      "summary": "《看六百年奔十年》演唱与分段简谱，一起听诗歌、跟随歌谱唱。",
+      "description": "《看六百年奔十年》诗歌视频，保留所提供视频的完整演唱音轨及分段歌谱画面。"
+    },
+    "en": {
+      "title": "Six Hundred Years in View, Pressing On for Ten Years | Hymn Video",
+      "summary": "Listen to the Chinese hymn and follow the numbered musical score on screen.",
+      "description": "The complete supplied hymn video, with its original Chinese singing and numbered musical score."
+    },
+    "sourceNote": {
+      "zh": "中文演唱与原有歌谱画面。",
+      "en": "Chinese singing with the original on-screen musical score."
+    },
+    "poster": "/video/look-six-hundred-years.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/look-six-hundred-years.mp4",
+        "poster": "/video/look-six-hundred-years.jpg",
+        "label": "中文演唱 / Chinese singing"
+      }
+    ],
+    "shortKicker": {
+      "zh": "有光 · 唱诗",
+      "en": "LIGHT · HYMNS"
+    },
+    "byline": {
+      "zh": "中文演唱 · 分段歌谱",
+      "en": "Chinese singing · Musical score"
+    },
+    "lyricsUrl": {
+      "zh": "/a/look-six-hundred-years/",
+      "en": "/en/a/look-six-hundred-years/"
+    }
+  },
+  {
     "slug": "liao-shutao-truth-and-freedom",
     "minutes": 10,
     "seconds": 603.533333,
