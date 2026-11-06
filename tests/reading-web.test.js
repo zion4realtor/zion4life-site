@@ -16,3 +16,14 @@ test('long recording resumes across runs and only becomes ready when the entire 
  const second=await ensureWebAudio(env,d,'ot',8);assert.equal(second.complete,true);assert.equal(d.ot.englishAudio.status,'ready');assert.deepEqual(calls,['One.','Two.','Three.']);assert.equal(blobs.get(`reading:web:audio:${d.ot.englishAudio.hash}`).length,432);
  await ensureWebAudio(env,d,'ot',8);assert.equal(calls.length,3);assert.equal(d.ot.englishAudio.translation,'WEB');
 });
+
+
+test('speech splitting retains standalone punctuation and adjacent quotations without text loss',()=>{
+ const samples=['First sentence. . . Then more words! "Again?" Yes.', '"First!""Second?" End.', '... A leading pause. ! Another sentence.'];
+ for(const source of samples){for(const limit of [20,40,1800]){const chunks=splitSpeech(source,limit);assert.equal(chunks.join(' '),source);assert.ok(chunks.every(c=>c.length<=limit))}}
+});
+
+test('November 7 Ezekiel 6-9 regression preserves the complete verified reading',async()=>{
+ const fs=await import('node:fs');const transcript=JSON.parse(fs.readFileSync(new URL('../static/data/reading-web/2026-11-07-ot.json',import.meta.url)));
+ assert.equal(transcript.verseCount,70);assert.equal(splitSpeech(transcript.text).join(' '),transcript.text);
+});

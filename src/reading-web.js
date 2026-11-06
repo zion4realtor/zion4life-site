@@ -13,7 +13,20 @@ export function parseWebChapter(raw){
  if(!marks.length)throw Error('No WEB verse markers');
  const result=new Map();for(let i=0;i<marks.length;i++){const m=marks[i],n=+m[1];if(result.has(n))throw Error('Duplicate WEB verse');const v=text(body.slice(m.index+m[0].length,marks[i+1]?.index??body.length));if(!v)throw Error('Empty WEB verse');result.set(n,v)}return result;
 }
-export function splitSpeech(input,max=1800){const all=input.replace(/\s+/g,' ').trim(),chunks=[];let current='';for(const sentence of all.match(/[^.!?]+[.!?]+[”’"']*|[^.!?]+$/g)||[all]){const s=sentence.trim();if(s.length>max){if(current){chunks.push(current);current=''}for(const word of s.split(' ')){if(word.length>max)throw Error('Oversized speech token');if(current.length+word.length+1>max){chunks.push(current);current=''}current+=(current?' ':'')+word}}else if(current.length+s.length+1>max){if(current)chunks.push(current);current=s}else current+=(current?' ':'')+s}if(current)chunks.push(current);if(chunks.join(' ')!==all)throw Error('Speech chunking changed text');return chunks}
+export function splitSpeech(input,max=1800){
+ if(!Number.isInteger(max)||max<1)throw Error('Invalid speech limit');
+ const all=input.replace(/\s+/g,' ').trim(),chunks=[];let rest=all;
+ while(rest.length>max){let end=rest.lastIndexOf(' ',max);if(end<1)throw Error('Oversized speech token');
+ // Slice the original string instead of reconstructing it from sentence matches.
+ // Leading punctuation and consecutive quotations must survive verbatim.
+ const boundary=[...rest.slice(0,end).matchAll(/[.!?][”’"']*(?= )/g)].at(-1);
+ if(boundary&&boundary.index+boundary[0].length>=max*.6)end=boundary.index+boundary[0].length;
+ chunks.push(rest.slice(0,end));rest=rest.slice(end).trimStart();
+ }
+ if(rest)chunks.push(rest);
+ if(chunks.join(' ')!==all||chunks.some(c=>c.length>max))throw Error('Speech chunking changed text');
+ return chunks;
+}
 export async function webTranscript(part,fetcher=fetch){const verses=[],sources=[],chapters=[];for(const range of part.ranges){const url=webURL(part,range.chapter),r=await fetcher(url,{signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error(`WEB source ${r.status}`);const chapter=parseWebChapter(await r.text()),lines=[];for(let n=range.firstVerse;n<=range.lastVerse;n++){const v=chapter.get(n);if(!v)throw Error(`WEB verse missing: ${part.bookEn} ${range.chapter}:${n}`);verses.push({chapter:range.chapter,verse:n,text:v});lines.push(v)}sources.push(url);chapters.push(`${part.bookEn} chapter ${range.chapter}. ${lines.join(' ')}`)}const complete=chapters.join(' ');return {edition:EDITION,license:'Public domain',book:part.bookEn,ranges:part.ranges,verseCount:verses.length,verses,sources,text:complete,chunks:splitSpeech(complete)}}
 async function load(db,k){const r=await db.get(k);return r?r.json():null}
 // Keep only MP3 audio frames, removing per-chunk ID3/Xing headers. This avoids a player
@@ -39,3 +52,4 @@ export async function ensureWebAudio(env,data,testament,budget){
 
 // Read-only progress while a long recording is running; never starts TTS from a public request.
 export async function webAudioProgress(env,date,testament){const db=store(env),transcript=await load(db,`reading:web:transcript:${date}:${testament}:v1`);if(!transcript)return null;const h=await hash(`webp-v1|helena|mp3|${transcript.text}`),job=await load(db,`reading:web:job:${h}`);return {status:job?.complete?'ready':job?.error?'retrying':'generating',scope:'full-passage',translation:'WEB',edition:EDITION,voice:'Aura 2 Helena',hash:h,done:job?.done||0,total:transcript.chunks.length,verseCount:transcript.verseCount,bytes:job?.bytes||0,...(job?.error?{error:job.error,retryAt:job.retryAt}:{})}}
+
