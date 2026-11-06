@@ -27,7 +27,7 @@ export function parseReading(raw) {
   const book=BOOKS.find(b=>b.zh===name);if(!book)throw new Error('Unrecognized source book');
   let chapter=+(raw.match(/CAPTION\s*,\s*['"][^\d'"]*(\d+):/i)?.[1]||0);
   let body=raw.split(/<body[^>]*>/i)[1];if(!body)throw new Error('Missing source body');
-  body=body.split(/<hr\b/i)[0].replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,'').replace(/<sup>\s*<a\b[\s\S]*?<\/sup>/gi,'');
+  body=body.split(/<hr\b/i)[0].replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,'').replace(/<sup>\s*<a\b[\s\S]*?<\/sup>/gi,'').replace(/<div\b[^>]*class=["'][^"']*\bo\d+\b[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,'');
   const tokens=[...body.matchAll(/<b>\s*第([一二三四五六七八九十百\d]+)章\s*<\/b>|<sup>\s*(\d+)\s*<\/sup>/g)];
   const verses=[];
   for(let i=0;i<tokens.length;i++){const m=tokens[i];if(m[1]){chapter=cn(m[1]);continue}if(!chapter)throw new Error('Unknown chapter');const text=plain(body.slice(m.index+m[0].length,tokens[i+1]?.index??body.length));if(text)verses.push({chapter,verse:+m[2],text})}
@@ -43,7 +43,8 @@ export function englishURL(part,chapter){return `https://text.recoveryversion.bi
 export function englishVerse(raw,verse){const m=[...raw.matchAll(/<p\b[^>]*id="[^"]*-(\d+)"[^>]*>([\s\S]*?)<\/p>/g)].find(m=>+m[1]===verse);if(!m)throw new Error('English verse missing');return plain(m[2].replace(/<b>[\s\S]*?<\/b>/,''))}
 async function fetchText(url){const r=await fetch(url,{signal:AbortSignal.timeout(20000)});if(!r.ok)throw new Error(`Source ${r.status}`);return r.text()}
 async function readBlob(db,k){const r=await db.get(k);return r? r.json():null}
-function normalizeQuotes(data){for(const t of ['ot','nt'])for(const v of data?.[t]?.keyVerses||[]){v.en=decode(v.en);v.zh=decode(v.zh)}return data}
+export function cleanChineseQuote(text){return decode(text).split(/\s+(?:[一二三四五六七八九十壹贰叁肆伍陆柒捌玖拾]+|\d+)[.．、]/u)[0].replace(/(?<=[\p{Script=Han}，。；：、！？])\s+(?=[\p{Script=Han}，。；：、！？])/gu,'').trim()}
+function normalizeQuotes(data){for(const t of ['ot','nt'])for(const v of data?.[t]?.keyVerses||[]){v.en=decode(v.en);v.zh=cleanChineseQuote(v.zh)}return data}
 export async function readingData(env,date){planDay(date);const db=store(env);let data=await readBlob(db,key(date));if(data?.status==='ready')return normalizeQuotes(data);const seed=await env.ASSETS.fetch(new Request(`${ORIGIN}/data/reading/${date}.json`));if(seed.ok){data=await seed.json();return normalizeQuotes(data)}return null}
 async function prepare(env,date){const db=store(env),day=planDay(date),out={date,planDay:day,tags:['eat','life'],status:'ready',checkedAt:new Date().toISOString()};for(const [t,letter] of [['ot','o'],['nt','n']]){const sourceUrl=`https://line.twgbr.org/recoveryversion/oneyear/${letter}${String(day).padStart(3,'0')}.html`;const p=parseReading(await fetchText(sourceUrl)),v=selectVerse(p);const sourceEn=englishURL(p,v.chapter),en=englishVerse(await fetchText(sourceEn),v.verse);const words=en.split(/\s+/),isExcerpt=words.length>25||v.text.length>70;const ref=`${v.chapter}:${v.verse}`;out[t]={bookZh:p.bookZh,bookEn:p.bookEn,bookNumber:p.bookNumber,ranges:p.ranges,sourceUrl,audioUrl:p.audioUrl,englishAudio:{status:'pending',scope:'full-passage',translation:'WEB',voice:'Aura 2 Helena'},keyVerses:[{reference:`${p.bookEn} ${ref}${isExcerpt?' (excerpt)':''}`,referenceZh:`${p.bookZh} ${ref}${isExcerpt?'（节选）':''}`,zh:v.text.slice(0,70)+(v.text.length>70?'…':''),en:words.slice(0,25).join(' ')+(words.length>25?'…':''),sourceEn,testament:t}]}}
  await db.put(key(date),JSON.stringify(out));const index=(await readBlob(db,'reading:index'))||[];if(!index.includes(date))await db.put('reading:index',JSON.stringify([...index,date].sort()));return out}

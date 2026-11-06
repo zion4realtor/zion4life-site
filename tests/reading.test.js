@@ -46,3 +46,14 @@ test('reading share metadata contains date and NT key verse before JavaScript ru
 test('saved reading quotations display source punctuation rather than entity codes',async()=>{
  const {env,blobs}=environment();const data=JSON.parse(fs.readFileSync('content/reading/2026-10-19.json'));data.ot.keyVerses[0].en='My word &mdash; like fire';blobs.set('reading:day:2026-10-19',new TextEncoder().encode(JSON.stringify(data)));const result=await readingData(env,'2026-10-19');assert.equal(result.ot.keyVerses[0].en,'My word — like fire');
 });
+
+
+test('source outline blocks between verses and at a reading boundary never enter quotations',()=>{
+ const raw=sample('彼得后书','一','<sup>11</sup>这样，你们就必得着丰富充足的供应，以进入我们主和救主耶稣基督永远的国。</p><div class="o1">二.神圣真理的照亮 12～21</div><div class="o2">1.借使徒见证的荣耀 12～18</div><p><sup>12</sup>所以，你们虽已知道这些事。');
+ const p=parseReading(raw);assert.equal(p.verses[0].text,'这样，你们就必得着丰富充足的供应，以进入我们主和救主耶稣基督永远的国。');assert.equal(p.verses[1].verse,12);assert.equal(p.verses[1].text,'所以，你们虽已知道这些事。');
+ const end=parseReading(sample('彼得后书','一','<sup>11</sup>经文。</p><div class="o1">二.神圣真理的照亮 12～21</div>'));assert.equal(end.verses[0].text,'经文。');
+});
+test('previously saved or seeded quotations lose appended outline headings',async()=>{
+ const {env,blobs}=environment();const data=JSON.parse(fs.readFileSync('content/reading/2026-10-19.json'));data.nt.keyVerses[0].zh='这样， 你们就必得着丰富充足的供应。 二.神圣真理的照亮 12～21 1.借使徒见证的荣耀 12～1…';blobs.set('reading:day:2026-10-19',new TextEncoder().encode(JSON.stringify(data)));const d=await readingData(env,'2026-10-19');assert.equal(d.nt.keyVerses[0].zh,'这样，你们就必得着丰富充足的供应。');
+ env.ASSETS.fetch=async()=>Response.json(data);const seeded=await readingData(env,'2026-10-20');assert.equal(seeded.nt.keyVerses[0].zh,'这样，你们就必得着丰富充足的供应。');
+});
