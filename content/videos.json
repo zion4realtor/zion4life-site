@@ -1,5 +1,47 @@
 [
   {
+    "slug": "turn-to-his-care",
+    "minutes": 2,
+    "seconds": 91.833333,
+    "date": "2026-11-08",
+    "tags": [
+      "songs",
+      "video",
+      "feelings"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "portrait",
+    "captionOptions": [],
+    "defaultCaption": "off",
+    "zh": {
+      "title": "转向祂的眷顾｜在家中一起唱诗",
+      "summary": "围坐在家中的客厅，伴着吉他一起唱诗。在歌声与陪伴中，转向主的眷顾，让心安静下来。",
+      "description": "在家中的聚会，不必拘谨。有人弹琴，有人唱诗，大人和孩子围坐在一起，在熟悉的旋律中，把忙碌和心事带到主面前。\n\n一首《转向祂的眷顾》，让平常的客厅多了一份温暖。我们在歌声中彼此陪伴，学习转向主、接受祂的眷顾，也把这份安慰带回每天的生活。家中的聚会，就从这样简单的相聚开始。"
+    },
+    "en": {
+      "title": "The Gift of Righteousness | Singing Together at Home",
+      "summary": "Gathered in a living room, we sing with guitar accompaniment, turn our hearts to the Lord, and find comfort in His care and one another's company.",
+      "description": "A gathering at home can be simple and unhurried. Someone picks up a guitar; adults and children sit together and sing. In a familiar melody, we bring the busyness of life and the concerns on our hearts before the Lord.\n\nAs we sing The Gift of Righteousness, an ordinary living room becomes a place of warmth and encouragement. We keep one another company, turn our hearts to the Lord, and receive His care. The comfort we find together can follow us into everyday life. A home gathering begins with something as simple as being together."
+    },
+    "poster": "/video/turn-to-his-care.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/turn-to-his-care.mp4?v=20261108",
+        "poster": "/video/turn-to-his-care.jpg",
+        "label": "现场原声 / Original live audio"
+      }
+    ],
+    "sourceNote": {
+      "zh": "用户提供的家庭聚会现场视频，保留完整画面与原声，不添加字幕；拍摄日期与地点未推定。",
+      "en": "User-provided footage of a home gathering. Full picture and original audio retained; no added subtitles. Recording date and location have not been inferred."
+    },
+    "publishedAt": "2026-11-08T13:18:41.254951+00:00"
+  },
+  {
     "slug": "look-six-hundred-years",
     "minutes": 4,
     "seconds": 264.733333,
