@@ -1,12 +1,13 @@
 // A daily image article is available atomically with its published reading metadata.
 import { readingData, publicationDate, planDay } from './reading.js';
+import { BOOKS } from './bible.js';
 import { esc } from './md.js';
 import qrcode from '../static/js/vendor/qrcode.js';
 const ORIGIN='https://zion4life.faith';
 export const articlePath=(date,lang='zh')=>`${lang==='en'?'/en':''}/a/key-verses-${date}/`;
 export function bookTheme(book){
  const fixed={'1 Peter':['#f1f3be','#d5e56e','#5b9a7e','#795b37'],'2 Peter':['#eef1c5','#cfdf83','#5f957d','#795b37'],'1 John':['#fae8d9','#e9c2a0','#b48073','#745646']};
- if(fixed[book])return fixed[book];let h=0;for(const c of book)h=(h*31+c.codePointAt(0))>>>0;const hue=h%360;return [`hsl(${hue} 45% 93%)`,`hsl(${hue} 42% 79%)`,`hsl(${hue} 25% 48%)`,`hsl(${hue} 27% 25%)`];
+ if(fixed[book])return fixed[book];let h=0;for(const c of book)h=(h*31+c.codePointAt(0))>>>0;const index=BOOKS.findIndex(b=>b.en===book);const hue=index>=0?((index+1)*137.508%360).toFixed(3):h%360;return [`hsl(${hue} 45% 93%)`,`hsl(${hue} 42% 79%)`,`hsl(${hue} 25% 48%)`,`hsl(${hue} 27% 25%)`];
 }
 function wrap(text,max,english){const units=english?text.split(/\s+/):Array.from(text),space=english?' ':'';const lines=[];let line='';for(const unit of units){const next=line?line+space+unit:unit;if(next.length>max&&line){if(!english&&/^[，。；：、！？）》」』]/u.test(unit)){lines.push(next);line=''}else{lines.push(line);line=unit}}else line=next}if(line)lines.push(line);return lines}
 export function cardSvg(data,testament,lang){
