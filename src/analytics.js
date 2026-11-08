@@ -15,6 +15,7 @@ export const EVENTS = {
   create_group: ['kind'],         // a 搭子 started
   join_group: ['group_id', 'kind'],
   share: ['method'],
+  verse_image_export: ['method','date','testament','language'], // export/share action, not confirmed social reach
   play_video: ['line'],
   video_like: ['liked'],
   listen_audio: [],               // 呼吸 读给我听

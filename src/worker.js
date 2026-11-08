@@ -13,6 +13,7 @@ import { planText, minutesText, sessionState, KINDS } from './schedule.js';
 import { esc, md, plain } from './md.js';
 import { serveVideo, serveVideoPage } from './media.js';
 import { readingApi, readingPage, prepareReadings } from './reading.js';
+import { serveKeyverseCards } from './keyverse-cards.js';
 
 export { Store } from './store.js';
 
@@ -22,6 +23,7 @@ export default {
     const p = url.pathname;
     if (/^\/(?:en\/)?v\/[a-z0-9-]+\/?$/.test(p)) return serveVideoPage(request, env);
     if (p.startsWith('/video/') && p.endsWith('.mp4')) return serveVideo(request, env);
+    if (p.startsWith('/api/keyverse-cards/') || /^\/(?:en\/)?a\/key-verses-\d{4}-\d{2}-\d{2}\/?$/.test(p) || /^\/(?:en\/)?key-verses\/?$/.test(p)) return serveKeyverseCards(request, env, url);
     if (p.startsWith('/api/reading/')) return readingApi(request, env, url);
     if (/^\/(en\/)?read\/(?:today|\d{4}-\d{2}-\d{2})\//.test(p)) return readingPage(request, env, url);
     if (p === '/api/hit') return handleHit(request, env, ctx, url);

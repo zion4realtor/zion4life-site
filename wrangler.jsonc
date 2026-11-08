@@ -22,7 +22,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/video/*.mp4", "/v/*", "/en/v/*", "/read/*", "/en/read/*", "/api/*", "/g/*", "/en/g/*", "/x/*", "/en/x/*"],
+    "run_worker_first": ["/a/key-verses-*", "/en/a/key-verses-*", "/key-verses/", "/en/key-verses/", "/video/*.mp4", "/v/*", "/en/v/*", "/read/*", "/en/read/*", "/api/*", "/g/*", "/en/g/*", "/x/*", "/en/x/*"],
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   },
