@@ -83,3 +83,18 @@ test('youth video appears under both songs and feelings',()=>{
   assert.ok(h.includes('/v/southeast-youth-singing/'));
  }
 });
+
+
+test('Liao testimony parts link to each other in the same language and retain separate share identities',()=>{
+ const slugs=['liao-shutao-truth-and-freedom-part1','liao-shutao-truth-and-freedom'];
+ for(const pre of ['', 'en/'])for(const [i,slug] of slugs.entries())for(const suffix of ['', 'details/']){
+  const h=fs.readFileSync(`dist/${pre}v/${slug}/${suffix}index.html`,'utf8');
+  const nav=h.match(/<nav class="video-parts"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
+  assert.ok(nav,`${pre}${slug}${suffix} has part navigation`);
+  for(const target of slugs)assert.ok(nav.includes(`href="/${pre}v/${target}/"`));
+  assert.equal((nav.match(/aria-current="page"/g)||[]).length,1);
+  assert.match(nav,new RegExp(`href="/${pre}v/${slug}/" aria-current="page"`));
+  assert.ok(h.includes(pre ? `(Part ${i+1})` : (i===0?'（上）':'（下）')));
+  if(!suffix){assert.equal((h.match(/data-reel="/g)||[]).length,1);assert.ok(h.includes(`data-reel="${slug}"`));}
+ }
+});

@@ -52,6 +52,69 @@
     }
   },
   {
+    "slug": "liao-shutao-truth-and-freedom-part1",
+    "minutes": 10,
+    "seconds": 582.0,
+    "date": "2026-11-07",
+    "tags": [
+      "goodnews",
+      "stories",
+      "video"
+    ],
+    "short": true,
+    "spotlight": true,
+    "subscribeTag": "video",
+    "downloadable": false,
+    "orientation": "landscape",
+    "captionOptions": [
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "off",
+      "en": "en"
+    },
+    "burnedInCaptionLanguage": "zh",
+    "zh": {
+      "title": "真理使我得自由（上）｜廖述涛的求学与婚姻",
+      "summary": "深信科学与理性的廖述涛，在赴美求学和婚姻风浪中，如何开始接触信仰？上集从他的求学经历，讲到妻子得到帮助，以及他起初对信仰的抗拒。",
+      "description": "从尊重自由、追求真理的大学生活，到赴美攻读博士，廖述涛一直相信理性与独立思考。他在德州大学看见“真理必使你得自由”的校训，深受震撼，却还不知道这句话的出处。\n\n学业完成后，婚姻与家庭却陷入风浪。妻子在困境中接触福音，得到召会弟兄姊妹的照顾；他则对信仰和聚会抱着疑问。本集保留官方上集的见证内容，剪去书房片尾，故事接续于下集。"
+    },
+    "en": {
+      "title": "The Truth Set Me Free (Part 1): Liao Shutao's Studies and Marriage",
+      "summary": "Committed to science and reason, Liao Shutao faced challenges in his studies abroad and his marriage. Part 1 follows his early life, the help his wife received, and his initial resistance to faith.",
+      "description": "From university life devoted to freedom and truth to doctoral studies in America, Liao Shutao trusted reason and independent thought. At the University of Texas, the inscription about truth and freedom deeply moved him, though he did not yet know its source.\n\nAfter he completed his studies, his marriage entered a painful period. His wife encountered the gospel and received care from the brothers and sisters in the church, while he remained doubtful about faith and church meetings. This video preserves the testimony from the official first part, with the publisher outro removed. The story continues in Part 2."
+    },
+    "sourceNote": {
+      "zh": "台湾福音书房官方上集。保留原声和原中文字幕，新增英文字幕，删除书房片尾。",
+      "en": "Official first part from Taiwan Gospel Book Room. Original audio and Chinese captions retained, English subtitles added; publisher outro removed."
+    },
+    "sourceAttribution": {
+      "url": "https://www.youtube.com/watch?v=rBxAlRXkoaE",
+      "zh": "台湾福音书房《真理使我得自由1》",
+      "en": "Taiwan Gospel Book Room: The Truth Set Me Free, Part 1"
+    },
+    "poster": "/video/liao-shutao-truth-and-freedom-part1.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/liao-shutao-truth-and-freedom-part1.mp4?v=20261107",
+        "poster": "/video/liao-shutao-truth-and-freedom-part1.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/liao-shutao-truth-and-freedom-part1.en.vtt"
+      }
+    ],
+    "publishedAt": "2026-11-08T04:43:16.340449+00:00",
+    "seriesPart": 1,
+    "pairedVideo": "liao-shutao-truth-and-freedom"
+  },
+  {
     "slug": "liao-shutao-truth-and-freedom",
     "minutes": 10,
     "seconds": 603.533333,
@@ -76,12 +139,12 @@
     },
     "burnedInCaptionLanguage": "zh",
     "zh": {
-      "title": "真理使我得自由｜廖述涛的三重顾虑",
+      "title": "真理使我得自由（下）｜廖述涛的三重顾虑",
       "summary": "信耶稣，会失去理性、自由和关爱人的心吗？廖述涛坦诚分享信主前的三重顾虑，以及他如何在耶稣关于真理与自由的话里找到回应。",
       "description": "理工背景的廖述涛，曾对信仰抱有三重顾虑：相信圣经，会不会放弃追求真理？成为基督徒，会不会背上道德重担、失去自由？爱神，会不会让自己忽略身边的人？\n\n一次夜读见证集的经历，让他在自己熟悉的大学校训里，看见耶稣关于真理与自由的话。这条视频保留台湾福音书房官方下集的见证内容，包括三项顾虑、受浸后的挣扎，以及后来观念转变的过程。"
     },
     "en": {
-      "title": "The Truth Set Me Free: Liao Shutao's Testimony",
+      "title": "The Truth Set Me Free (Part 2): Liao Shutao's Three Concerns",
       "summary": "Would believing in Jesus cost him truth, freedom, and concern for others? Liao Shutao shares his three concerns and how he found an answer in Jesus' words.",
       "description": "With a background in science and engineering, Liao Shutao had three concerns about faith: Would believing the Bible mean giving up his pursuit of truth? Would becoming a Christian impose moral burdens and take away his freedom? Would loving God make him neglect the people around him?\n\nOne night, while reading a collection of testimonies, he recognized Jesus' words about truth and freedom in a familiar university motto. This video preserves the testimony from Part 2 published by Taiwan Gospel Book Room, including his three concerns, his struggle after baptism, and the change in his understanding."
     },
@@ -110,7 +173,9 @@
         "url": "/video/liao-shutao-truth-and-freedom.en.vtt"
       }
     ],
-    "publishedAt": "2026-10-31T20:49:07.580960+00:00"
+    "publishedAt": "2026-10-31T20:49:07.580960+00:00",
+    "seriesPart": 2,
+    "pairedVideo": "liao-shutao-truth-and-freedom-part1"
   },
   {
     "slug": "song-of-songs-unnamed-beloved",
