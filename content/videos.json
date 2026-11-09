@@ -1745,5 +1745,129 @@
         "url": "/video/children-learning-together.zh.vtt?v=20261018-sync2"
       }
     ]
+  },
+  {
+    "slug": "bitter-still",
+    "minutes": 3,
+    "seconds": 149.9,
+    "date": "2026-11-09",
+    "speaker": {
+      "zh": "李光弘",
+      "en": "Livingstone Lee"
+    },
+    "series": {
+      "zh": "人生不止一种活法",
+      "en": "More to Life"
+    },
+    "tags": [
+      "goodnews",
+      "mystery",
+      "video"
+    ],
+    "spotlight": true,
+    "downloadable": false,
+    "zh": {
+      "title": "越努力，心里为什么还是苦？",
+      "summary": "一杯苦茶的比喻，连到我们拼命追求金钱、学业和关系，却仍觉得苦涩的处境；李光弘接着分享基督信仰中的盼望。"
+    },
+    "en": {
+      "title": "Why Can Life Still Feel Bitter After All That Striving?",
+      "summary": "A story about bitter tea leads to a question: even when we work hard for success and relationships, why can life still feel empty? Livingstone Lee shares the Christian hope found in Jesus."
+    },
+    "poster": "/video/bitter-still.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/bitter-still.mp4",
+        "poster": "/video/bitter-still.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/bitter-still.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/bitter-still.en.vtt"
+      }
+    ],
+    "short": true,
+    "subscribeTag": "video",
+    "orientation": "landscape",
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    }
+  },
+  {
+    "slug": "hard-to-stop",
+    "minutes": 3,
+    "seconds": 166.26,
+    "date": "2026-11-09",
+    "speaker": {
+      "zh": "王嘉玲（王生台夫妇）",
+      "en": "Wang Jialing (Wang Shengtai’s wife)"
+    },
+    "series": {
+      "zh": "人生不止一种活法",
+      "en": "More to Life"
+    },
+    "tags": [
+      "goodnews",
+      "mystery",
+      "video"
+    ],
+    "spotlight": true,
+    "downloadable": false,
+    "zh": {
+      "title": "明知道不值得，为什么还是停不下来？",
+      "summary": "王嘉玲用举重选手无法举起自己的比喻，聊人为什么明知一些习惯耗费时间却难以改变，也分享信仰提供的另一种选择。"
+    },
+    "en": {
+      "title": "Why Is It So Hard to Stop, Even When We Know Better?",
+      "summary": "Wang Jialing uses the image of a weightlifter who cannot lift herself to explore why habits can be hard to change, then shares another choice offered by faith."
+    },
+    "poster": "/video/hard-to-stop.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/hard-to-stop.mp4",
+        "poster": "/video/hard-to-stop.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/hard-to-stop.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/hard-to-stop.en.vtt"
+      }
+    ],
+    "short": true,
+    "subscribeTag": "video",
+    "orientation": "landscape",
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    }
   }
 ]
