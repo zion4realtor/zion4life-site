@@ -1,5 +1,221 @@
 [
   {
+    "slug": "life-purpose-everyday",
+    "minutes": 2,
+    "seconds": 107,
+    "date": "2026-11-09",
+    "speaker": {
+      "zh": "李光弘",
+      "en": "Livingstone Lee"
+    },
+    "series": {
+      "zh": "人生的奥秘",
+      "en": "The Mystery of Life"
+    },
+    "tags": [
+      "goodnews",
+      "mystery",
+      "video",
+      "stories"
+    ],
+    "short": true,
+    "spotlight": true,
+    "downloadable": false,
+    "orientation": "landscape",
+    "subscribeTag": "video",
+    "shortKicker": {
+      "zh": "人生聊一聊 · 李光弘",
+      "en": "A LIFE QUESTION · LIVINGSTONE LEE"
+    },
+    "byline": {
+      "zh": "李光弘 · 中文原声 · 中英文字幕",
+      "en": "Livingstone Lee · Chinese audio · Chinese and English captions"
+    },
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
+    "zh": {
+      "title": "忙着过日子，也想知道为什么",
+      "summary": "从每天的忙碌和追寻出发，李光弘谈人为什么想知道人生的意义、目的和价值。"
+    },
+    "en": {
+      "title": "Busy Living, Still Asking Why",
+      "summary": "Starting with the routines and pursuits of everyday life, Livingstone Lee asks why we want our lives to have meaning, purpose and value."
+    },
+    "poster": "/video/life-purpose-everyday.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/life-purpose-everyday.mp4",
+        "poster": "/video/life-purpose-everyday.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/life-purpose-everyday.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/life-purpose-everyday.en.vtt"
+      }
+    ],
+    "publishedAt": "2026-11-09T19:41:18.991Z"
+  },
+  {
+    "slug": "life-answers-faith",
+    "minutes": 2,
+    "seconds": 118,
+    "date": "2026-11-09",
+    "speaker": {
+      "zh": "李光弘",
+      "en": "Livingstone Lee"
+    },
+    "series": {
+      "zh": "人生的奥秘",
+      "en": "The Mystery of Life"
+    },
+    "tags": [
+      "goodnews",
+      "mystery",
+      "video",
+      "stories"
+    ],
+    "short": true,
+    "spotlight": true,
+    "downloadable": false,
+    "orientation": "landscape",
+    "subscribeTag": "video",
+    "shortKicker": {
+      "zh": "人生聊一聊 · 李光弘",
+      "en": "A LIFE QUESTION · LIVINGSTONE LEE"
+    },
+    "byline": {
+      "zh": "李光弘 · 中文原声 · 中英文字幕",
+      "en": "Livingstone Lee · Chinese audio · Chinese and English captions"
+    },
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
+    "zh": {
+      "title": "人生的问题，信仰怎样回应？",
+      "summary": "为什么活着？从哪里来，又往哪里去？李光弘谈人如何追问，也分享基督信仰中关于创造主与圣经的回应。"
+    },
+    "en": {
+      "title": "How Does Faith Answer Life’s Big Questions?",
+      "summary": "Why are we here? Where did we come from, and where are we going? Livingstone Lee reflects on those questions and the Christian belief in a Creator who has spoken."
+    },
+    "poster": "/video/life-answers-faith.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/life-answers-faith.mp4",
+        "poster": "/video/life-answers-faith.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/life-answers-faith.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/life-answers-faith.en.vtt"
+      }
+    ],
+    "publishedAt": "2026-11-09T19:41:18.991Z"
+  },
+  {
+    "slug": "when-truth-finds-you",
+    "minutes": 3,
+    "seconds": 158.5,
+    "date": "2026-11-09",
+    "speaker": {
+      "zh": "李光弘",
+      "en": "Livingstone Lee"
+    },
+    "series": {
+      "zh": "人生的奥秘",
+      "en": "The Mystery of Life"
+    },
+    "tags": [
+      "goodnews",
+      "mystery",
+      "video",
+      "stories"
+    ],
+    "short": true,
+    "spotlight": true,
+    "downloadable": false,
+    "orientation": "landscape",
+    "subscribeTag": "video",
+    "shortKicker": {
+      "zh": "人生聊一聊 · 李光弘",
+      "en": "A LIFE QUESTION · LIVINGSTONE LEE"
+    },
+    "byline": {
+      "zh": "李光弘 · 中文原声 · 中英文字幕",
+      "en": "Livingstone Lee · Chinese audio · Chinese and English captions"
+    },
+    "captionOptions": [
+      "zh",
+      "en",
+      "off"
+    ],
+    "defaultCaption": {
+      "zh": "zh",
+      "en": "en"
+    },
+    "zh": {
+      "title": "听过耶稣的名字，为什么仍觉得陌生？",
+      "summary": "李光弘从自己成长于传统家庭的经历说起，谈人如何寻找真理，并追问是否有一位创造者能解释生命的来处。"
+    },
+    "en": {
+      "title": "We Know the Name Jesus. Why Can He Still Feel Distant?",
+      "summary": "Livingstone Lee reflects on growing up in a traditional family, the search for truth, and whether a Creator can explain where life comes from."
+    },
+    "poster": "/video/when-truth-finds-you.jpg",
+    "sources": [
+      {
+        "type": "file",
+        "url": "/video/when-truth-finds-you.mp4",
+        "poster": "/video/when-truth-finds-you.jpg",
+        "label": "中文原声 / Original Chinese"
+      }
+    ],
+    "subtitles": [
+      {
+        "lang": "zh",
+        "label": "中文",
+        "url": "/video/when-truth-finds-you.zh.vtt"
+      },
+      {
+        "lang": "en",
+        "label": "English",
+        "url": "/video/when-truth-finds-you.en.vtt"
+      }
+    ],
+    "publishedAt": "2026-11-09T19:41:18.991Z"
+  },
+  {
     "slug": "turn-to-his-care",
     "minutes": 2,
     "seconds": 91.833333,
@@ -96,7 +312,7 @@
   {
     "slug": "liao-shutao-truth-and-freedom-part1",
     "minutes": 10,
-    "seconds": 582.0,
+    "seconds": 582,
     "date": "2026-11-07",
     "tags": [
       "goodnews",
