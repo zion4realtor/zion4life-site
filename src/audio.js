@@ -77,6 +77,16 @@ export async function handleAudio(request, env, db, url) {
   if (request.method !== 'GET') return fail('Not found', 404);
   let m;
   if ((m = url.pathname.match(/^\/api\/audio\/(?:huxi|diguan)\/(\d{4}-\d{2}-\d{2})\/(zh|en)\.json$/))) {
+    // Prayer narration is produced locally with Voicebox and shipped as versioned static
+    // segments. Prefer that manifest; the Durable Object below remains as a fallback for
+    // older recordings already stored there.
+    try {
+      const p = `/audio/voicebox/${url.pathname.split('/')[3]}/${m[1]}/${m[2]}.json`;
+      const r = await env.ASSETS.fetch(new Request(new URL(p, url)));
+      if (r.ok) return json(await r.json(), 200, { 'Cache-Control': 'no-store' });
+    } catch (e) {
+      console.error('[voicebox audio manifest]', e?.message || e);
+    }
     const a = await db('audioGet', { key: keyOf(m[1], m[2], url.pathname.split('/')[3]) });
     const ready = !!a && a.done >= a.parts && a.parts > 0;
     for (const repair of AUDIO_REPAIRS.filter((x) => x.kind === url.pathname.split('/')[3] && x.date === m[1] && x.lang === m[2])) {

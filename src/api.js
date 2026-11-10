@@ -12,17 +12,17 @@ import { handleAuth, currentUser, isAdmin, sameOrigin } from './auth.js';
 import { handleContent, siteData } from './content.js';
 import { handleDazi, runReminders as dazReminders } from './dazi.js';
 import { handleInbox, addMsg, announce } from './inbox.js';
-import { handleAudio, makeAudio } from './audio.js';
+import { handleAudio } from './audio.js';
 import { sendAsk } from './mail.js';
 import { handleVideoLikes } from './video-likes.js';
 import { KINDS } from './schedule.js';
 
-// The cron, every 5 minutes: 搭子 reminders, new pieces for subscribers, 呼吸 recordings.
+// The cron runs 搭子 reminders and subscriber announcements. Prayer recordings are made
+// locally with Voicebox, shipped as static segments, and are not synthesized by Workers AI.
 export async function runReminders(env, now = Date.now(), url = new URL('https://zion4life.faith')) {
   const out = await dazReminders(env, now, url);
   const db = store(env);
   try { out.announced = (await announce(env, db, url, now)).sent; } catch (e) { console.error('[announce]', e?.stack || e); }
-  try { out.audio = await makeAudio(env, db, url, now); } catch (e) { console.error('[audio]', e?.stack || e); }
   return out;
 }
 
