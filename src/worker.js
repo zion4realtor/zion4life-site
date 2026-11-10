@@ -16,6 +16,7 @@ import { readingApi, readingPage, prepareReadings } from './reading.js';
 import { serveKeyverseCards } from './keyverse-cards.js';
 
 export { Store } from './store.js';
+export { Popularity } from './popularity.js';
 
 export default {
   async fetch(request, env, ctx) {

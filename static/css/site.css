@@ -1031,3 +1031,25 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 
 /* Linked parts of a video testimony. */
 .video-parts{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.video-parts a{display:inline-flex;align-items:center;min-height:36px;padding:6px 12px;border:1px solid currentColor;border-radius:20px;font:600 12px/1.3 system-ui;text-decoration:none}.video-parts a[aria-current="page"]{opacity:.65}.reel-copy .video-parts a{pointer-events:auto;background:#0007}.video-parts a:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+
+/* Admin popularity report */
+.adm-pop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.adm-pop-head .sec-h{margin:0}
+.adm-pop-head .hint{margin:.35rem 0}
+.adm-pop-head label{display:flex;align-items:center;gap:.5rem;color:var(--mute);font-size:.9rem;white-space:nowrap}
+.adm-pop-head select{border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:.55rem .7rem;font:inherit}
+.adm-pop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem}
+.adm-pop-grid>section{min-width:0;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#fff,rgba(234,246,255,.55));padding:1rem}
+.adm-pop-grid h3{margin:.1rem 0 .85rem;font-size:1.05rem}
+.adm-pop-list{list-style:none;padding:0;margin:0;display:grid;gap:.75rem}
+.adm-pop-row{display:grid;grid-template-columns:1.6rem minmax(0,1fr) auto;align-items:center;gap:.55rem}
+.adm-pop-rank{display:grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--sky);color:var(--water-ink);font-size:.78rem;font-weight:700}
+.adm-pop-main{display:grid;min-width:0;gap:.25rem}
+.adm-pop-main>a,.adm-pop-main>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:.9rem}
+.adm-pop-main>a{text-decoration:none}
+.adm-pop-main>a:hover{text-decoration:underline}
+.adm-pop-main small{color:var(--mute);font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-pop-track{height:5px;overflow:hidden;border-radius:99px;background:#e5eef5}
+.adm-pop-track i{display:block;height:100%;min-width:4px;border-radius:inherit;background:linear-gradient(90deg,var(--water),var(--t-mint))}
+.adm-pop-row>strong{font-size:.84rem;font-variant-numeric:tabular-nums;color:var(--water-ink)}
+@media(max-width:720px){.adm-pop-head{flex-direction:column}.adm-pop-grid{grid-template-columns:1fr}}

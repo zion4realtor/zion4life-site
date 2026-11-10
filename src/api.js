@@ -16,6 +16,7 @@ import { handleAudio } from './audio.js';
 import { sendAsk } from './mail.js';
 import { handleVideoLikes } from './video-likes.js';
 import { KINDS } from './schedule.js';
+import { readPageViews } from './popularity.js';
 
 // The cron runs 搭子 reminders and subscriber announcements. Prayer recordings are made
 // locally with Voicebox, shipped as static segments, and are not synthesized by Workers AI.
@@ -90,6 +91,54 @@ async function adminRoute(request, env, db, url, now) {
         created: u.created, seen: u.seen, groups: u.groups, subs: u.subs, manages: u.manages, checks: u.checks, devices: u.devices })), userCount: count.n,
       sent: sent.map((x) => ({ id: x.id, title: x.title_zh, body: x.body_zh, created: x.created })),
     });
+  }
+  if (p === '/api/admin/popularity' && request.method === 'GET') {
+    const requestedDays = Number(url.searchParams.get('days'));
+    const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
+    const since = new Date(now - days * 86400000).toISOString().slice(0, 10);
+    const pruneBefore = new Date(now - 400 * 86400000).toISOString().slice(0, 10);
+    const [data, views] = await Promise.all([siteData(env, url), readPageViews(env, { since, pruneBefore })]);
+    const sections = new Map();
+    const addSection = (id, name, count) => {
+      if (!name || !count) return;
+      const old = sections.get(id) || { id, name, views: 0 };
+      old.views += count;
+      sections.set(id, old);
+    };
+    const pages = views.map(({ path, views: count }) => {
+      let title = path, type = '页面', tags = [], urlPath = path;
+      let itemMatch = path.match(/^\/(a|v)\/([a-z0-9-]+)\/$/);
+      if (itemMatch) {
+        const item = data.item[`${itemMatch[1]}:${itemMatch[2]}`];
+        if (item) {
+          title = item.zh;
+          type = itemMatch[1] === 'v' ? '视频' : '文章';
+          tags = item.tags.map((id) => data.tag[id]?.zh).filter(Boolean);
+          item.tags.forEach((id) => { const tag = data.tag[id]; if (tag) addSection(`tag:${id}`, tag.zh, count); });
+        }
+      } else if ((itemMatch = path.match(/^\/t\/([a-z0-9-]+)\/$/))) {
+        const tag = data.tag[itemMatch[1]];
+        title = tag?.zh || '主题标签';
+        type = '板块页';
+        if (tag) addSection(`tag:${tag.id}`, tag.zh, count);
+      } else {
+        const labels = {
+          '/': ['粮仓首页', '首页', 'granary'],
+          '/huxi/': ['今日呼吸', '呼吸', 'huxi'],
+          '/dazi/': ['搭子广场', '搭子', 'dazi'],
+          '/read/': ['三旧一新读经', '读经', 'reading'],
+          '/updates/': ['全部更新', '更新目录', 'updates'],
+          '/key-verses/': ['读经金句卡片', '读经', 'key-verses'],
+          '/shared/': ['访客分享内容（合并）', '访客内容', 'shared'],
+        };
+        const info = labels[path];
+        if (info) { [title, type] = info; addSection(info[2], info[1], count); }
+      }
+      return { path, title, type, tags, url: path === '/shared/' ? '' : urlPath, views: count };
+    }).sort((a, b) => b.views - a.views).slice(0, 30);
+    const popularSections = [...sections.values()].sort((a, b) => b.views - a.views).slice(0, 16);
+    const totalViews = views.reduce((sum, x) => sum + x.views, 0);
+    return json({ ok: true, days, since, totalViews, pages, sections: popularSections });
   }
   if (request.method !== 'POST') return fail('Not found', 404);
   const b = (await readBody(request, 40000)) || {};
