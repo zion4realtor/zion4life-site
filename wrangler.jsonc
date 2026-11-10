@@ -26,8 +26,8 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   },
-  "durable_objects": { "bindings": [{ "name": "STORE", "class_name": "Store" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Store"] }],
+  "durable_objects": { "bindings": [{ "name": "STORE", "class_name": "Store" }, { "name": "PAGE_STATS", "class_name": "Popularity" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Store"] }, { "tag": "v2", "new_sqlite_classes": ["Popularity"] }],
   "triggers": { "crons": ["*/5 * * * *"] },
   "observability": { "enabled": true }
 }

@@ -625,7 +625,10 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
   const adminBox = $('[data-admin]');
   if (adminBox) {
     const load = async () => {
-      const r = await api('/api/admin/overview');
+      const [r, popularity] = await Promise.all([
+        api('/api/admin/overview'),
+        api('/api/admin/popularity?days=30'),
+      ]);
       if (r.status === 401) {
         adminBox.innerHTML = `<p>请先用管理员邮箱登录。</p><p><button class="btn btn-water" type="button" data-login>登录</button></p>`;
         $('[data-login]', adminBox).addEventListener('click', () => requireLogin().then(load, () => {}));
@@ -641,6 +644,17 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
       const when = (g) => `${g.days.length === 7 ? '每天' : `每周${g.days.map((i) => WEEK[i]).join('、')}`} ${g.time}，${g.minutes} 分钟`;
       const topicName = (x) => (x === 'huxi' ? '呼吸' : tagName[x.slice(4)] || x.slice(4));
       const statusName = { active: '进行中', closed: '已结束', removed: '已撤下' };
+      const renderPopularity = (report) => {
+        if (!report || !report.ok) return '<p class="muted">浏览统计暂时无法载入。</p>';
+        if (!report.pages.length) return '<p class="muted">目前还没有浏览数据。统计会从功能上线后开始累计。</p>';
+        const sectionMax = Math.max(1, ...report.sections.map((x) => x.views));
+        const pageMax = Math.max(1, ...report.pages.slice(0, 12).map((x) => x.views));
+        const bars = (rows, max, withLinks) => rows.map((x, i) => `<li class="adm-pop-row">
+<span class="adm-pop-rank">${i + 1}</span><span class="adm-pop-main">${withLinks && x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>` : `<b>${esc(x.name || x.title)}</b>`}
+${x.tags?.length ? `<small>${x.tags.map(esc).join(' · ')}</small>` : withLinks ? `<small>${esc(x.type)}</small>` : ''}
+<span class="adm-pop-track"><i style="width:${Math.max(3, Math.round(x.views / max * 100))}%"></i></span></span><strong>${Number(x.views).toLocaleString('zh-CN')}</strong></li>`).join('');
+        return `<div class="adm-pop-grid"><section><h3>热门板块</h3><ol class="adm-pop-list">${bars(report.sections, sectionMax, false)}</ol></section><section><h3>热门页面</h3><ol class="adm-pop-list">${bars(report.pages.slice(0, 12), pageMax, true)}</ol></section></div><p class="hint">按浏览次数统计，不等于独立访客人数；中文和英文入口合并计算。一篇内容可能同时归入多个标签板块，因此各板块的浏览量不能直接相加。</p>`;
+      };
       const DAY = 86400000;
       const now = Date.now();
       const U = r.users;
@@ -659,11 +673,12 @@ ${m.admin ? `<p><a class="btn btn-line" href="/admin/">${t('网站管理', 'Site
       const byCountry = tally(U.map((u) => u.country || ''));
       const byId = tally(U.flatMap((u) => u.ids));
       adminBox.innerHTML = `
-<nav class="adm-nav"><a href="#adm-sum">概况</a><a href="#adm-people">注册的人</a><a href="#adm-groups">搭子</a><a href="#adm-send">发消息</a><a href="#adm-claims">认领</a><a href="#adm-mgr">标签管理员</a><a href="#adm-asks">问题</a><a href="#adm-talk">留言</a><a href="#adm-posts">文章</a></nav>
+<nav class="adm-nav"><a href="#adm-sum">概况</a><a href="#adm-popular">热门内容</a><a href="#adm-people">注册的人</a><a href="#adm-groups">搭子</a><a href="#adm-send">发消息</a><a href="#adm-claims">认领</a><a href="#adm-mgr">标签管理员</a><a href="#adm-asks">问题</a><a href="#adm-talk">留言</a><a href="#adm-posts">文章</a></nav>
 <section class="adm" id="adm-sum"><h2 class="sec-h">概况</h2>
 <div class="adm-stats">${stats.map(([k, v]) => `<div class="adm-stat"><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join('')}</div>
 <p class="adm-chips"><span class="muted">国家和地区：</span>${byCountry.map(([c, n]) => `<span>${esc(region(c) || '还不知道')} ${n}</span>`).join('') || '<span>—</span>'}</p>
 <p class="adm-chips"><span class="muted">身份标签：</span>${byId.map(([k, n]) => `<span>${esc(idName(k))} ${n}</span>`).join('') || '<span>还没有人选</span>'}</p></section>
+<section class="adm adm-popularity" id="adm-popular"><div class="adm-pop-head"><div><h2 class="sec-h">热门板块与页面</h2><p class="hint">看看最近哪些内容被打开得最多。</p></div><label>时间范围 <select data-pop-days><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option></select></label></div><div data-popular-report>${renderPopularity(popularity)}</div></section>
 <section class="adm" id="adm-people"><h2 class="sec-h">注册的人 <small>${r.userCount}</small></h2>
 <form class="adm-tools" data-people-tools role="search">
 <input type="search" name="q" placeholder="搜昵称或邮箱">
@@ -701,6 +716,13 @@ ${r.managers.length ? r.managers.map((x) => `<div class="adm-row inline"><span>�
 <section class="adm" id="adm-asks"><h2 class="sec-h">大家发来的问题 <small>${r.asks.length}</small></h2>${r.asks.length ? r.asks.slice(0, 50).map((a) => `<div class="adm-row"><p>${esc(a.message).replace(/\n/g, '<br>')}</p><p class="muted">${esc(a.name || '没留称呼')} · ${a.reply ? `<a href="mailto:${esc(a.reply)}">${esc(a.reply)}</a>` : '没留邮箱'} · ${esc(d(a.created))} · ${a.mailed ? '已发到邮箱' : '没发邮件'}</p></div>`).join('') : '<p class="muted">还没有。</p>'}</section>
 <section class="adm" id="adm-talk"><h2 class="sec-h">最近的留言</h2>${r.talk.map((c) => `<div class="adm-row inline"><span><b>${esc(c.name)}</b>${c.pub ? '' : '（只给管理员）'}：${esc(c.body.slice(0, 120))} <span class="muted">${esc(c.target)}</span></span><button class="link-btn danger" data-talk-hide="${c.id}">${c.target.startsWith('huxi:') ? '隐藏' : '删除'}</button></div>`).join('') || '<p class="muted">还没有。</p>'}</section>
 <section class="adm" id="adm-posts"><h2 class="sec-h">管理员发的文章和视频</h2>${r.posts.map((p) => `<div class="adm-row inline"><span><a href="/x/${p.id}/">${esc(p.title)}</a> · ${esc(p.author)} · ${p.status === 'live' ? '在线' : '已撤下'}</span>${p.status === 'live' ? `<button class="link-btn danger" data-post="${p.id}" data-st="removed">撤下</button>` : `<button class="link-btn" data-post="${p.id}" data-st="live">恢复</button>`}</div>`).join('') || '<p class="muted">还没有。</p>'}</section>`;
+      const popSelect = $('[data-pop-days]', adminBox);
+      popSelect.addEventListener('change', async () => {
+        const box = $('[data-popular-report]', adminBox);
+        box.innerHTML = '<p class="muted">正在载入浏览统计……</p>';
+        const report = await api(`/api/admin/popularity?days=${encodeURIComponent(popSelect.value)}`);
+        box.innerHTML = renderPopularity(report);
+      });
       const post = async (path, body) => {
         const x = await api(path, { body });
         if (!x.ok) toast(x.error); else load();

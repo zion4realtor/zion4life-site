@@ -2,6 +2,7 @@
 // Normal page views use gtag.js when it loads; the site falls back here when Google is blocked.
 // This Worker does not forward visitor IP addresses; its location fields come from Cloudflare.
 // Query strings never reach Google (they hold 搭子 invite codes) except utm_* tags.
+import { recordPageView } from './popularity.js';
 
 const MP = 'https://www.google-analytics.com/mp/collect';
 
@@ -32,9 +33,6 @@ const prune = (o) => {
 export async function handleHit(request, env, ctx, url) {
   const done = () => new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
   if (request.method !== 'POST') return done();
-  const id = env.GA_MEASUREMENT_ID;
-  const secret = String(env.GA_API_SECRET || '').trim(); // a pasted secret can carry a stray newline
-  if (!id || !secret) return done();
   const origin = request.headers.get('origin');
   if (origin && origin !== url.origin) return done();
   const ua = request.headers.get('user-agent') || '';
@@ -47,6 +45,16 @@ export async function handleHit(request, env, ctx, url) {
   } catch {
     return done();
   }
+  const viewPath = (b.pv || (Array.isArray(b.e) && b.e.some((ev) => ev && ev.n === 'page_view')))
+    ? publicViewPath(b.loc, url.host) : '';
+  if (viewPath && env.PAGE_STATS) {
+    const day = new Date().toISOString().slice(0, 10);
+    const write = recordPageView(env, day, viewPath).catch((e) => console.error('[page views]', e?.message || e));
+    if (ctx && ctx.waitUntil) ctx.waitUntil(write); else await write;
+  }
+  const id = env.GA_MEASUREMENT_ID;
+  const secret = String(env.GA_API_SECRET || '').trim(); // a pasted secret can carry a stray newline
+  if (!id || !secret) return done();
   let hits;
   const cf = request.cf || {};
   try {
@@ -121,6 +129,25 @@ function cleanLoc(v, host) {
   const q = keep.toString();
   return { href: `${u.origin}${u.pathname}${q ? `?${q}` : ''}`, url: u };
 }
+// Aggregate public page paths only. Remove language prefixes and collapse private/dynamic pages.
+export function publicViewPath(value, host) {
+  const loc = cleanLoc(value, host);
+  if (!loc) return '';
+  let p = loc.url.pathname.replace(/^\/en(?=\/|$)/, '') || '/';
+  p = p === '/' ? '/' : `/${p.split('/').filter(Boolean).join('/')}/`;
+  if (/^\/(?:admin|me|write|api)(?:\/|$)/.test(p) || p === '/dazi/new/') return '';
+  if (/^\/g\/[a-z0-9]{8}(?:\/|$)/.test(p)) return '/dazi/';
+  if (/^\/x\/[a-z0-9]{10}(?:\/|$)/.test(p)) return '/shared/';
+  if (/^\/read\//.test(p)) return '/read/';
+  if (/^\/huxi(?:\/|$)/.test(p)) return '/huxi/';
+  if (/^\/a\/key-verses-\d{4}-\d{2}-\d{2}\/$/.test(p) || p === '/key-verses/') return '/key-verses/';
+  const video = p.match(/^\/v\/([a-z0-9-]+)(?:\/details)?\/$/);
+  if (video) return `/v/${video[1]}/`;
+  if (/^\/(?:a|t)\/[a-z0-9-]+\/$/.test(p)) return p;
+  if (/^\/(?:dazi|updates)\/$/.test(p)) return p;
+  return '';
+}
+
 // Where the visitor came from: our own pages by path, other sites by their address only.
 function cleanRef(v, host) {
   if (typeof v !== 'string' || !v) return '';

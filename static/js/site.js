@@ -60,7 +60,8 @@
         pageViews.forEach(function () { pageView(body); });
         var custom = body.e.filter(function (ev) { return ev.n !== 'page_view'; });
         // Keep the Worker’s first-visit source event, but never send a second page_view.
-        if (custom.length || body.ns) sendWorker(Object.assign({}, body, { e: custom, campaign_only: !custom.length && !!body.ns }));
+        // Keep a first-party aggregate page-view count without sending a duplicate GA page_view.
+        if (custom.length || body.ns || pageViews.length) sendWorker(Object.assign({}, body, { e: custom, pv: pageViews.length ? 1 : 0, campaign_only: !custom.length && !!body.ns }));
         return;
       }
       sendWorker(body);
