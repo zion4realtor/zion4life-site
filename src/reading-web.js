@@ -2,6 +2,7 @@
 import { BOOKS } from './bible.js';
 import { store } from './store.js';
 import { hash } from './util.js';
+import { localReadingAudio } from './reading-local.js';
 const CODES='GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV'.split(' ');
 export const EDITION='World English Bible (Protestant, updated American English)';
 export function webURL(part,chapter){const book=BOOKS.find(b=>b.en===part.bookEn);if(!book)throw Error('Unknown WEB book');return `https://ebible.org/engwebp/${CODES[book.n-1]}${String(chapter).padStart(2,'0')}.htm`}
@@ -32,24 +33,26 @@ async function load(db,k){const r=await db.get(k);return r?r.json():null}
 // Keep only MP3 audio frames, removing per-chunk ID3/Xing headers. This avoids a player
 // reporting the first chunk's duration as the duration of the complete recording.
 export function mp3Frames(bytes){let at=0;const frames=[];if(bytes[0]===73&&bytes[1]===68&&bytes[2]===51){at=10+((bytes[6]&127)<<21)+((bytes[7]&127)<<14)+((bytes[8]&127)<<7)+(bytes[9]&127);if(bytes[5]&16)at+=10}while(at+4<=bytes.length){const a=bytes[at],b=bytes[at+1],c=bytes[at+2],d=bytes[at+3];if(a!==255||(b&224)!==224){at++;continue}const version=(b>>3)&3,layer=(b>>1)&3,index=c>>4,rate=(c>>2)&3;if(version===1||layer!==1||index===0||index===15||rate===3){at++;continue}const bitrate=(version===3?[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320]:[0,8,16,24,32,40,48,56,64,80,96,112,128,144,160])[index];const hz=[44100,48000,32000][rate]/(version===3?1:version===2?2:4),length=Math.floor((version===3?144000:72000)*bitrate/hz)+((c>>1)&1);if(at+length>bytes.length)throw Error('Truncated MP3 frame');const frame=bytes.slice(at,at+length),side=version===3?((d>>6)===3?17:32):((d>>6)===3?9:17),offset=4+((b&1)?0:2)+side;const marker=String.fromCharCode(...frame.slice(offset,offset+4)),vbri=String.fromCharCode(...frame.slice(36,40));if(!['Xing','Info'].includes(marker)&&vbri!=='VBRI')frames.push(frame);at+=length}if(!frames.length)throw Error('No MP3 frames');const out=new Uint8Array(frames.reduce((n,f)=>n+f.length,0));let pos=0;for(const f of frames){out.set(f,pos);pos+=f.length}return out}
-async function speech(env,input){const reply=await env.AI.run('@cf/deepgram/aura-2-en',{text:input,speaker:'helena',encoding:'mp3'});let bytes;if(reply instanceof ReadableStream)bytes=new Uint8Array(await new Response(reply).arrayBuffer());else if(reply instanceof Response)bytes=new Uint8Array(await reply.arrayBuffer());else if(reply instanceof ArrayBuffer)bytes=new Uint8Array(reply);else if(reply instanceof Uint8Array)bytes=reply;else{const b64=typeof reply==='string'?reply:reply?.audio;if(!b64)throw Error('No TTS audio');bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0))}return mp3Frames(bytes)}
+// Keep manuscript preparation on the server; narration is made only on the local Mac.
+export async function ensureWebTranscript(env,data,testament){
+ const db=store(env),part=data[testament],key=`reading:web:transcript:${data.date}:${testament}:v1`;
+ let transcript=await load(db,key);if(transcript)return transcript;
+ const seeded=await env.ASSETS.fetch(new Request(`https://zion4life.faith/data/reading-web/${data.date}-${testament}.json`));
+ transcript=seeded.ok?await seeded.json():await webTranscript(part);
+ const expected=part.ranges.reduce((n,r)=>n+r.lastVerse-r.firstVerse+1,0);
+ if(transcript.verseCount!==expected||JSON.stringify(transcript.ranges)!==JSON.stringify(part.ranges))throw Error('WEB transcript coverage mismatch');
+ await db.put(key,JSON.stringify(transcript));return transcript;
+}
 export async function ensureWebAudio(env,data,testament,budget){
- const db=store(env),part=data[testament],transcriptKey=`reading:web:transcript:${data.date}:${testament}:v1`;
- let transcript=await load(db,transcriptKey);if(!transcript){const seeded=await env.ASSETS.fetch(new Request(`https://zion4life.faith/data/reading-web/${data.date}-${testament}.json`));transcript=seeded.ok?await seeded.json():await webTranscript(part);const expected=part.ranges.reduce((n,r)=>n+r.lastVerse-r.firstVerse+1,0);if(transcript.verseCount!==expected||JSON.stringify(transcript.ranges)!==JSON.stringify(part.ranges))throw Error('WEB transcript coverage mismatch');await db.put(transcriptKey,JSON.stringify(transcript))}
- const h=await hash(`webp-v1|helena|mp3|${transcript.text}`),jobKey=`reading:web:job:${h}`,fileKey=`reading:web:audio:${h}`;
- let job=await load(db,jobKey)||{done:0,total:transcript.chunks.length,bytes:0};
- const descriptor=()=>({status:job.done===job.total&&job.complete?'ready':'generating',scope:'full-passage',translation:'WEB',edition:EDITION,voice:'Aura 2 Helena',hash:h,done:job.done,total:job.total,verseCount:transcript.verseCount,bytes:job.bytes});
- part.englishAudio=descriptor();
- if(job.complete)return {used:0,complete:true};
- if(!env.AI||!budget)return {used:0,complete:false};
- if(job.retryAt&&job.retryAt>Date.now())return {used:0,complete:false};
- let used=0;
- try{while(job.done<job.total&&used<budget){used++;const bytes=await speech(env,transcript.chunks[job.done]);await db.put(`reading:web:part:${h}:${job.done}`,bytes);job.bytes+=bytes.length;job.done++;delete job.retryAt;delete job.error;await db.put(jobKey,JSON.stringify(job))}
- if(job.done===job.total){const pieces=[];for(let i=0;i<job.total;i++){const r=await db.get(`reading:web:part:${h}:${i}`);if(!r)throw Error('Recorded segment missing');pieces.push(new Uint8Array(await r.arrayBuffer()))}const result=new Uint8Array(pieces.reduce((n,p)=>n+p.length,0));let at=0;for(const p of pieces){result.set(p,at);at+=p.length}await db.put(fileKey,result);job.complete=true;await db.put(jobKey,JSON.stringify(job))}
- }catch(e){job.error=String(e.message||e).slice(0,180);job.retryAt=Date.now()+5*60000;await db.put(jobKey,JSON.stringify(job));console.error('[reading WEB audio]',data.date,testament,job.error)}
- part.englishAudio=descriptor();return {used,complete:!!job.complete};
+ await ensureWebTranscript(env,data,testament);
+ const local=await localReadingAudio(env,data.date,testament);
+ if(local)data[testament].englishAudio=local;
+ else if(data[testament].englishAudio?.status!=='ready')data[testament].englishAudio={status:'pending',scope:'full-passage',translation:'WEB',voice:'Voicebox Ryan',engine:'qwen_custom_voice',generation:'local'};
+ // Never invoke Workers AI, even when an AI binding and a nonzero budget exist.
+ return {used:0,complete:data[testament].englishAudio?.status==='ready'};
 }
 
 // Read-only progress while a long recording is running; never starts TTS from a public request.
-export async function webAudioProgress(env,date,testament){const db=store(env),transcript=await load(db,`reading:web:transcript:${date}:${testament}:v1`);if(!transcript)return null;const h=await hash(`webp-v1|helena|mp3|${transcript.text}`),job=await load(db,`reading:web:job:${h}`);return {status:job?.complete?'ready':job?.error?'retrying':'generating',scope:'full-passage',translation:'WEB',edition:EDITION,voice:'Aura 2 Helena',hash:h,done:job?.done||0,total:transcript.chunks.length,verseCount:transcript.verseCount,bytes:job?.bytes||0,...(job?.error?{error:job.error,retryAt:job.retryAt}:{})}}
+export async function webAudioProgress(env,date,testament){const local=await localReadingAudio(env,date,testament);if(local)return local;const db=store(env),transcript=await load(db,`reading:web:transcript:${date}:${testament}:v1`);if(!transcript)return null;const h=await hash(`webp-v1|helena|mp3|${transcript.text}`),job=await load(db,`reading:web:job:${h}`);if(!job?.complete)return {status:'pending',scope:'full-passage',translation:'WEB',voice:'Voicebox Ryan',engine:'qwen_custom_voice',generation:'local',verseCount:transcript.verseCount};return {status:job?.complete?'ready':job?.error?'retrying':'generating',scope:'full-passage',translation:'WEB',edition:EDITION,voice:'Aura 2 Helena',hash:h,done:job?.done||0,total:transcript.chunks.length,verseCount:transcript.verseCount,bytes:job?.bytes||0,...(job?.error?{error:job.error,retryAt:job.retryAt}:{})}}
+
 
