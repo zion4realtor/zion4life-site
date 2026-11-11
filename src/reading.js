@@ -25,7 +25,8 @@ const plain = s => decode(s.replace(/<[^>]*>/g,'')).replace(/\s+/g,' ').trim();
 function cn(s){if(/^\d+$/.test(s))return +s;let n=0,c=0;for(const x of s){if('一二三四五六七八九'.includes(x))c='一二三四五六七八九'.indexOf(x)+1;else if(x==='十'){n+=(c||1)*10;c=0}else if(x==='百'){n+=(c||1)*100;c=0}}return n+c}
 export function parseReading(raw) {
   const name=raw.match(/<title>[^<]*?天[-－]([^<]+)/i)?.[1]?.trim();
-  const book=BOOKS.find(b=>b.zh===name);if(!book)throw new Error('Unrecognized source book');
+  const canonicalName = name?.replace(/^约翰([壹贰叁])书$/, (_, digit) => `约翰${{壹:'一',贰:'二',叁:'三'}[digit]}书`);
+  const book=BOOKS.find(b=>b.zh===canonicalName);if(!book)throw new Error('Unrecognized source book');
   let chapter=+(raw.match(/CAPTION\s*,\s*['"][^\d'"]*(\d+):/i)?.[1]||0);
   let body=raw.split(/<body[^>]*>/i)[1];if(!body)throw new Error('Missing source body');
   body=body.split(/<hr\b/i)[0].replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,'').replace(/<sup>\s*<a\b[\s\S]*?<\/sup>/gi,'').replace(/<div\b[^>]*class=["'][^"']*\bo\d+\b[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,'');
