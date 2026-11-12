@@ -652,7 +652,7 @@ for (const lang of LANGS) {
         : (lang === 'zh' ? '黄弟兄的见证' : 'Brother Huang’s testimony');
       if (isWang) return `<a class="home-testimony" href="${itemHref(item, lang)}" data-ripple data-feature-testimony="${esc(item.slug)}" aria-label="${lang === 'zh' ? '阅读王姊妹见证：So What? 那又怎样？' : 'Read Sister Wang’s testimony: So What?'}">
 <span class="home-testimony-image"><img src="${image}" alt="${lang === 'zh' ? 'So What? 那又怎样？——金融界王姊妹见证封面' : 'So What? — Sister Wang’s testimony cover'}" width="1536" height="1024" loading="eager"><span class="home-cover-title" aria-hidden="true"><span>So What?</span>${lang === 'zh' ? '<span>那又怎样？</span>' : ''}</span></span>
-<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '金融界王姊妹的见证' : 'SISTER WANG · TESTIMONY'}</span><span class="home-testimony-summary">${lang === 'zh' ? '事业、财富、旅行，都没能回答她心里的那句“那又怎样？”儿子带回的一段圣经故事，却为她打开了另一扇门。' : 'Career success, wealth, and travel could not answer her question: “So what?” A Bible story her son brought home opened a new door.'}</span><span class="home-testimony-cta">${lang === 'zh' ? '读她的故事' : 'Read her story'} <b aria-hidden="true">↗</b></span></span></a>`;
+<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '金融界王姊妹的见证' : 'SISTER WANG · TESTIMONY'}</span><span class="home-testimony-summary">${lang === 'zh' ? '事业、财富、旅行，都没能回答她心里的那句“那又怎样？”儿子带回的一段圣经故事，却为她打开了另一扇门。信主后，她第一次看见自己怎样把意愿强加给儿子，也开口向他道歉。那一晚，她心里满了喜乐和平安。' : 'Career success, wealth, and travel could not answer her question: “So what?” A Bible story her son brought home opened a new door. After coming to faith, she saw how she had imposed her wishes on him and apologized. That night, she was filled with joy and peace.'}</span><span class="home-testimony-cta">${lang === 'zh' ? '读她的故事' : 'Read her story'} <b aria-hidden="true">↗</b></span></span></a>`;
       return `<a class="home-testimony" href="${itemHref(item, lang)}" data-ripple data-feature-testimony="${esc(item.slug)}"${index ? ' inert' : ''}>
   <span class="home-testimony-image"><img src="${image}" alt="" loading="lazy"></span>
   <span class="home-testimony-copy">
@@ -683,23 +683,11 @@ for (const lang of LANGS) {
 .home-testimony-slides>.home-testimony[inert]{visibility:hidden}
 .home-testimony-rotator .home-testimony-copy{flex:1}
 .home-testimony-rotator .home-testimony-copy strong{display:block;margin:0 0 8px}
-.home-testimony-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}
-.home-testimony-controls[hidden]{display:none}
-.home-testimony-controls button{min-height:44px;min-width:44px;border:1px solid #c6ddd5;border-radius:999px;background:var(--paper);color:#234a43;padding:0 12px;font:inherit;cursor:pointer}
-.home-testimony-controls span{min-width:42px;text-align:center;font-size:13px;color:#425f64}
 </style>
 <div class="home-testimony-rotator" data-testimony-rotator aria-label="${lang === 'zh' ? '精选见证' : 'Featured testimonies'}">
   <div class="home-testimony-slides">${testimonyCards.join('')}</div>
-  <div class="home-testimony-controls" hidden>
-    <button type="button" data-testimony-prev aria-label="${lang === 'zh' ? '上一篇见证' : 'Previous testimony'}">←</button>
-    <span data-testimony-position></span>
-    <button type="button" data-testimony-next aria-label="${lang === 'zh' ? '下一篇见证' : 'Next testimony'}">→</button>
-    <button type="button" data-testimony-toggle
-      data-pause-label="${lang === 'zh' ? '暂停轮播' : 'Pause rotation'}"
-      data-play-label="${lang === 'zh' ? '继续轮播' : 'Resume rotation'}"></button>
-  </div>
 </div>
-<script defer src="/js/home-testimonies.js"></script>` : daziTile;
+<script defer src="/js/home-testimonies.js?v=2"></script>` : daziTile;
     const pathDefs = [{ id:'all', title:lang === 'zh' ? '认识信仰，也照顾生活' : 'Faith for the whole of life', note:lang === 'zh' ? '从一个问题、一段故事、一首诗歌开始。' : 'Begin with a question, a story, or a song.', tags:TAGS.map(t => t.id) }];
     const tagMap = new Map(TAGS.map((tag) => [tag.id, tag]));
     const pathHTML = pathDefs.map((group, index) => {
