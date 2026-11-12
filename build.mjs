@@ -250,8 +250,10 @@ const itemsOf = (tagId) => items.filter((i) => i.tags.includes(tagId));
 const homeItems = items.filter((i) => !i.tagOnly);
 const homeItemsOf = (tagId) => homeItems.filter((i) => i.tags.includes(tagId));
 // The homepage testimony card is editorially pinned; change it only when Zion requests a different story.
-const pinnedHomeTestimonySlug = 'wang-so-what';
-const pinnedHomeTestimony = items.find((item) => item.kind === 'article' && item.slug === pinnedHomeTestimonySlug) || null;
+const homeTestimonySlugs = ['wang-so-what', 'zeng-grace-through-generations', 'huang-all-things-in-christ'];
+const homeTestimonies = homeTestimonySlugs
+  .map(slug => items.find(item => item.kind === 'article' && item.slug === slug))
+  .filter(Boolean);
 
 // 呼吸 days: a headline (title), a lede, then ## sections (verses as > quotes, the burden,
 // the ministry with ### headings and (source) lines). huxiHtml() shapes them for reading;
@@ -641,24 +643,63 @@ for (const lang of LANGS) {
 <span class="today-title" data-f="title" data-fit-title>${tp ? esc(tp[lang].title) : esc(L.today)}</span>
 <span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
     const daziTile = `<a class="dazi-tile" href="${U(lang, '/dazi/') }" data-ripple><span class="dazi-top"><span class="dazi-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.3A4.7 4.7 0 0 1 8.2 13h1.6a4.7 4.7 0 0 1 4.7 4.7V19M16 5.5a3 3 0 0 1 0 5.8M17 13h.8a3.7 3.7 0 0 1 3.7 3.7V19"/></svg></span><span class="dazi-kicker">${lang === 'zh' ? '同行操练' : 'GROW TOGETHER'}</span></span><span class="dazi-name">${esc(L.dazi)}</span><span class="dazi-about">${lang === 'zh' ? '读经 · 祷告 · 彼此关心' : 'Read · Pray · Care together'}</span><span class="dazi-countline" data-dazi-countline hidden><b data-dazi-count></b><span>${lang === 'zh' ? '个公开小组' : 'public groups'}</span></span><span class="dazi-latest" data-dazi-summary>${lang === 'zh' ? '看看大家正在一起操练什么' : 'See what others are practicing together'}</span><span class="dazi-link">${lang === 'zh' ? '找一个搭子' : 'Find a buddy'} <span aria-hidden="true">↗</span></span></a>`;
-    const testimonyImage = pinnedHomeTestimony ? `/stories/${pinnedHomeTestimony.slug}/hero.webp` : '';
-    const testimonyTile = pinnedHomeTestimony ? `<style>
-.home-command .home-testimony[data-feature-testimony="wang-so-what"]{height:auto;min-height:0;flex-direction:column}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-image{position:relative;inset:auto;width:100%;height:auto;flex:0 0 auto;aspect-ratio:1321/581}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-image img{width:100%;height:100%;object-fit:cover;object-position:center}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-image{background:#17383b}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-image::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(10,36,43,.80),rgba(12,39,44,.28) 55%,transparent 85%)}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-cover-title{position:absolute;z-index:2;left:7%;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;font-family:"Songti SC",STSong,serif;font-size:clamp(28px,4.1vw,56px);line-height:1.35;color:#fff8e9;font-weight:500}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-cover-title span{display:block}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-label{margin:0 0 9px}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-image::after{display:none}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-copy{padding:20px 25px;gap:0;min-height:0}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-summary{display:block;-webkit-line-clamp:unset;margin:0;font-size:16px;line-height:1.8;color:#425f64}
-.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-cta{margin-top:12px;padding-top:12px}
-@media(max-width:560px){.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-copy{padding:17px 20px}.home-command .home-testimony[data-feature-testimony="wang-so-what"] .home-testimony-summary{font-size:15px}}
-</style><a class="home-testimony" href="${itemHref(pinnedHomeTestimony, lang)}" data-ripple data-feature-testimony="${esc(pinnedHomeTestimony.slug)}" aria-label="${lang === 'zh' ? '阅读王姊妹见证：So What? 那又怎样？' : 'Read Sister Wang’s testimony: So What?'}">
-${testimonyImage ? `<span class="home-testimony-image"><img src="${testimonyImage}" alt="${lang === 'zh' ? 'So What? 那又怎样？——金融界王姊妹见证封面' : 'So What? — Sister Wang’s testimony cover'}" width="1536" height="1024" loading="eager"><span class="home-cover-title" aria-hidden="true"><span>So What?</span>${lang === 'zh' ? '<span>那又怎样？</span>' : ''}</span></span>` : ''}
-<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '金融界王姊妹的见证' : 'SISTER WANG · TESTIMONY'}</span><span class="home-testimony-summary">${lang === 'zh' ? '事业、财富、旅行，都没能回答她心里的那句“那又怎样？”儿子带回的一段圣经故事，却为她打开了另一扇门。' : 'Career success, wealth, and travel could not answer her question: “So what?” A Bible story her son brought home opened a new door.'}</span><span class="home-testimony-cta">${lang === 'zh' ? '读她的故事' : 'Read her story'} <b aria-hidden="true">↗</b></span></span></a>` : daziTile;
+    const testimonyCards = homeTestimonies.map((item, index) => {
+      const isWang = item.slug === 'wang-so-what';
+      const isZeng = item.slug === 'zeng-grace-through-generations';
+      const image = `/stories/${item.slug}/${isZeng ? 'family-recent.jpg' : 'hero.webp'}`;
+      const label = isZeng
+        ? (lang === 'zh' ? '曾启华弟兄的见证' : 'Brother Zeng’s testimony')
+        : (lang === 'zh' ? '黄弟兄的见证' : 'Brother Huang’s testimony');
+      if (isWang) return `<a class="home-testimony" href="${itemHref(item, lang)}" data-ripple data-feature-testimony="${esc(item.slug)}" aria-label="${lang === 'zh' ? '阅读王姊妹见证：So What? 那又怎样？' : 'Read Sister Wang’s testimony: So What?'}">
+<span class="home-testimony-image"><img src="${image}" alt="${lang === 'zh' ? 'So What? 那又怎样？——金融界王姊妹见证封面' : 'So What? — Sister Wang’s testimony cover'}" width="1536" height="1024" loading="eager"><span class="home-cover-title" aria-hidden="true"><span>So What?</span>${lang === 'zh' ? '<span>那又怎样？</span>' : ''}</span></span>
+<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '金融界王姊妹的见证' : 'SISTER WANG · TESTIMONY'}</span><span class="home-testimony-summary">${lang === 'zh' ? '事业、财富、旅行，都没能回答她心里的那句“那又怎样？”儿子带回的一段圣经故事，却为她打开了另一扇门。' : 'Career success, wealth, and travel could not answer her question: “So what?” A Bible story her son brought home opened a new door.'}</span><span class="home-testimony-cta">${lang === 'zh' ? '读她的故事' : 'Read her story'} <b aria-hidden="true">↗</b></span></span></a>`;
+      return `<a class="home-testimony" href="${itemHref(item, lang)}" data-ripple data-feature-testimony="${esc(item.slug)}"${index ? ' inert' : ''}>
+  <span class="home-testimony-image"><img src="${image}" alt="" loading="lazy"></span>
+  <span class="home-testimony-copy">
+    <span class="home-testimony-label">${esc(label)}</span>
+    <strong>${esc(item[lang].title)}</strong>
+    <span class="home-testimony-summary">${esc(item[lang].summary)}</span>
+    <span class="home-testimony-cta">${lang === 'zh' ? '阅读完整见证' : 'Read the full testimony'} <b aria-hidden="true">↗</b></span>
+  </span>
+</a>`;
+    });
+    const testimonyTile = testimonyCards.length ? `<style>
+.home-testimony-rotator .home-testimony{display:flex;height:100%;min-height:0;flex-direction:column}
+.home-testimony-rotator .home-testimony .home-testimony-image{position:relative;inset:auto;width:100%;height:auto;flex:0 0 auto;aspect-ratio:1321/581}
+.home-testimony-rotator .home-testimony .home-testimony-image img{width:100%;height:100%;object-fit:cover;object-position:center}
+.home-testimony-rotator .home-testimony .home-testimony-image{background:#17383b}
+.home-testimony-rotator [data-feature-testimony="wang-so-what"] .home-testimony-image::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(10,36,43,.80),rgba(12,39,44,.28) 55%,transparent 85%)}
+.home-testimony-rotator .home-testimony .home-cover-title{position:absolute;z-index:2;left:7%;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;font-family:"Songti SC",STSong,serif;font-size:clamp(28px,4.1vw,56px);line-height:1.35;color:#fff8e9;font-weight:500}
+.home-testimony-rotator .home-testimony .home-cover-title span{display:block}
+.home-testimony-rotator .home-testimony .home-testimony-label{margin:0 0 9px}
+.home-testimony-rotator .home-testimony .home-testimony-image::after{display:none}
+.home-testimony-rotator .home-testimony .home-testimony-copy{padding:20px 25px;gap:0;min-height:0}
+.home-testimony-rotator .home-testimony .home-testimony-summary{display:block;-webkit-line-clamp:unset;margin:0;font-size:16px;line-height:1.8;color:#425f64}
+.home-testimony-rotator .home-testimony .home-testimony-cta{margin-top:12px;padding-top:12px}
+@media(max-width:560px){.home-testimony-rotator .home-testimony .home-testimony-copy{padding:17px 20px}.home-testimony-rotator .home-testimony .home-testimony-summary{font-size:15px}}
+
+.home-testimony-slides{display:grid}
+.home-testimony-slides>.home-testimony{grid-area:1/1;min-width:0}
+.home-testimony-slides>.home-testimony[inert]{visibility:hidden}
+.home-testimony-rotator .home-testimony-copy{flex:1}
+.home-testimony-rotator .home-testimony-copy strong{display:block;margin:0 0 8px}
+.home-testimony-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}
+.home-testimony-controls[hidden]{display:none}
+.home-testimony-controls button{min-height:44px;min-width:44px;border:1px solid #c6ddd5;border-radius:999px;background:var(--paper);color:#234a43;padding:0 12px;font:inherit;cursor:pointer}
+.home-testimony-controls span{min-width:42px;text-align:center;font-size:13px;color:#425f64}
+</style>
+<div class="home-testimony-rotator" data-testimony-rotator aria-label="${lang === 'zh' ? '精选见证' : 'Featured testimonies'}">
+  <div class="home-testimony-slides">${testimonyCards.join('')}</div>
+  <div class="home-testimony-controls" hidden>
+    <button type="button" data-testimony-prev aria-label="${lang === 'zh' ? '上一篇见证' : 'Previous testimony'}">←</button>
+    <span data-testimony-position></span>
+    <button type="button" data-testimony-next aria-label="${lang === 'zh' ? '下一篇见证' : 'Next testimony'}">→</button>
+    <button type="button" data-testimony-toggle
+      data-pause-label="${lang === 'zh' ? '暂停轮播' : 'Pause rotation'}"
+      data-play-label="${lang === 'zh' ? '继续轮播' : 'Resume rotation'}"></button>
+  </div>
+</div>
+<script defer src="/js/home-testimonies.js"></script>` : daziTile;
     const pathDefs = [{ id:'all', title:lang === 'zh' ? '认识信仰，也照顾生活' : 'Faith for the whole of life', note:lang === 'zh' ? '从一个问题、一段故事、一首诗歌开始。' : 'Begin with a question, a story, or a song.', tags:TAGS.map(t => t.id) }];
     const tagMap = new Map(TAGS.map((tag) => [tag.id, tag]));
     const pathHTML = pathDefs.map((group, index) => {
