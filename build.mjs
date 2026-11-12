@@ -687,7 +687,7 @@ for (const lang of LANGS) {
 <div class="home-testimony-rotator" data-testimony-rotator aria-label="${lang === 'zh' ? '精选见证' : 'Featured testimonies'}">
   <div class="home-testimony-slides">${testimonyCards.join('')}</div>
 </div>
-<script defer src="/js/home-testimonies.js?v=2"></script>` : daziTile;
+<script defer src="/js/home-testimonies.js?v=3"></script>` : daziTile;
     const pathDefs = [{ id:'all', title:lang === 'zh' ? '认识信仰，也照顾生活' : 'Faith for the whole of life', note:lang === 'zh' ? '从一个问题、一段故事、一首诗歌开始。' : 'Begin with a question, a story, or a song.', tags:TAGS.map(t => t.id) }];
     const tagMap = new Map(TAGS.map((tag) => [tag.id, tag]));
     const pathHTML = pathDefs.map((group, index) => {
