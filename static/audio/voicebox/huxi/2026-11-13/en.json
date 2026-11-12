@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "ready": true,
+  "done": 25,
+  "total": 25,
+  "parts": [
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/0.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/1.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/2.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/3.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/4.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/5.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/6.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/7.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/8.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/9.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/10.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/11.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/12.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/13.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/14.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/15.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/16.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/17.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/18.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/19.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/20.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/21.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/22.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/23.mp3",
+    "/audio/voicebox/huxi/2026-11-13/en/5dfdff21a23f/24.mp3"
+  ],
+  "voicebox": {
+    "engine": "Qwen CustomVoice 0.6B",
+    "voice": "Ryan"
+  }
+}
