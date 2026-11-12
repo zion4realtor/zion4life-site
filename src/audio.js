@@ -129,10 +129,10 @@ export async function handleAudio(request, env, db, url) {
 }
 
 // One cron run: record a few pieces of the latest days, and drop recordings older than 30 days.
-export async function makeAudio(env, db, url, now = Date.now()) {
+export async function makeAudio(env, db, url, now = Date.now(), kinds = ['huxi', 'diguan']) {
   if (!env.AI) return null;
   const days = [];
-  for (const kind of ['huxi', 'diguan']) {
+  for (const kind of kinds) {
     const list = (await asset(env, url, `/data/${kind}.json`)) || [];
     days.push(...list.filter((x) => x.date <= addDays(chinaDate(now), 1)).slice(0, 3).map((d) => ({ ...d, kind })));
   }
