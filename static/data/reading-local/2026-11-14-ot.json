@@ -1,0 +1,37 @@
+{
+  "status": "ready",
+  "scope": "full-passage",
+  "translation": "WEB",
+  "edition": "World English Bible (Protestant, updated American English)",
+  "voice": "Voicebox Ryan",
+  "engine": "qwen_custom_voice",
+  "modelSize": "0.6B",
+  "hash": "dd78105264fc84c5cf27e7423048071d5e4fa56b5a7282da2f1a5cc60ac74cc0",
+  "done": 1,
+  "total": 1,
+  "verseCount": 74,
+  "bytes": 9926540,
+  "duration": 827.12,
+  "storage": "site",
+  "url": "/files/reading-ryan/dd78105264fc84c5cf27e7423048071d5e4fa56b5a7282da2f1a5cc60ac74cc0.mp3",
+  "date": "2026-11-14",
+  "testament": "ot",
+  "sourceHash": "16b85774e9de9dd1641cd910ac51434b5e9da3db36de24f50392c4e92a56608f",
+  "ranges": [
+    {
+      "chapter": 25,
+      "firstVerse": 1,
+      "lastVerse": 17
+    },
+    {
+      "chapter": 26,
+      "firstVerse": 1,
+      "lastVerse": 21
+    },
+    {
+      "chapter": 27,
+      "firstVerse": 1,
+      "lastVerse": 36
+    }
+  ]
+}
