@@ -33,7 +33,7 @@ test('video tag is a static complete library while details retain portrait react
   assert.ok(!h.includes('data-reels'));
   assert.ok(!h.includes('class="reels-page"'));
   assert.ok(!h.includes('/js/reels.js?v='));
-  assert.ok(h.includes('video-library-list'));
+  assert.ok(h.includes('cards topic-cards'));
   for(const v of films) assert.ok(h.includes(`/v/${v.slug}/`));
  }
 });

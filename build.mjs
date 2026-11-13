@@ -248,13 +248,43 @@ const videos = readJSON('videos.json').map((v) => {
 const items = [...articles, ...videos].sort((a, b) => String(b.date).localeCompare(String(a.date)));
 const itemsOf = (tagId) => items.filter((i) => i.tags.includes(tagId));
 const homeItems = items.filter((i) => !i.tagOnly);
+const isDripArticle = (it) => /^diguan-muyang-\d{4}-\d{2}-\d{2}$/.test(it.slug);
+const publishedHomeItems = homeItems.filter((it) => !it.sample);
+const latestDrip = publishedHomeItems.find(isDripArticle);
+const featuredSlugs = [
+  'wang-so-what',                  // Testimony
+  'life-purpose-everyday',         // Short video
+  'turn-to-his-care',              // Hymn
+  'rensheng-aomi',                  // Illustrated article
+];
+const featuredItems = featuredSlugs.map((slug) => publishedHomeItems.find((it) => it.slug === slug)).filter(Boolean);
+const recommendationCandidates = publishedHomeItems.filter((it) =>
+  !featuredItems.includes(it) && (!isDripArticle(it) || it === latestDrip));
+const seriesKey = (it) => it.pairedVideo
+  ? [it.slug, it.pairedVideo].sort().join('/')
+  : it.series?.zh || it.series?.en;
+const topicKey = (it) => it?.tags.includes('songs') ? 'songs' : it?.tags.find((tag) => tag !== 'video');
+const recommendedItems = [...featuredItems];
+const seriesCounts = new Map();
+for (const it of featuredItems) {
+  const series = seriesKey(it);
+  if (series) seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1);
+}
+while (recommendationCandidates.length) {
+  const previous = recommendedItems.at(-1);
+  // Look only a few cards ahead so recency still drives the feed.
+  const nearby = recommendationCandidates.slice(0, 4);
+  const changesTopic = (it) => topicKey(it) !== topicKey(previous);
+  const mixedIndex = nearby.findIndex((it) => changesTopic(it) && it.kind !== previous?.kind);
+  const nextIndex = mixedIndex >= 0 ? mixedIndex : nearby.findIndex(changesTopic);
+  const [next] = recommendationCandidates.splice(Math.max(0, nextIndex), 1);
+  const series = seriesKey(next);
+  const count = seriesCounts.get(series) || 0;
+  if (series && count >= 2) continue;
+  if (series) seriesCounts.set(series, count + 1);
+  recommendedItems.push(next);
+}
 const homeItemsOf = (tagId) => homeItems.filter((i) => i.tags.includes(tagId));
-// The homepage testimony card is editorially pinned; change it only when Zion requests a different story.
-const homeTestimonySlugs = ['wang-so-what', 'zeng-grace-through-generations', 'huang-all-things-in-christ'];
-const homeTestimonies = homeTestimonySlugs
-  .map(slug => items.find(item => item.kind === 'article' && item.slug === slug))
-  .filter(Boolean);
-
 // 呼吸 days: a headline (title), a lede, then ## sections (verses as > quotes, the burden,
 // the ministry with ### headings and (source) lines). huxiHtml() shapes them for reading;
 // huxiSpeech() writes the same text out to be read aloud (src/audio.js records it).
@@ -411,7 +441,7 @@ ${p.startsWith('/read/') ? `<link rel="manifest" href="${U(lang, '/read/app.webm
 <nav class="lang" aria-label="Language"><a href="${alt('zh')}" hreflang="zh-CN"${lang === 'zh' ? ' aria-current="true"' : ''} data-lang="zh">中</a><a href="${alt('en')}" hreflang="en"${lang === 'en' ? ' aria-current="true"' : ''} data-lang="en">EN</a></nav>
 </div></header>
 <main class="wrap${wide ? ' wide' : ''}">
-${['/t/eat/','/t/life/'].includes(p) ? `<section class="calendar" id="reading-calendar" data-reading-calendar><header><b>${lang === 'zh' ? '三旧一新 · 读经日历' : 'Bible reading calendar'}</b><div class="calendar-nav"><button data-calendar-step="-1" type="button" aria-label="${lang === 'zh' ? '上个月' : 'Previous month'}">←</button><span data-calendar-month></span><button data-calendar-step="1" type="button" aria-label="${lang === 'zh' ? '下个月' : 'Next month'}">→</button></div></header><div class="calendar-grid" data-calendar-grid></div></section>` : ''}${body}
+${body}
 <footer class="foot"><b>${esc(name)}</b> zion4life.faith<br><span class="mail">${esc(site.contact)}</span><br>${esc(L.copyright(new Date().getFullYear()))} · Atlanta USA</footer>
 </main>
 <div class="tab-space"></div>
@@ -501,13 +531,16 @@ function videoLike(slug, lang, title) {
   const shareUrl = site.url + sharePath + `?share=v3-${slug}`;
   return `<div class="video-reactions"><button type="button" class="video-share" data-video-share data-share-url="${esc(shareUrl)}" data-share-title="${esc(title)}" aria-label="${lang === 'zh' ? '分享转发这段视频' : 'Share this video'}" title="${lang === 'zh' ? '分享转发' : 'Share'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg><span>${lang === 'zh' ? '分享' : 'Share'}</span></button><button type="button" class="video-like" data-video-like="v:${slug}" aria-label="${lang === 'zh' ? '点赞，可连续点击' : 'Like, tap again to add more'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg><span data-like-label>${lang === 'zh' ? '点赞' : 'Like'}</span><b data-like-count title="258">258</b></button><span class="like-error" role="status"></span></div>`;
 }
-function card(it, lang, current) {
+function card(it, lang, current, inFeed = false) {
   const L = S[lang];
   const c = it[lang];
   const tint = TINTS[TAG[it.tags[0]]?.tint || 'aqua'];
   const others = it.tags.filter((x) => x !== current).map((x) => `<span class="other">${esc(TAG[x][lang])}</span>`).join('');
   const readTime = it.slug === 'rensheng-aomi' ? '' : `<span>${esc(L.min(it.minutes[lang]))}</span>`;
   const articleThumbs = {
+    'zeng-grace-through-generations': '/stories/zeng-grace-through-generations/family-recent.jpg',
+    'look-six-hundred-years': '/video/look-six-hundred-years.jpg',
+    'wang-so-what': '/stories/wang-so-what/hero.webp',
     'france-saints-update-2026-10-21': '/img/articles/france-saints-update-2026-10-21.jpg',
     'huang-learn-to-let-go': '/img/articles/huang-learn-to-let-go.jpg',
     'huang-lord-can': '/img/articles/huang-lord-can.jpg',
@@ -518,19 +551,19 @@ function card(it, lang, current) {
   const dripThumb = /^diguan-muyang-/.test(it.slug) && ['png', 'jpg']
     .map((ext) => `/files/drip-shepherding-${it.date}-${lang}.${ext}`)
     .find((src) => fs.existsSync(path.join(STATIC, src.slice(1))));
-  const thumb = it.poster || articleThumbs[it.slug] || dripThumb;
+  const thumb = it.poster || it.sources?.[0]?.poster || articleThumbs[it.slug] || dripThumb;
   const thumbHue = [...it.slug].reduce((h, ch) => (h * 31 + ch.codePointAt(0)) % 360, 17);
   const thumbVisual = thumb
     ? `<img src="${thumb}" alt="" loading="lazy" width="1200" height="675">`
     : `<span class="card-thumb-fallback" style="--thumb-hue:${thumbHue}"><span>${esc(c.title)}</span></span>`;
   if (it.kind === 'video') {
     return `<a class="card" href="${itemHref(it, lang)}" data-kind="videos" style="--tint:${tint}">
-<span class="poster">${thumbVisual}<span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span></span>
-<span class="card-body" style="display:block"><span class="kind">${L.kind.video}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3><p>${esc(c.summary)}</p><span class="meta">${others}</span></span></a>`;
+<span class="poster${inFeed && it.orientation === 'portrait' ? ' poster-portrait' : ''}">${thumbVisual}<span class="play">${ICON.play}</span><span class="dur">${esc(L.min(it.minutes))}</span></span>
+<span class="card-body" style="display:block">${inFeed ? '' : `<span class="kind">${L.kind.video}</span>`}${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${inFeed ? '' : `<p>${esc(c.summary)}</p><span class="meta">${others}</span>`}</span></a>`;
   }
-  return `<a class="card${dripThumb ? ' card--drip' : ''}" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}"><span class="poster card-thumb">${thumbVisual}</span><span class="card-body" style="display:block">
-<span class="kind">${L.kind[it.kind]}</span>${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
-<span class="meta">${readTime}${others}</span></span></a>`;
+  return `<a class="card${dripThumb ? ' card--drip' : ''}" href="${itemHref(it, lang)}" data-kind="reads" style="--tint:${tint}">${!inFeed || thumb ? `<span class="poster card-thumb">${thumbVisual}</span>` : ''}<span class="card-body" style="display:block">
+${!inFeed || !thumb ? `<span class="kind">${L.kind[it.kind]}</span>` : ''}${sampleTag(it, lang)}<h3>${esc(c.title)}</h3>${(!inFeed || !thumb) && c.summary ? `<p>${esc(c.summary)}</p>` : ''}
+${inFeed ? '' : `<span class="meta">${readTime}${others}</span>`}</span></a>`;
 }
 function shareBox(lang, text, sharePath, title, extra = '') {
   const L = S[lang];
@@ -634,60 +667,15 @@ function askBox(lang, compact = false) {
 for (const lang of LANGS) {
   const L = S[lang];
 
-  // 粮仓 (home): daily reading and the testimony selected by Zion stay in the first two cards.
+  // 粮仓 (home): daily reading and the recommendations feed.
   {
     const tp = todayHuxi;
-    const tpd = tp && dateParts(tp.date, lang);
-    const todayTile = `<a class="today-tile" href="${U(lang, '/huxi/')}" data-ripple${tp ? ` data-huxi-today data-date="${tp.date}"` : ''}>
-<span class="today-orbit" aria-hidden="true"></span><span class="today-top"><span class="today-label">${esc(L.todayFocus)}</span>${tp ? `<time class="today-date" data-f="md" datetime="${tp.date}">${esc(tpd.md)}</time>` : ''}</span>
-<span class="today-title" data-f="title" data-fit-title>${tp ? esc(tp[lang].title) : esc(L.today)}</span>
-<span class="today-bottom"><span>${esc(L.todayOpen)}</span><span class="today-arrow" aria-hidden="true">↗</span></span></a>`;
-    const daziTile = `<a class="dazi-tile" href="${U(lang, '/dazi/') }" data-ripple><span class="dazi-top"><span class="dazi-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.3A4.7 4.7 0 0 1 8.2 13h1.6a4.7 4.7 0 0 1 4.7 4.7V19M16 5.5a3 3 0 0 1 0 5.8M17 13h.8a3.7 3.7 0 0 1 3.7 3.7V19"/></svg></span><span class="dazi-kicker">${lang === 'zh' ? '同行操练' : 'GROW TOGETHER'}</span></span><span class="dazi-name">${esc(L.dazi)}</span><span class="dazi-about">${lang === 'zh' ? '读经 · 祷告 · 彼此关心' : 'Read · Pray · Care together'}</span><span class="dazi-countline" data-dazi-countline hidden><b data-dazi-count></b><span>${lang === 'zh' ? '个公开小组' : 'public groups'}</span></span><span class="dazi-latest" data-dazi-summary>${lang === 'zh' ? '看看大家正在一起操练什么' : 'See what others are practicing together'}</span><span class="dazi-link">${lang === 'zh' ? '找一个搭子' : 'Find a buddy'} <span aria-hidden="true">↗</span></span></a>`;
-    const testimonyCards = homeTestimonies.map((item, index) => {
-      const isWang = item.slug === 'wang-so-what';
-      const isZeng = item.slug === 'zeng-grace-through-generations';
-      const image = `/stories/${item.slug}/${isZeng ? 'family-recent.jpg' : 'hero.webp'}`;
-      const label = isZeng
-        ? (lang === 'zh' ? '曾启华弟兄的见证' : 'Brother Zeng’s testimony')
-        : (lang === 'zh' ? '黄弟兄的见证' : 'Brother Huang’s testimony');
-      if (isWang) return `<a class="home-testimony" href="${itemHref(item, lang)}" data-ripple data-feature-testimony="${esc(item.slug)}" aria-label="${lang === 'zh' ? '阅读王姊妹见证：So What? 那又怎样？' : 'Read Sister Wang’s testimony: So What?'}">
-<span class="home-testimony-image"><img src="${image}" alt="${lang === 'zh' ? 'So What? 那又怎样？——金融界王姊妹见证封面' : 'So What? — Sister Wang’s testimony cover'}" width="1536" height="1024" loading="eager"><span class="home-cover-title" aria-hidden="true"><span>So What?</span>${lang === 'zh' ? '<span>那又怎样？</span>' : ''}</span></span>
-<span class="home-testimony-copy"><span class="home-testimony-label">${lang === 'zh' ? '金融界王姊妹的见证' : 'SISTER WANG · TESTIMONY'}</span><span class="home-testimony-summary">${lang === 'zh' ? '事业、财富、旅行，都没能回答她心里的那句“那又怎样？”儿子带回的一段圣经故事，却为她打开了另一扇门。' : 'Career success, wealth, and travel could not answer her question: “So what?” A Bible story her son brought home opened a new door.'}</span><span class="home-testimony-cta">${lang === 'zh' ? '读她的故事' : 'Read her story'} <b aria-hidden="true">↗</b></span></span></a>`;
-      return `<a class="home-testimony" href="${itemHref(item, lang)}" data-ripple data-feature-testimony="${esc(item.slug)}"${index ? ' inert' : ''}>
-  <span class="home-testimony-image"><img src="${image}" alt="" loading="lazy"></span>
-  <span class="home-testimony-copy">
-    <span class="home-testimony-label">${esc(label)}</span>
-    <strong>${esc(item[lang].title)}</strong>
-    <span class="home-testimony-summary">${esc(item[lang].summary)}</span>
-    <span class="home-testimony-cta">${lang === 'zh' ? '阅读完整见证' : 'Read the full testimony'} <b aria-hidden="true">↗</b></span>
-  </span>
+    const recommendationTile = `<a class="home-recommended" href="${U(lang, '/t/')}">
+<span class="home-recommended-copy"><strong>${lang === 'zh' ? '粮仓推荐' : 'Granary picks'}</strong>
+<span>${lang === 'zh' ? '见证、短片与诗歌' : 'Stories, short videos and hymns'}</span>
+<span class="home-recommended-action">${lang === 'zh' ? '进去看看' : 'Explore'} <span aria-hidden="true">↗</span></span></span>
+<span class="home-recommended-art"><img class="home-recommended-cover" src="/img/granary-picks.webp" alt="" width="960" height="640"></span>
 </a>`;
-    });
-    const testimonyTile = testimonyCards.length ? `<style>
-.home-testimony-rotator .home-testimony{display:flex;height:100%;min-height:0;flex-direction:column}
-.home-testimony-rotator .home-testimony .home-testimony-image{position:relative;inset:auto;width:100%;height:auto;flex:0 0 auto;aspect-ratio:1321/581}
-.home-testimony-rotator .home-testimony .home-testimony-image img{width:100%;height:100%;object-fit:cover;object-position:center}
-.home-testimony-rotator .home-testimony .home-testimony-image{background:#17383b}
-.home-testimony-rotator [data-feature-testimony="wang-so-what"] .home-testimony-image::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(10,36,43,.80),rgba(12,39,44,.28) 55%,transparent 85%)}
-.home-testimony-rotator .home-testimony .home-cover-title{position:absolute;z-index:2;left:7%;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;font-family:"Songti SC",STSong,serif;font-size:clamp(28px,4.1vw,56px);line-height:1.35;color:#fff8e9;font-weight:500}
-.home-testimony-rotator .home-testimony .home-cover-title span{display:block}
-.home-testimony-rotator .home-testimony .home-testimony-label{margin:0 0 9px}
-.home-testimony-rotator .home-testimony .home-testimony-image::after{display:none}
-.home-testimony-rotator .home-testimony .home-testimony-copy{padding:20px 25px;gap:0;min-height:0}
-.home-testimony-rotator .home-testimony .home-testimony-summary{display:block;-webkit-line-clamp:unset;margin:0;font-size:16px;line-height:1.8;color:#425f64}
-.home-testimony-rotator .home-testimony .home-testimony-cta{margin-top:12px;padding-top:12px}
-@media(max-width:560px){.home-testimony-rotator .home-testimony .home-testimony-copy{padding:17px 20px}.home-testimony-rotator .home-testimony .home-testimony-summary{font-size:15px}}
-
-.home-testimony-slides{display:grid}
-.home-testimony-slides>.home-testimony{grid-area:1/1;min-width:0}
-.home-testimony-slides>.home-testimony[inert]{visibility:hidden}
-.home-testimony-rotator .home-testimony-copy{flex:1}
-.home-testimony-rotator .home-testimony-copy strong{display:block;margin:0 0 8px}
-</style>
-<div class="home-testimony-rotator" data-testimony-rotator aria-label="${lang === 'zh' ? '精选见证' : 'Featured testimonies'}">
-  <div class="home-testimony-slides">${testimonyCards.join('')}</div>
-</div>
-<script defer src="/js/home-testimonies.js?v=3"></script>` : daziTile;
     const pathDefs = [{ id:'all', title:lang === 'zh' ? '认识信仰，也照顾生活' : 'Faith for the whole of life', note:lang === 'zh' ? '从一个问题、一段故事、一首诗歌开始。' : 'Begin with a question, a story, or a song.', tags:TAGS.map(t => t.id) }];
     const tagMap = new Map(TAGS.map((tag) => [tag.id, tag]));
     const pathHTML = pathDefs.map((group, index) => {
@@ -721,8 +709,8 @@ for (const lang of LANGS) {
       title: '',
       tab: 'home',
       body: `<section class="hello home-hello"><span class="hello-kicker">${esc(homeEditorial[lang].eyebrow)}</span><h1>${esc(homeEditorial[lang].title)}</h1><p>${esc(homeEditorial[lang].subtitle)}</p></section>
-<div class="home-fresh-sections" data-home-fresh-sections><section class="home-command" data-home-fresh="community" data-updated="${tp ? Date.parse(tp.date) : 0}" aria-label="${lang==='zh'?'每日读经与精选见证':'Daily reading and a selected testimony'}"><div class="home-daily">${`<a class="daily-preview" data-reading-home href="${U(lang, '/read/today/ot/')}"><div class="reading-home-top"><b class="reading-home-badge">${lang === 'zh' ? '今日读经' : 'Today’s reading'}</b><small data-reading-label>${lang === 'zh' ? '每天更新' : 'UPDATED DAILY'}</small></div><div class="reading-home-date-row"><time data-reading-home-date datetime="${readingHomeDate}">${readingHomeLabel}</time><span data-reading-home-year>${readingHomeParts[0]}</span></div><h2>${lang === 'zh' ? '三旧一新 · 一年一遍' : 'Bible reading · One year'}</h2><p data-reading-summary>${lang === 'zh' ? '每天读经、听经，记住一两节金句。' : 'Read, listen, and remember a verse each day.'}</p><p class="reading-home-cta"><span aria-hidden="true">▶</span> ${lang === 'zh' ? '点击读经 / 听经' : 'Read & listen'} <span aria-hidden="true">→</span></p></a>`}</div><div class="home-companion">${testimonyTile}</div></section>${spotlight}</div>
-<section class="home-discover" aria-labelledby="home-discover-title"><div class="home-section-head"><span class="home-eyebrow">${lang === 'zh' ? '照着你的需要开始' : 'FIND YOUR NEXT STEP'}</span><h2 id="home-discover-title">${lang === 'zh' ? '一个入口，看见所有主题' : 'Every topic, one place to begin'}</h2><p>${lang === 'zh' ? '照着此刻的需要，找到愿意读下去的那一篇。' : 'Find something to read, hear, or carry into your day.'}</p></div><div class="home-paths" data-home-grid>${pathHTML}</div></section>
+<div class="home-fresh-sections" data-home-fresh-sections><section class="home-command" data-home-fresh="community" data-updated="${tp ? Date.parse(tp.date) : 0}" aria-label="${lang==='zh'?'每日读经与粮仓推荐':'Daily reading and Granary picks'}"><div class="home-daily">${`<a class="daily-preview" data-reading-home href="${U(lang, '/read/today/ot/')}"><div class="reading-home-top"><b class="reading-home-badge">${lang === 'zh' ? '今日读经' : 'Today’s reading'}</b><small data-reading-label>${lang === 'zh' ? '每天更新' : 'UPDATED DAILY'}</small></div><div class="reading-home-date-row"><time data-reading-home-date datetime="${readingHomeDate}">${readingHomeLabel}</time><span data-reading-home-year>${readingHomeParts[0]}</span></div><h2>${lang === 'zh' ? '三旧一新 · 一年一遍' : 'Bible reading · One year'}</h2><p data-reading-summary>${lang === 'zh' ? '每天读经、听经，记住一两节金句。' : 'Read, listen, and remember a verse each day.'}</p><p class="reading-home-cta"><span aria-hidden="true">▶</span> ${lang === 'zh' ? '点击读经 / 听经' : 'Read & listen'} <span aria-hidden="true">→</span></p></a>`}</div><div class="home-companion">${recommendationTile}</div></section>${spotlight}</div>
+<section class="home-discover" aria-labelledby="home-discover-title"><div class="home-section-head"><span class="home-eyebrow">${lang === 'zh' ? '照着你的需要开始' : 'FIND YOUR NEXT STEP'}</span><h2 id="home-discover-title">${lang === 'zh' ? '一个入口，看见所有主题' : 'Every topic, one place to begin'}</h2><p>${lang === 'zh' ? '照着此刻的需要，找到愿意读下去的那一篇。' : 'Find something to read, hear, or carry into your day.'}</p><a href="${U(lang, '/t/')}" class="recent-more">${lang === 'zh' ? '浏览推荐' : 'Browse recommendations'} →</a></div><div class="home-paths" data-home-grid>${pathHTML}</div></section>
 <section class="home-recent" aria-labelledby="home-recent-title"><div class="home-section-head recent-head"><div><span class="home-eyebrow">${lang === 'zh' ? '新鲜上架' : 'FRESH FROM THE GRANARY'}</span><h2 id="home-recent-title">${lang === 'zh' ? '最近更新' : 'Recently added'}</h2></div><a href="${U(lang, '/updates/')}" class="recent-more">${lang === 'zh' ? '全部更新' : 'All updates'} ↗</a></div><div class="recent-list">${recentItems}</div></section>
 <a class="keyverse-entry" data-keyverse-today href="${U(lang,'/key-verses/')}"><b>${lang==='zh'?'今日金句图片':'Today’s verse images'} ↗</b><span>${lang==='zh'?'旧约 · 新约，保存与分享':'Old & New Testament · Keep & share'}</span></a>
 ${askBox(lang, true)}`,
@@ -755,27 +743,33 @@ ${askBox(lang, true)}`,
     });
   }
 
-  // tag pages
-  for (const t of TAGS) {
-    const list = itemsOf(t.id);
-    const reads = list.filter((i) => i.kind !== 'video').length;
+  // Tag feeds share the same navigation, with a mixed feed at /t/.
+  const recommended = { id: '', zh: '推荐', en: 'Recommended' };
+  const priorityTopics = ['goodnews', 'stories', 'video', 'songs', 'mystery'];
+  const feedTags = [recommended, ...priorityTopics.map((id) => TAG[id]),
+    ...TAGS.filter((tag) => !priorityTopics.includes(tag.id))];
+  const topicPath = (tag) => tag.id ? `/t/${tag.id}/` : '/t/';
+  for (const t of feedTags) {
+    const list = t.id ? itemsOf(t.id) : recommendedItems;
+    const reads = list.filter((it) => it.kind !== 'video').length;
     const vids = list.length - reads;
-    const chips = list.length
-      ? `<div class="chips" role="group" data-filters>${[['all', list.length], ['reads', reads], ['videos', vids]].filter(([k, n]) => k === 'all' || n)
+    const chips = reads && vids
+      ? `<div class="chips" role="group" data-filters aria-label="${lang === 'zh' ? '内容类型' : 'Content type'}">${[['all', list.length], ['reads', reads], ['videos', vids]]
         .map(([k, n]) => `<button type="button" data-filter="${k}" aria-pressed="${k === 'all'}">${L[k]} ${n}</button>`).join('')}</div>`
       : '';
-    emit(lang, `/t/${t.id}/`, {
+    const topics = feedTags.map((tag) => `<a href="${U(lang, topicPath(tag))}"${tag === t ? ' aria-current="page"' : ''}>${esc(tag[lang])}</a>`).join('');
+    emit(lang, topicPath(t), {
       title: t[lang],
       desc: `${t[lang]}｜${site[lang].description}`,
       tab: 'home',
-      body: `<section class="page" style="--tint:${TINTS[t.tint] || TINTS.aqua}">
-<a class="back" href="${U(lang, '/')}">← ${esc(L.back)}</a>
-<div class="banner${t.id === 'video' ? ' video-library-banner' : ''}" style="--banner-image:url('${t.id === 'video' ? '/img/video-library-banner.svg' : `/tags/${t.id}.jpg`}')"><h1>${esc(t[lang])}</h1>${t.id === 'video' ? `<p class="video-library-lede">${lang === 'zh' ? '故事、分享与诗歌。' : 'Stories, reflections and songs.'}</p>` : ''}<p>${t.id === 'video' ? (lang === 'zh' ? `${list.length} 段视频` : `${list.length} videos`) : esc(L.count(list.length))}</p>${t.person ? `<span class="avatar big">${esc(t.person[lang])}</span>` : ''}</div>
-<div class="tag-tools" data-tag-tools="${t.id}"${t.person ? ' data-person' : ''}></div>
+      body: `<section class="page topic-feed" style="--tint:${TINTS[t.tint] || TINTS.aqua}">
+<nav class="topic-nav" aria-label="${lang === 'zh' ? '粮仓标签' : 'Granary topics'}">${topics}</nav>
+<h1 class="topic-title">${esc(t[lang])}</h1>
+${t.id ? `<div class="tag-tools" data-tag-tools="${t.id}"${t.person ? ' data-person' : ''}></div>` : ''}
 ${chips}
-<div class="cards" data-tag-posts="${t.id}" hidden></div>
-${list.length ? `<div class="cards${t.id === 'video' ? ' video-library-list' : ''}">${list.map((it) => card(it, lang, t.id)).join('\n')}</div>` : `<div class="empty" data-empty>${MASCOT()}<p>${esc(L.empty)}</p></div>`}
-<section class="talk" data-talk="tag:${t.id}"></section>
+${t.id ? `<div class="cards topic-cards" data-tag-posts="${t.id}" hidden></div>` : ''}
+${list.length ? `<div class="cards topic-cards">${list.map((it) => card(it, lang, t.id, true)).join('\n')}</div>` : `<div class="empty" data-empty>${MASCOT()}<p>${esc(L.empty)}</p></div>`}
+${t.id ? `<section class="talk" data-talk="tag:${t.id}"></section>` : ''}
 </section>`,
     });
   }
@@ -784,7 +778,7 @@ ${list.length ? `<div class="cards${t.id === 'video' ? ' video-library-list' : '
   for (const a of articles) {
     const c = a[lang];
     const mystery = a.slug === 'rensheng-aomi';
-    const dripShepherding = /^diguan-muyang-\d{4}-\d{2}-\d{2}$/.test(a.slug);
+    const dripShepherding = isDripArticle(a);
     const dripAudio = dripShepherding && a.date >= '2026-10-16';
     const dripImage = ['png', 'jpg'].map((ext) => `/files/drip-shepherding-${a.date}-${lang}.${ext}`)
       .find((src) => fs.existsSync(path.join(STATIC, src.slice(1))));
@@ -845,13 +839,23 @@ ${related.length ? `<section class="more"><h2 class="sec-h">${esc(L.more)}</h2><
     const todayDate = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
     const isToday = !d || date === todayDate;
     const footerReadingLink = isToday
-      ? '<a href="' + pre + '/t/eat/#reading-calendar">' + (en ? 'Bible reading calendar' : '读经日历') + ' ↗</a>'
+      ? '<a href="' + pre + '/read/calendar/">' + (en ? 'Bible reading calendar' : '读经日历') + ' ↗</a>'
       : '<a href="' + pre + '/read/today/ot/">' + (en ? 'Today’s reading' : '今日读经') + ' ↗</a>';
     return `<article class="reading" data-reading-page data-reading-date="${date}" data-testament="${testament}"><div class="reading-kicker"><span data-reading-kicker>${en ? 'EAT' : '吃饭'}${d ? ` · ${en ? 'DAY' : '第'} ${d.planDay}${en ? '' : ' 天'}` : ''}</span><time data-reading-date-label>${date}</time></div><h1>${en ? 'Daily Bible reading' : '三旧一新，天天吃饭'}</h1><nav class="reading-tabs"><a href="/read/${token}/${testament}/" ${en ? '' : 'aria-current="page"'} data-reading-lang="zh">中文</a><a href="/en/read/${token}/${testament}/" ${en ? 'aria-current="page"' : ''} data-reading-lang="en">English</a></nav><nav class="reading-tabs"><a href="${pre}/read/${token}/ot/" ${ot ? 'aria-current="page"' : ''} data-reading-testament="ot">${en ? 'Old Testament' : '旧约'}</a><a href="${pre}/read/${token}/nt/" ${ot ? '' : 'aria-current="page"'} data-reading-testament="nt">${en ? 'New Testament' : '新约'}</a></nav><div class="hx-audio reading-player" data-reading-player>
 <button class="hx-play" type="button" data-reading-play aria-label="${en ? 'Play reading' : '读给我听'}" disabled><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z" fill="currentColor"/></svg></button>
 <div class="hx-a-main"><p class="hx-a-top"><b>${en ? 'Listen to the reading' : '读给我听'}</b><span data-reading-time>0:00</span></p><div class="hx-a-bar" data-reading-seek role="slider" aria-label="${en ? 'Reading progress' : '读经播放进度'}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00" tabindex="0"><i data-reading-fill></i></div></div>
-<button class="hx-speed" type="button" data-reading-speed aria-label="${en ? 'Playback speed' : '语速'}">1×</button><audio preload="none" data-reading-audio ${!en && t?.audioUrl ? `src="/api/reading/${date}/audio/zh/${testament}.mp3"` : 'hidden'}></audio><p class="hx-a-msg reading-status" data-reading-audio-status ${en ? '' : 'hidden'}>${en ? 'Preparing today’s complete reading…' : ''}</p></div><h2 data-reading-range>${esc(label)}</h2><div data-reading-verses>${verses.map(v => `<section class="memory-section"><div class="memory-heading"><span>${en ? 'REMEMBER THE WORD' : '今日金句 · 记在心里'}</span><button type="button" data-memory-toggle aria-pressed="false">${en ? 'Practice' : '遮住试背'}</button></div><p class="memory-ref">${esc(en ? v.reference : v.referenceZh)}</p><p class="reading-verse" data-memory-text>${esc(en ? v.en : v.zh)}</p></section>`).join('')}</div><div class="reading-error" data-reading-error hidden></div><div class="reading-note">${en ? 'Selected from today’s reading. Open the source for the full reading.' : '金句选自当天阅读范围，完整经文请打开原文。'}<br><a data-reading-source href="${esc(en ? (verses[0]?.sourceEn || 'https://text.recoveryversion.bible/') : (t ? chineseReadingURL(t) : 'https://recoveryversion.twgbr.org/?lang=cn'))}" target="_blank" rel="noopener">${en ? 'Read in Recovery Version ↗' : '打开今日完整经文 ↗'}</a><br>${en ? `<a data-reading-web-source href="${t ? esc(webURL(t,t.ranges[0].chapter)) : 'https://worldenglish.bible/'}" target="_blank" rel="noopener">Read in World English Bible (WEB) ↗</a><br><span class="reading-editions">Audio: World English Bible (WEB) · Key verses: Recovery Version.<br>We have not obtained permission to publish a full-length Recovery Version narration from LSM, so the audio uses the World English Bible.</span>` : '台湾福音书房'}</div><div class="reading-links"><a data-reading-cards href="${pre}/a/key-verses-${date}/">${en ? 'Save verse images' : '保存金句图片'}</a><a href="${pre}/t/eat/#reading-calendar">${en ? 'Eat' : '吃饭'}</a><a href="${pre}/t/life/#reading-calendar">${en ? 'Life' : '生命'}</a>${footerReadingLink}</div>${READING_HOME_SCREEN[lang]}</article>`;
+<button class="hx-speed" type="button" data-reading-speed aria-label="${en ? 'Playback speed' : '语速'}">1×</button><audio preload="none" data-reading-audio ${!en && t?.audioUrl ? `src="/api/reading/${date}/audio/zh/${testament}.mp3"` : 'hidden'}></audio><p class="hx-a-msg reading-status" data-reading-audio-status ${en ? '' : 'hidden'}>${en ? 'Preparing today’s complete reading…' : ''}</p></div><h2 data-reading-range>${esc(label)}</h2><div data-reading-verses>${verses.map(v => `<section class="memory-section"><div class="memory-heading"><span>${en ? 'REMEMBER THE WORD' : '今日金句 · 记在心里'}</span><button type="button" data-memory-toggle aria-pressed="false">${en ? 'Practice' : '遮住试背'}</button></div><p class="memory-ref">${esc(en ? v.reference : v.referenceZh)}</p><p class="reading-verse" data-memory-text>${esc(en ? v.en : v.zh)}</p></section>`).join('')}</div><div class="reading-error" data-reading-error hidden></div><div class="reading-note">${en ? 'Selected from today’s reading. Open the source for the full reading.' : '金句选自当天阅读范围，完整经文请打开原文。'}<br><a data-reading-source href="${esc(en ? (verses[0]?.sourceEn || 'https://text.recoveryversion.bible/') : (t ? chineseReadingURL(t) : 'https://recoveryversion.twgbr.org/?lang=cn'))}" target="_blank" rel="noopener">${en ? 'Read in Recovery Version ↗' : '打开今日完整经文 ↗'}</a><br>${en ? `<a data-reading-web-source href="${t ? esc(webURL(t,t.ranges[0].chapter)) : 'https://worldenglish.bible/'}" target="_blank" rel="noopener">Read in World English Bible (WEB) ↗</a><br><span class="reading-editions">Audio: World English Bible (WEB) · Key verses: Recovery Version.<br>We have not obtained permission to publish a full-length Recovery Version narration from LSM, so the audio uses the World English Bible.</span>` : '台湾福音书房'}</div><div class="reading-links"><a data-reading-cards href="${pre}/a/key-verses-${date}/">${en ? 'Save verse images' : '保存金句图片'}</a><a href="${pre}/t/eat/">${en ? 'Eat' : '吃饭'}</a><a href="${pre}/t/life/">${en ? 'Life' : '生命'}</a>${footerReadingLink}</div>${READING_HOME_SCREEN[lang]}</article>`;
   };
+  const calendarTitle = lang === 'zh' ? '三旧一新 · 读经日历' : 'Bible reading calendar';
+  emit(lang, '/read/calendar/', {
+    title: calendarTitle,
+    tab: 'home',
+    body: `<section class="page reading-calendar-page">
+<a class="back" href="${U(lang, '/read/today/ot/')}">← ${lang === 'zh' ? '今日读经' : 'Today’s reading'}</a>
+<h1 class="page-title">${calendarTitle}</h1>
+<section class="calendar" id="reading-calendar" data-reading-calendar><header><div class="calendar-nav"><button data-calendar-step="-1" type="button" aria-label="${lang === 'zh' ? '上个月' : 'Previous month'}">←</button><span data-calendar-month></span><button data-calendar-step="1" type="button" aria-label="${lang === 'zh' ? '下个月' : 'Next month'}">→</button></div></header><div class="calendar-grid" data-calendar-grid></div></section>
+</section>`,
+  });
   for (const testament of ['ot','nt']) {
     emit(lang, `/read/shell/${testament}/`, { title:lang === 'zh' ? '三旧一新' : 'Daily Bible reading', tab:'home', noindex:true, body:readingBody(null,testament) });
     emit(lang, `/read/today/${testament}/`, { title:lang === 'zh' ? '今日三旧一新' : 'Today’s Bible reading', tab:'home', noindex:true, body:readingBody(null,testament) });

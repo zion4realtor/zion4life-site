@@ -149,6 +149,34 @@
     });
   });
 
+  // Measure cards independently so a shorter card leaves room for the next one.
+  var topicNav = document.querySelector('.topic-nav');
+  if (topicNav) {
+    var activeTopic = topicNav.querySelector('[aria-current="page"]');
+    topicNav.scrollLeft = activeTopic.offsetLeft - topicNav.offsetLeft
+      - (topicNav.clientWidth - activeTopic.offsetWidth) / 2;
+  }
+  if ('ResizeObserver' in window) {
+    document.querySelectorAll('.topic-cards').forEach(function (grid) {
+      var observer = new ResizeObserver(function (entries) {
+        var gap = parseFloat(getComputedStyle(grid).columnGap);
+        entries.forEach(function (entry) {
+          var card = entry.target;
+          if (!card.hidden && card.offsetHeight) {
+            card.style.gridRowEnd = 'span ' + Math.ceil(card.getBoundingClientRect().height + gap);
+          }
+        });
+      });
+      function observeCards() {
+        observer.disconnect();
+        grid.querySelectorAll('.card').forEach(function (card) { observer.observe(card); });
+      }
+      grid.classList.add('is-masonry');
+      observeCards();
+      new MutationObserver(observeCards).observe(grid, { childList: true });
+    });
+  }
+
   // ---- tag page filters ----
   var filters = document.querySelector('[data-filters]');
   if (filters) {
